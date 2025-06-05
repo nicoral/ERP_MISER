@@ -1,0 +1,39 @@
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #475569;
+  --background-color: #f8fafc;
+  --text-color: #1e293b;
+  --error-color: #ef4444;
+  --success-color: #22c55e;
+  --border-color: #e2e8f0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+} 
