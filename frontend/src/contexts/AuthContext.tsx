@@ -1,14 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types/user';
+import type { AuthContextProps } from '../types/auth';
 import * as authService from '../services/auth/authService';
-
-interface AuthContextProps {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-}
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 

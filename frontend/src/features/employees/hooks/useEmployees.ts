@@ -1,57 +1,30 @@
 import { useState, useEffect } from 'react';
+import { getEmployees } from '../../../services/api/employeeService';
 import type { Employee } from '../../../types/employee';
+import type { PaginatedResponse } from '../../../services/api/employeeService';
 
-// TODO: Reemplazar con llamadas reales a la API
-const mockEmployees: Employee[] = [
-  {
-    id: 1,
-    firstName: 'Juan',
-    lastName: 'Pérez',
-    position: 'Supervisor',
-    phone: '3001234567',
-    role: 'Administrador',
-    active: true,
-  },
-  {
-    id: 2,
-    firstName: 'María',
-    lastName: 'González',
-    position: 'Operario',
-    phone: '3007654321',
-    role: 'Usuario',
-    active: true,
-  },
-  {
-    id: 3,
-    firstName: 'Carlos',
-    lastName: 'Rodríguez',
-    position: 'Supervisor',
-    phone: '3009876543',
-    role: 'Supervisor',
-    active: false,
-  },
-];
-
-export const useEmployees = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+export const useEmployees = (page: number = 1, pageSize: number = 10) => {
+  const [employees, setEmployees] = useState<PaginatedResponse<Employee> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        // Simulación de llamada a API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setEmployees(mockEmployees);
-      } catch {
+        setLoading(true);
+        const data = await getEmployees(page, pageSize);
+        setEmployees(data);
+        setError(null);
+      } catch (err) {
         setError('Error al cargar los empleados');
+        console.error('Error fetching employees:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchEmployees();
-  }, []);
+  }, [page, pageSize]);
 
   return { employees, loading, error };
 }; 
