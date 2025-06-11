@@ -43,4 +43,7 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   dismissalDate: Date;
+
+  @IsOptional()
+  warehousesAssigned: number[];
 }

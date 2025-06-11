@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  ManyToMany,
 } from 'typeorm';
 import { Employee } from './Employee.entity';
 
@@ -32,7 +33,10 @@ export class Warehouse {
   valued: number;
 
   @ManyToOne(() => Employee, (employee) => employee.warehouses)
-  employee: Employee;
+  manager: Employee;
+
+  @ManyToMany(() => Employee, (employee) => employee.warehousesAssigned)
+  employees: Employee[];
 
   @CreateDateColumn({
     name: 'created_at',

@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/employee/update-employee.dto';
 import { RoleService } from './role.service';
+import { Warehouse } from '../entities/Warehouse.entity';
 
 @Injectable()
 export class EmployeeService {
@@ -22,6 +23,7 @@ export class EmployeeService {
       password: hashedPassword,
       active: true,
       role: { id: 2 },
+      warehousesAssigned: createEmployeeDto.warehousesAssigned.map(id => ({ id })),
     });
     return this.employeeRepository.save(employee);
   }
@@ -86,6 +88,11 @@ export class EmployeeService {
         updateEmployeeDto.password,
         10,
       );
+    }
+
+    if (updateEmployeeDto.warehousesAssigned) {
+      employee.warehousesAssigned = updateEmployeeDto.warehousesAssigned.map(id => ({ id: id } as Warehouse));
+      delete updateEmployeeDto.warehousesAssigned;
     }
 
     Object.assign(employee, updateEmployeeDto);

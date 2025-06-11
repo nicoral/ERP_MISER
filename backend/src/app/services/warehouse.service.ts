@@ -15,7 +15,7 @@ export class WarehouseService {
   async createWarehouse(warehouse: CreateWarehouseDto): Promise<Warehouse> {
     const warehouseEntity = this.warehouseRepository.create({
       ...warehouse,
-      employee: { id: warehouse.employeeId },
+      manager: { id: warehouse.employeeId },
     });
     return this.warehouseRepository.save(warehouseEntity);
   }
@@ -53,7 +53,7 @@ export class WarehouseService {
   ): Promise<Warehouse> {
     const updateData = { ...warehouse };
     if (warehouse.employeeId) {
-      updateData['employee'] = { id: warehouse.employeeId };
+      updateData['manager'] = { id: warehouse.employeeId };
       delete updateData.employeeId;
     }
     const updatedWarehouse = await this.warehouseRepository.update(

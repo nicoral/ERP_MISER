@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   CreateDateColumn,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Role } from './Role.entity';
@@ -69,8 +71,12 @@ export class Employee {
   @ManyToOne(() => Role, (role) => role.employees)
   role: Role;
 
-  @OneToMany(() => Warehouse, (warehouse) => warehouse.employee)
+  @OneToMany(() => Warehouse, (warehouse) => warehouse.manager)
   warehouses: Warehouse[];
+
+  @ManyToMany(() => Warehouse, (warehouse) => warehouse.employees)
+  @JoinTable()
+  warehousesAssigned: Warehouse[];
 
   @CreateDateColumn({
     name: 'created_at',
