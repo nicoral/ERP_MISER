@@ -5,10 +5,19 @@ type Props = React.InputHTMLAttributes<HTMLInputElement> & {
   error?: string;
 };
 
-export const FormInputFile: React.FC<Props> = ({ label, error, id, className = '', ...props }) => (
+export const FormInputFile: React.FC<Props> = ({
+  label,
+  error,
+  id,
+  className = '',
+  ...props
+}) => (
   <div>
     {label && (
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+      >
         {label}
       </label>
     )}

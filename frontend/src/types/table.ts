@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 
 export type TableColumn<T> = {
   header: string;
-  accessor?: keyof T;
+  accessor?: keyof T | string;
+  accessor2?: keyof T | string;
   render?: (row: T) => ReactNode;
   className?: string;
 };
@@ -27,4 +28,4 @@ export type TableProps<T> = {
   pagination?: TablePaginationProps;
   actions?: TableAction<T>[];
   pageSize?: number;
-}; 
+};

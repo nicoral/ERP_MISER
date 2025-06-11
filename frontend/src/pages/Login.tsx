@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../config/constants';
 import { ThemeToggle } from '../components/common/ThemeToggle';
-import { LOGIN_TEXTS } from '../config/texts';
+import { COMMON_TEXTS, LOGIN_TEXTS } from '../config/texts';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Login = () => {
@@ -66,7 +66,7 @@ export const Login = () => {
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder={LOGIN_TEXTS.emailPlaceholder}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -83,7 +83,7 @@ export const Login = () => {
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder={LOGIN_TEXTS.passwordPlaceholder}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -99,16 +99,19 @@ export const Login = () => {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
               disabled={loading}
             >
-              {loading ? 'Cargando...' : LOGIN_TEXTS.loginButton}
+              {loading ? COMMON_TEXTS.loading : LOGIN_TEXTS.loginButton}
             </button>
           </div>
         </form>
         <div className="mt-6 text-center">
-          <a href="#" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+          <a
+            href="#"
+            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+          >
             {LOGIN_TEXTS.forgotPassword}
           </a>
         </div>
       </div>
     </div>
   );
-}; 
+};

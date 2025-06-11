@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Login } from './pages/Login';
 import { MainLayout } from './components/layout/MainLayout';
@@ -13,6 +18,8 @@ import { ArticleList } from './features/warehouse/components/ArticleList';
 import { ServiceList } from './features/warehouse/components/ServiceList';
 import { SupplierList } from './features/warehouse/components/SupplierList';
 import { Employees } from './pages/Employees';
+import { RoleForm } from './features/administration/components/RoleForm';
+import { WarehouseForm } from './features/warehouse/components/WarehouseForm';
 
 function App() {
   return (
@@ -24,14 +31,39 @@ function App() {
             <Route element={<PrivateRoute />}>
               <Route element={<MainLayout />}>
                 <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
-                <Route path={ROUTES.ADMINISTRATION} element={<Administration />} />
+                <Route
+                  path={ROUTES.ADMINISTRATION}
+                  element={<Administration />}
+                />
+                <Route path={ROUTES.ROLES} element={<RoleForm />} />
+                <Route path={ROUTES.ROLES_EDIT} element={<RoleForm />} />
                 <Route path={ROUTES.EMPLOYEES} element={<Employees />} />
-                <Route path={ROUTES.EMPLOYEE_CREATE} element={<EmployeeForm />} />
+                <Route
+                  path={ROUTES.EMPLOYEE_CREATE}
+                  element={<EmployeeForm />}
+                />
                 <Route path={ROUTES.EMPLOYEE_EDIT} element={<EmployeeForm />} />
                 <Route path={ROUTES.WAREHOUSE} element={<Warehouse />} />
-                <Route path={ROUTES.WAREHOUSE_ARTICLES} element={<ArticleList />} />
-                <Route path={ROUTES.WAREHOUSE_SERVICES} element={<ServiceList />} />
-                <Route path={ROUTES.WAREHOUSE_SUPPLIERS} element={<SupplierList />} />
+                <Route
+                  path={ROUTES.WAREHOUSE_CREATE}
+                  element={<WarehouseForm />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_EDIT}
+                  element={<WarehouseForm />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_ARTICLES}
+                  element={<ArticleList />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_SERVICES}
+                  element={<ServiceList />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_SUPPLIERS}
+                  element={<SupplierList />}
+                />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

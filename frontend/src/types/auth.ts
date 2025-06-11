@@ -16,4 +16,4 @@ export interface AuthContextProps {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-} 
+}

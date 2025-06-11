@@ -9,4 +9,4 @@ export interface ThemeContextType {
 
 export interface ThemeProviderProps {
   children: ReactNode;
-} 
+}

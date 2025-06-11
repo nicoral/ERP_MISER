@@ -7,11 +7,11 @@ export const MainLayout = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <Sidebar />
-      <main className="pt-16 pl-64 transition-all duration-300">
-        <div className="p-6">
+      <main className="pt-16 pl-64 transition-all duration-300 h-full">
+        <div className="p-6 h-full">
           <Outlet />
         </div>
       </main>
     </div>
   );
-}; 
+};

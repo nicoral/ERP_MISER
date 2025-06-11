@@ -18,4 +18,4 @@ export const useEmployee = (id?: number) => {
   }, [id]);
 
   return { employee, loading, error };
-}; 
+};

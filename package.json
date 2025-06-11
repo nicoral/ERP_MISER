@@ -1,0 +1,14 @@
+{
+  "name": "erp-miser",
+  "version": "1.0.0",
+  "description": "ERP MISER - Frontend and Backend",
+  "scripts": {
+    "start": "start cmd /k \"cd backend && npm run start:dev\" && start cmd /k \"cd frontend && npm run dev\"",
+    "start:backend": "cd backend && npm run start:dev",
+    "start:frontend": "cd frontend && npm run dev",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 

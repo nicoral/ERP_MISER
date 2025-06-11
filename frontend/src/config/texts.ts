@@ -6,12 +6,11 @@ export const EMPLOYEES_TEXTS = {
     create: 'Crear Empleado',
   },
   filters: {
-    firstName: 'Nombre',
-    lastName: 'Apellido',
-    firstNamePlaceholder: 'Buscar por nombre...',
-    lastNamePlaceholder: 'Buscar por apellido...',
-    apply: 'Aplicar Filtros',
-    clear: 'Limpiar Filtros',
+    search: 'Buscar:',
+    title: 'Filtros',
+    searchPlaceholder: 'nombre, apellido, correo electrónico, teléfono...',
+    apply: 'Aplicar',
+    clear: 'Limpiar',
     filtering: 'Filtrando...',
   },
   pagination: {
@@ -26,6 +25,7 @@ export const EMPLOYEES_TEXTS = {
       firstName: 'Nombre',
       lastName: 'Apellido',
       position: 'Cargo',
+      email: 'Correo electrónico',
       phone: 'Teléfono',
       role: 'Rol',
       status: 'Estado',
@@ -52,8 +52,14 @@ export const EMPLOYEES_TEXTS = {
     fields: {
       firstName: 'Nombre',
       lastName: 'Apellido',
+      email: 'Correo electrónico',
+      documentId: 'Documento de identidad',
+      documentType: 'Tipo de documento',
+      address: 'Dirección',
       position: 'Cargo',
       phone: 'Teléfono',
+      hireDate: 'Fecha de alta',
+      dischargeDate: 'Fecha de baja',
       role: 'Rol',
       active: 'Activo',
     },
@@ -114,8 +120,9 @@ export const LOGIN_TEXTS = {
   loginButton: 'Iniciar sesión',
   errors: {
     generic: 'Error al iniciar sesión. Por favor, intenta de nuevo.',
-    invalidCredentials: 'Credenciales inválidas. Por favor, verifica tus datos.'
-  }
+    invalidCredentials:
+      'Credenciales inválidas. Por favor, verifica tus datos.',
+  },
 };
 
 export const COMMON_TEXTS = {
@@ -123,6 +130,7 @@ export const COMMON_TEXTS = {
   error: 'Error',
   success: 'Éxito',
   save: 'Guardar',
+  update: 'Actualizar',
   cancel: 'Cancelar',
   back: 'Volver',
   edit: 'Editar',
@@ -142,9 +150,9 @@ export const ADMINISTRATION_TEXTS = {
       title: 'Configuración General',
       description: 'Gestión de parámetros del sistema',
     },
-    users: {
-      title: 'Usuarios y Permisos',
-      description: 'Administración de usuarios y roles',
+    roles: {
+      title: 'Roles y permisos',
+      description: 'Administración de roles y permisos',
     },
     audit: {
       title: 'Auditoría',
@@ -163,21 +171,19 @@ export const ADMINISTRATION_TEXTS = {
     logo: 'Logo de la empresa',
     save: 'Guardar cambios',
   },
-  usersForm: {
+  rolesForm: {
+    edit: 'Editar rol',
+    create: 'Crear rol',
+    back: 'Volver',
     view: 'Ver',
-    name: 'Nombre completo',
-    email: 'Email',
-    date: 'Fecha de ingreso',
-    notes: 'Notas',
-    role: 'Rol',
-    status: 'Estado',
+    name: 'Nombre',
     permissions: 'Permisos',
-    save: 'Guardar usuario',
-    add: 'Agregar usuario',
-    edit: 'Editar',
-    block: 'Bloquear',
-    unblock: 'Desbloquear',
+    description: 'Descripción',
+    save: 'Guardar rol',
+    add: 'Agregar rol',
     delete: 'Eliminar',
+    saving: 'Guardando rol...',
+    error: 'Error al guardar el rol',
   },
   audit: {
     user: 'Usuario',
@@ -197,10 +203,20 @@ export const ADMINISTRATION_TEXTS = {
 export const WAREHOUSE_TEXTS = {
   articles: {
     title: 'Artículos',
-    loading: 'Cargando artículos...',
-    error: 'Error al cargar artículos',
     buttons: {
-      create: 'Crear nuevo artículo',
+      create: 'Crear Artículo',
+    },
+    filters: {
+      title: 'Filtros',
+      code: 'Código',
+      name: 'Nombre',
+      category: 'Categoría',
+      codePlaceholder: 'Buscar por código...',
+      namePlaceholder: 'Buscar por nombre...',
+      categoryPlaceholder: 'Buscar por categoría...',
+      apply: 'Aplicar',
+      clear: 'Limpiar',
+      filtering: 'Filtrando...',
     },
     table: {
       columns: {
@@ -208,7 +224,6 @@ export const WAREHOUSE_TEXTS = {
         name: 'Nombre',
         category: 'Categoría',
         stock: 'Stock',
-        price: 'Precio',
         status: 'Estado',
         actions: 'Acciones',
       },
@@ -222,20 +237,31 @@ export const WAREHOUSE_TEXTS = {
         delete: 'Eliminar',
       },
     },
+    loading: 'Cargando artículos...',
+    empty: 'No hay artículos para mostrar.',
   },
   services: {
     title: 'Servicios',
-    loading: 'Cargando servicios...',
-    error: 'Error al cargar servicios',
     buttons: {
-      create: 'Crear nuevo servicio',
+      create: 'Crear Servicio',
+    },
+    filters: {
+      title: 'Filtros',
+      code: 'Código',
+      name: 'Nombre',
+      type: 'Tipo',
+      codePlaceholder: 'Buscar por código...',
+      namePlaceholder: 'Buscar por nombre...',
+      typePlaceholder: 'Buscar por tipo...',
+      apply: 'Aplicar',
+      clear: 'Limpiar',
+      filtering: 'Filtrando...',
     },
     table: {
       columns: {
         code: 'Código',
         name: 'Nombre',
         type: 'Tipo',
-        price: 'Precio',
         status: 'Estado',
         actions: 'Acciones',
       },
@@ -249,21 +275,31 @@ export const WAREHOUSE_TEXTS = {
         delete: 'Eliminar',
       },
     },
+    loading: 'Cargando servicios...',
+    empty: 'No hay servicios para mostrar.',
   },
   suppliers: {
     title: 'Proveedores',
-    loading: 'Cargando proveedores...',
-    error: 'Error al cargar proveedores',
     buttons: {
-      create: 'Crear nuevo proveedor',
+      create: 'Crear Proveedor',
+    },
+    filters: {
+      title: 'Filtros',
+      code: 'Código',
+      name: 'Nombre',
+      contact: 'Contacto',
+      codePlaceholder: 'Buscar por código...',
+      namePlaceholder: 'Buscar por nombre...',
+      contactPlaceholder: 'Buscar por contacto...',
+      apply: 'Aplicar',
+      clear: 'Limpiar',
+      filtering: 'Filtrando...',
     },
     table: {
       columns: {
         code: 'Código',
         name: 'Nombre',
         contact: 'Contacto',
-        phone: 'Teléfono',
-        email: 'Email',
         status: 'Estado',
         actions: 'Acciones',
       },
@@ -277,19 +313,30 @@ export const WAREHOUSE_TEXTS = {
         delete: 'Eliminar',
       },
     },
+    loading: 'Cargando proveedores...',
+    empty: 'No hay proveedores para mostrar.',
   },
   warehouses: {
     title: 'Almacenes',
-    loading: 'Cargando almacenes...',
-    error: 'Error al cargar almacenes',
     buttons: {
-      create: 'Crear nuevo almacén',
+      create: 'Crear Almacén',
+    },
+    filters: {
+      title: 'Filtros',
+      search: 'Buscar:',
+      searchPlaceholder: 'nombre, dirección...',
+      apply: 'Aplicar',
+      clear: 'Limpiar',
+      filtering: 'Filtrando...',
     },
     table: {
       columns: {
-        code: 'Código',
         name: 'Nombre',
-        location: 'Ubicación',
+        address: 'Dirección',
+        hireDate: 'Fecha de alta',
+        dismissalDate: 'Fecha de baja',
+        employee: 'Encargado',
+        valued: 'Valor',
         status: 'Estado',
         actions: 'Acciones',
       },
@@ -303,5 +350,25 @@ export const WAREHOUSE_TEXTS = {
         delete: 'Eliminar',
       },
     },
+    loading: 'Cargando almacenes...',
+    empty: 'No hay almacenes para mostrar.',
   },
-}; 
+  form: {
+    title: {
+      create: 'Crear nuevo almacén',
+      edit: 'Editar almacén',
+    },
+    fields: {
+      name: 'Nombre',
+      address: 'Dirección',
+      valued: 'Valor',
+      hireDate: 'Fecha de alta',
+      dismissalDate: 'Fecha de baja',
+      employee: 'Encargado',
+      active: 'Activo',
+    },
+    errors: {
+      save: 'Error al guardar el almacén',
+    },
+  },
+};

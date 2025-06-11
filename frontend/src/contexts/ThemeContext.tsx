@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { Theme, ThemeContextType, ThemeProviderProps } from '../types/theme';
+import type {
+  Theme,
+  ThemeContextType,
+  ThemeProviderProps,
+} from '../types/theme';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -19,7 +23,9 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       return savedTheme;
     }
     // Si no hay tema guardado, usar la preferencia del sistema
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
   });
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
   return (
@@ -40,4 +46,4 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       {children}
     </ThemeContext.Provider>
   );
-}; 
+};

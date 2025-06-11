@@ -1,10 +1,20 @@
 import React from 'react';
 import type { FormSelectProps } from '../../../types/form';
 
-export const FormSelect: React.FC<FormSelectProps> = ({ label, error, id, className = '', children, ...props }) => (
+export const FormSelect: React.FC<FormSelectProps> = ({
+  label,
+  error,
+  id,
+  className = '',
+  children,
+  ...props
+}) => (
   <div>
     {label && (
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+      >
         {label}
       </label>
     )}
@@ -17,4 +27,4 @@ export const FormSelect: React.FC<FormSelectProps> = ({ label, error, id, classN
     </select>
     {error && <div className="text-red-600 text-xs mt-1">{error}</div>}
   </div>
-); 
+);

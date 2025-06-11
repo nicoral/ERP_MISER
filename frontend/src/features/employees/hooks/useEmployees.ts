@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getEmployees } from '../../../services/api/employeeService';
 import type { Employee } from '../../../types/employee';
-import type { PaginatedResponse } from '../../../services/api/employeeService';
+import type { PaginatedResponse } from '../../../types/generic';
 
 export const useEmployees = (page: number = 1, pageSize: number = 10) => {
-  const [employees, setEmployees] = useState<PaginatedResponse<Employee> | null>(null);
+  const [employees, setEmployees] =
+    useState<PaginatedResponse<Employee> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,4 +28,4 @@ export const useEmployees = (page: number = 1, pageSize: number = 10) => {
   }, [page, pageSize]);
 
   return { employees, loading, error };
-}; 
+};

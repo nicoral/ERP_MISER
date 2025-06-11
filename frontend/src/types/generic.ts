@@ -30,4 +30,4 @@ export interface BaseFormProps {
 export interface BaseFilters {
   page?: number;
   pageSize?: number;
-} 
+}

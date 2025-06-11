@@ -5,10 +5,19 @@ type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   error?: string;
 };
 
-export const FormText: React.FC<Props> = ({ label, error, id, className = '', ...props }) => (
+export const FormText: React.FC<Props> = ({
+  label,
+  error,
+  id,
+  className = '',
+  ...props
+}) => (
   <div>
     {label && (
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+      >
         {label}
       </label>
     )}
@@ -19,4 +28,4 @@ export const FormText: React.FC<Props> = ({ label, error, id, className = '', ..
     />
     {error && <div className="text-red-600 text-xs mt-1">{error}</div>}
   </div>
-); 
+);
