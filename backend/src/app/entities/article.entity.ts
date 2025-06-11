@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { WarehouseArticle } from './WarehouseArticle.entity';
 
 @Entity()
 export class Article {
@@ -40,6 +41,9 @@ export class Article {
 
   @Column('varchar', { length: 255, name: 'image_url', nullable: true })
   imageUrl: string;
+
+  @OneToMany(() => WarehouseArticle, (warehouseArticle) => warehouseArticle.article)
+  warehouseArticles: WarehouseArticle[];
 
   @CreateDateColumn({
     name: 'created_at',

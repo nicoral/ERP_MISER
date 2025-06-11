@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
+
+export class CreateArticleWarehouseDto {
+  @IsNotEmpty()
+  warehouseId: number;
+
+  @IsNotEmpty()
+  stock: number;
+}
 
 export class CreateArticleDto {
   @IsNotEmpty()
@@ -36,4 +45,9 @@ export class CreateArticleDto {
 
   @IsOptional()
   active: boolean;
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateArticleWarehouseDto)
+  warehouseArticles: CreateArticleWarehouseDto[];
 }
