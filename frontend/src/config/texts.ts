@@ -22,6 +22,7 @@ export const EMPLOYEES_TEXTS = {
   },
   table: {
     columns: {
+      id: 'ID',
       firstName: 'Nombre',
       lastName: 'Apellido',
       position: 'Cargo',
@@ -331,12 +332,13 @@ export const WAREHOUSE_TEXTS = {
     },
     table: {
       columns: {
+        id: 'ID',
         name: 'Nombre',
         address: 'Dirección',
         hireDate: 'Fecha de alta',
         dismissalDate: 'Fecha de baja',
         employee: 'Encargado',
-        valued: 'Valor',
+        valued: 'Valorizado',
         status: 'Estado',
         actions: 'Acciones',
       },

@@ -100,6 +100,7 @@ export const WarehouseList = () => {
 
   // Columnas para la tabla de almacenes
   const columns: TableColumn<Warehouse>[] = [
+    { header: WAREHOUSE_TEXTS.warehouses.table.columns.id, accessor: 'id' },
     { header: WAREHOUSE_TEXTS.warehouses.table.columns.name, accessor: 'name' },
     {
       header: WAREHOUSE_TEXTS.warehouses.table.columns.address,

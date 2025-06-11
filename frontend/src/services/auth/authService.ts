@@ -11,8 +11,8 @@ export async function login(email: string, password: string): Promise<User> {
   });
   const data = await response.json();
   if (response.status === 201) {
-    sessionStorage.setItem(STORAGE_KEY_TOKEN, data.access_token);
     sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.employee));
+    sessionStorage.setItem(STORAGE_KEY_TOKEN, data.access_token);
     return data.employee;
   }
   throw new Error(data.message);

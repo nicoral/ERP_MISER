@@ -134,6 +134,10 @@ export const EmployeeList = () => {
   // Columnas para la tabla de empleados
   const columns: TableColumn<Employee>[] = [
     {
+      header: EMPLOYEES_TEXTS.table.columns.id,
+      accessor: 'id',
+    },
+    {
       header: EMPLOYEES_TEXTS.table.columns.firstName,
       accessor: 'firstName',
       accessor2: 'lastName',

@@ -7,6 +7,8 @@ import { AuthModule } from './app/modules/auth/auth.module';
 import { PermissionModule } from './app/modules/permission.module';
 import { RoleModule } from './app/modules/role.module';
 import { WarehouseModule } from './app/modules/warehouse.module';
+import { ArticleModule } from './app/modules/article.module';
+import { SupplierModule } from './app/modules/supplier.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { WarehouseModule } from './app/modules/warehouse.module';
     EmployeeModule,
     AuthModule,
     WarehouseModule,
+    ArticleModule,
+    SupplierModule,
   ],
   controllers: [],
   providers: [],
