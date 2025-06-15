@@ -241,7 +241,7 @@ export const EmployeeForm = () => {
               id="area"
               name="area"
               label={EMPLOYEES_TEXTS.form.fields.area}
-              value={formData.area}
+              value={formData.area ?? ''}
               onChange={handleChange}
               required
             >

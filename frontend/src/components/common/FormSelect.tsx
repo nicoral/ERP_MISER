@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FormSelectProps } from '../../../types/form';
+import type { FormSelectProps } from '../../types/form';
 
 export const FormSelect: React.FC<FormSelectProps> = ({
   label,

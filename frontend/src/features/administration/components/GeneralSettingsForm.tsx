@@ -1,4 +1,3 @@
-import React from 'react';
 import { FormInput } from '../../../components/common/FormInput';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { FormText } from '../../../components/common/FormText';
