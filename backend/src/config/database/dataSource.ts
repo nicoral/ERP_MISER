@@ -11,6 +11,13 @@ export const options: DataSourceOptions & SeederOptions = {
   username: process.env.TYPEORM_USERNAME,
   password: process.env.TYPEORM_PASSWORD,
   database: process.env.TYPEORM_DATABASE,
+  synchronize: false,
+  connectTimeoutMS: 5000,
+  extra: {
+    max: 2,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 5000
+  }
 };
 
 export default new DataSource(options);

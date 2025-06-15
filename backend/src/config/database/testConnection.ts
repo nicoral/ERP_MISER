@@ -19,8 +19,24 @@ const dataSource = new DataSource({
   username: process.env.TYPEORM_USERNAME,
   password: process.env.TYPEORM_PASSWORD,
   database: process.env.TYPEORM_DATABASE,
-  entities: [Employee, Role, Permission, Warehouse, Article, Supplier, WarehouseArticle, AuditLog, Brand],
+  entities: [
+    Employee,
+    Role,
+    Permission,
+    Warehouse,
+    Article,
+    Supplier,
+    WarehouseArticle,
+    AuditLog,
+    Brand
+  ],
   synchronize: false,
+  connectTimeoutMS: 5000,
+  extra: {
+    max: 2,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 5000
+  }
 });
 
 async function testConnection() {
