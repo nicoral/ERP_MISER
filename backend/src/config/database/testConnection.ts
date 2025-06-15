@@ -32,6 +32,9 @@ const dataSource = new DataSource({
   ],
   synchronize: false,
   connectTimeoutMS: 5000,
+  ssl: {
+    rejectUnauthorized: false
+  },
   extra: {
     max: 2,
     connectionTimeoutMillis: 5000,
