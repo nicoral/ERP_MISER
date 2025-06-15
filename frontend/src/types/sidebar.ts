@@ -1,14 +1,14 @@
 export interface SubMenuItem {
   path: string;
   label: string;
-  permission: string;
+  permission?: string;
   icon: React.ReactNode;
 }
 
 export interface MenuItem {
-  path: string;
+  path?: string;
   label: string;
-  permission: string;
+  permission?: string;
   icon: React.ReactNode;
   subItems?: SubMenuItem[];
 }

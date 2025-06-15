@@ -7,13 +7,12 @@ export class WarehouseArticle {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Warehouse, warehouse => warehouse.warehouseArticles)
+  @ManyToOne(() => Warehouse, (warehouse) => warehouse.warehouseArticles)
   warehouse: Warehouse;
 
-  @ManyToOne(() => Article, article => article.warehouseArticles)
+  @ManyToOne(() => Article, (article) => article.warehouseArticles)
   article: Article;
 
   @Column('int', { name: 'stock', nullable: false, default: 0 })
   stock: number;
-
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EMPLOYEES_TEXTS } from '../../../config/texts';
-import type { Employee } from '../../../types/employee';
+import type { CreateEmployee } from '../../../types/employee';
 import { useEmployee } from '../hooks/useEmployee';
 import { FormInput } from '../../../components/common/FormInput';
 import { FormInputDate } from '../../../components/common/FormInputDate';
@@ -9,6 +9,14 @@ import { useRoles } from '../hooks/userRoles';
 import { FormCheckbox } from '../../../components/common/FormCheckbox';
 import { ImagePreview } from '../../../components/common/ImagePreview';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
+import { DOCUMENT_TYPES, ROUTES } from '../../../config/constants';
+import { MultiSelect } from '../../../components/common/MultiSelect';
+import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
+import {
+  createEmployee,
+  updateEmployee,
+} from '../../../services/api/employeeService';
+import { FormSelect } from '../../../components/common/FormSelect';
 
 export const EmployeeForm = () => {
   const navigate = useNavigate();
@@ -22,7 +30,9 @@ export const EmployeeForm = () => {
     error: errorEmployee,
   } = useEmployee(employeeId);
 
-  const [formData, setFormData] = useState<Omit<Employee, 'id'>>({
+  const { warehouses } = useWarehouses(1, 1000);
+
+  const [formData, setFormData] = useState<CreateEmployee>({
     firstName: '',
     lastName: '',
     position: '',
@@ -34,21 +44,27 @@ export const EmployeeForm = () => {
     imageUrl: '',
     hireDate: new Date(),
     dischargeDate: null,
-    role: {
-      id: 0,
-      name: '',
-      description: '',
-      permissions: [],
-    },
+    role: 0,
     active: true,
+    warehousesAssigned: [],
   });
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const { roles, loading: loadingRoles, error: errorRoles } = useRoles();
   useEffect(() => {
     if (isEditing && employee) {
-      setFormData(employee);
+      setFormData({
+        ...employee,
+        role: employee.role.id,
+        warehousesAssigned: employee.warehousesAssigned.map(
+          warehouse => warehouse.id
+        ),
+      });
+      setSelectedValues(
+        employee.warehousesAssigned.map(warehouse => warehouse.id.toString())
+      );
     }
   }, [isEditing, employee]);
 
@@ -58,12 +74,25 @@ export const EmployeeForm = () => {
     setError(null);
 
     try {
-      // TODO: Implementar lógica de guardado
-      console.log('Guardando empleado:', formData);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de API
-      navigate('/employees');
-    } catch {
-      setError('Error al guardar el empleado');
+      if (isEditing) {
+        await updateEmployee(employeeId!, {
+          ...formData,
+          warehousesAssigned: selectedValues.map(Number),
+        });
+      } else {
+        await createEmployee({
+          ...formData,
+          warehousesAssigned: selectedValues.map(Number),
+        });
+      }
+      navigate(ROUTES.EMPLOYEES);
+    } catch (error) {
+      console.error(error);
+      setError(
+        isEditing
+          ? EMPLOYEES_TEXTS.form.errors.update
+          : EMPLOYEES_TEXTS.form.errors.save
+      );
     } finally {
       setSaving(false);
     }
@@ -105,8 +134,8 @@ export const EmployeeForm = () => {
             : EMPLOYEES_TEXTS.form.title.create}
         </h2>
         <button
-          onClick={() => navigate('/employees')}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          onClick={() => navigate(ROUTES.EMPLOYEES)}
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
         >
           ← {EMPLOYEES_TEXTS.form.buttons.back}
         </button>
@@ -121,6 +150,22 @@ export const EmployeeForm = () => {
             {EMPLOYEES_TEXTS.form.errors.save}
           </div>
         )}
+
+        <div className="flex justify-center mb-6">
+          <ImagePreview
+            imageUrl={formData.imageUrl}
+            onChange={file => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setFormData(prev => ({
+                  ...prev,
+                  imageUrl: reader.result as string,
+                }));
+              };
+              reader.readAsDataURL(file);
+            }}
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -143,6 +188,26 @@ export const EmployeeForm = () => {
               onChange={handleChange}
               required
             />
+          </div>
+
+          <div>
+            <FormSelect
+              id="documentType"
+              name="documentType"
+              label={EMPLOYEES_TEXTS.form.fields.documentType}
+              value={formData.documentType}
+              onChange={handleChange}
+              required
+            >
+              <option value="">
+                {EMPLOYEES_TEXTS.form.select.documentType.placeholder}
+              </option>
+              {DOCUMENT_TYPES.map(documentType => (
+                <option key={documentType} value={documentType}>
+                  {documentType}
+                </option>
+              ))}
+            </FormSelect>
           </div>
 
           <div>
@@ -227,26 +292,37 @@ export const EmployeeForm = () => {
             />
           </div>
           <div>
-            <label
-              htmlFor="role"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              {EMPLOYEES_TEXTS.form.fields.role}
-            </label>
-            <select
+            <FormSelect
               id="role"
               name="role"
-              value={formData.role.id}
+              label={EMPLOYEES_TEXTS.form.fields.role}
+              value={formData.role}
               onChange={handleChange}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-base py-2 px-3 h-10"
             >
+              <option value="">
+                {EMPLOYEES_TEXTS.form.select.role.placeholder}
+              </option>
               {roles.map(role => (
                 <option key={role.id} value={role.id}>
                   {role.name}
                 </option>
               ))}
-            </select>
+            </FormSelect>
+          </div>
+
+          <div>
+            <MultiSelect
+              label={EMPLOYEES_TEXTS.form.fields.warehousesAssigned}
+              options={
+                warehouses?.data.map(warehouse => ({
+                  label: warehouse.name,
+                  value: warehouse.id.toString(),
+                })) ?? []
+              }
+              value={selectedValues}
+              onChange={setSelectedValues}
+            />
           </div>
 
           <div className="flex items-center">
@@ -258,24 +334,6 @@ export const EmployeeForm = () => {
               onChange={handleChange}
             />
           </div>
-        </div>
-
-        <div className="flex justify-center mb-6">
-          <ImagePreview
-            imageUrl={formData.imageUrl}
-            onChange={file => {
-              // Aquí puedes manejar la subida del archivo
-              // Por ejemplo, convertir a base64 o subir a un servidor
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setFormData(prev => ({
-                  ...prev,
-                  imageUrl: reader.result as string,
-                }));
-              };
-              reader.readAsDataURL(file);
-            }}
-          />
         </div>
 
         <div className="flex justify-end space-x-4">

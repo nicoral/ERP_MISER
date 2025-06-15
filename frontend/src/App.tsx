@@ -20,6 +20,8 @@ import { SupplierList } from './features/warehouse/components/SupplierList';
 import { Employees } from './pages/Employees';
 import { RoleForm } from './features/administration/components/RoleForm';
 import { WarehouseForm } from './features/warehouse/components/WarehouseForm';
+import Profile from './pages/Profile';
+import { ArticleForm } from './features/warehouse/components/ArticleForm';
 
 function App() {
   return (
@@ -57,6 +59,14 @@ function App() {
                   element={<ArticleList />}
                 />
                 <Route
+                  path={ROUTES.WAREHOUSE_ARTICLE_CREATE}
+                  element={<ArticleForm />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_ARTICLE_EDIT}
+                  element={<ArticleForm />}
+                />
+                <Route
                   path={ROUTES.WAREHOUSE_SERVICES}
                   element={<ServiceList />}
                 />
@@ -64,6 +74,7 @@ function App() {
                   path={ROUTES.WAREHOUSE_SUPPLIERS}
                   element={<SupplierList />}
                 />
+                <Route path={ROUTES.PROFILE} element={<Profile />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

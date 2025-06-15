@@ -37,14 +37,14 @@ export class CreateArticleDto {
   @IsNotEmpty()
   maxStock: number;
 
-  @IsNotEmpty()
-  reorderQuantity: number;
-
   @IsOptional()
   imageUrl: string;
 
   @IsOptional()
   active: boolean;
+
+  @IsOptional()
+  brandId: number;
 
   @IsOptional()
   @ValidateNested({ each: true })

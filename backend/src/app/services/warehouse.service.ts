@@ -25,9 +25,7 @@ export class WarehouseService {
     limit: number,
     search?: string,
   ): Promise<{ data: Warehouse[]; total: number }> {
-    const query = this.warehouseRepository
-      .createQueryBuilder('warehouse')
-      .leftJoinAndSelect('warehouse.employee', 'employee');
+    const query = this.warehouseRepository.createQueryBuilder('warehouse').leftJoinAndSelect('warehouse.manager', 'manager');
     if (search) {
       query.where('warehouse.name ILIKE :search', { search: `%${search}%` });
     }
@@ -39,7 +37,7 @@ export class WarehouseService {
   async getWarehouseById(id: number): Promise<Warehouse> {
     const warehouse = await this.warehouseRepository.findOne({
       where: { id },
-      relations: ['employee'],
+      relations: ['manager'],
     });
     if (!warehouse) {
       throw new NotFoundException('Warehouse not found');

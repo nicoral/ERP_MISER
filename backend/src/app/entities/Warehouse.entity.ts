@@ -40,7 +40,10 @@ export class Warehouse {
   @ManyToMany(() => Employee, (employee) => employee.warehousesAssigned)
   employees: Employee[];
 
-  @OneToMany(() => WarehouseArticle, (warehouseArticle) => warehouseArticle.warehouse)
+  @OneToMany(
+    () => WarehouseArticle,
+    (warehouseArticle) => warehouseArticle.warehouse,
+  )
   warehouseArticles: WarehouseArticle[];
 
   @CreateDateColumn({

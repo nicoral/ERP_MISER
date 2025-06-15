@@ -52,9 +52,9 @@ export async function getWarehouses(
 
 export async function getWarehouseById(
   id: number | undefined
-): Promise<Warehouse> {
+): Promise<Warehouse | null> {
   if (!id) {
-    throw new Error('ID is required');
+    return null;
   }
 
   const response = await fetch(
@@ -80,7 +80,6 @@ export async function getWarehouseById(
 export async function createWarehouse(
   warehouse: WarehouseCreate
 ): Promise<Warehouse> {
-  console.log(warehouse);
   const response = await fetch(`${import.meta.env.VITE_API_URL}/warehouses`, {
     method: 'POST',
     headers: {

@@ -1,94 +1,130 @@
-import type { Article, ArticleFilters } from '../../types/article';
-
-const articleNames = [
-  'Tornillo',
-  'Tuerca',
-  'Martillo',
-  'Taladro',
-  'Sierra',
-  'Cemento',
-  'Ladrillo',
-  'Pintura',
-  'Brocha',
-  'Cinta',
-  'Clavo',
-  'Regla',
-  'Destornillador',
-  'Llave',
-  'Pala',
-  'Escalera',
-  'Guante',
-  'Casco',
-  'Cemento Blanco',
-  'Arena',
-];
-const categories = [
-  'Herramientas',
-  'Materiales',
-  'Seguridad',
-  'Construcción',
-  'Eléctrico',
-  'Pintura',
-  'Ferretería',
-  'Jardinería',
-  'Industrial',
-  'Oficina',
-];
-
-function generateMockArticles(): Article[] {
-  return Array.from({ length: 50 }, (_, i) => ({
-    code: `ART${(i + 1).toString().padStart(3, '0')}`,
-    name: articleNames[i % articleNames.length],
-    category: categories[i % categories.length],
-    stock: Math.floor(Math.random() * 200),
-    active: Math.random() > 0.2,
-  }));
-}
-
-const mockArticles: Article[] = generateMockArticles();
+import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import type {
+  Article,
+  ArticleCreate,
+  ArticleFilters,
+  Brand,
+} from '../../types/article';
+import type { PaginatedResponse } from '../../types/generic';
 
 export async function getArticles(
   page: number = 1,
   pageSize: number = 10,
   filters?: ArticleFilters
-) {
-  return new Promise<{
-    data: Article[];
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  }>(resolve => {
-    setTimeout(() => {
-      let filtered = [...mockArticles];
-      if (filters) {
-        if (filters.code) {
-          filtered = filtered.filter(a =>
-            a.code.toLowerCase().includes(filters.code!.toLowerCase())
-          );
-        }
-        if (filters.name) {
-          filtered = filtered.filter(a =>
-            a.name.toLowerCase().includes(filters.name!.toLowerCase())
-          );
-        }
-        if (filters.category) {
-          filtered = filtered.filter(a =>
-            a.category.toLowerCase().includes(filters.category!.toLowerCase())
-          );
-        }
-      }
-      const start = (page - 1) * pageSize;
-      const end = start + pageSize;
-      const paginated = filtered.slice(start, end);
-      const totalPages = Math.ceil(filtered.length / pageSize);
-      resolve({
-        data: paginated,
-        total: filtered.length,
-        page,
-        pageSize,
-        totalPages,
-      });
-    }, 600);
+): Promise<PaginatedResponse<Article>> {
+  const queryParams = new URLSearchParams();
+  queryParams.append('page', page.toString());
+  queryParams.append('limit', pageSize.toString());
+  if (filters?.name) {
+    queryParams.append('name', filters.name);
+  }
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles?${queryParams.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
+export async function getArticle(
+  id: number | undefined
+): Promise<Article | null> {
+  if (!id) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
+export async function createArticle(article: ArticleCreate): Promise<Article> {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/articles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+    },
+    body: JSON.stringify(article),
   });
+  const data = await response.json();
+  if (response.status === 201) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
+export async function updateArticle(
+  id: number,
+  article: Omit<Article, 'id'>
+): Promise<Article> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles/${id}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: JSON.stringify(article),
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
+export async function getBrands(): Promise<Brand[]> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles/brands`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
+export async function createBrand(brand: Brand): Promise<Brand> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles/brands`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: JSON.stringify(brand),
+    }
+  );
+  const data = await response.json();
+  if (response.status === 201) {
+    return data;
+  }
+  throw new Error(data.message);
 }

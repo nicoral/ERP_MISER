@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Supplier } from "../entities/supplier.entity";
-import { CreateSupplierDto } from "../dto/supplier/create-supplier.dto";
-import { UpdateSupplierDto } from "../dto/supplier/update-supplier.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Supplier } from '../entities/Supplier.entity';
+import { CreateSupplierDto } from '../dto/supplier/create-supplier.dto';
+import { UpdateSupplierDto } from '../dto/supplier/update-supplier.dto';
 
 @Injectable()
 export class SupplierService {
@@ -17,12 +17,22 @@ export class SupplierService {
     return this.supplierRepository.save(supplier);
   }
 
-  async findAll(page: number, limit: number, search: string): Promise<{ data: Supplier[], total: number }> {
+  async findAll(
+    page: number,
+    limit: number,
+    search: string,
+  ): Promise<{ data: Supplier[]; total: number }> {
     const query = this.supplierRepository.createQueryBuilder('supplier');
     if (search) {
-      query.where('supplier.businessName LIKE :search', { search: `%${search}%` });
+      query.where('supplier.businessName LIKE :search', {
+        search: `%${search}%`,
+      });
     }
-    const [data, total] = await query.orderBy('supplier.createdAt', 'DESC').skip((page - 1) * limit).take(limit).getManyAndCount();
+    const [data, total] = await query
+      .orderBy('supplier.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
     return { data, total };
   }
 
@@ -34,7 +44,10 @@ export class SupplierService {
     return supplier;
   }
 
-  async update(id: number, updateSupplierDto: UpdateSupplierDto): Promise<Supplier> {
+  async update(
+    id: number,
+    updateSupplierDto: UpdateSupplierDto,
+  ): Promise<Supplier> {
     const supplier = await this.supplierRepository.findOne({ where: { id } });
     if (!supplier) {
       throw new NotFoundException('Supplier not found');

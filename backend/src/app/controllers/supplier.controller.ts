@@ -1,11 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard } from "../guards/jwt-auth.guard";
-import { PermissionsGuard } from "../guards/permissions.guard";
-import { SupplierService } from "../services/supplier.service";
-import { CreateSupplierDto } from "../dto/supplier/create-supplier.dto";
-import { RequirePermissions } from "../decorators/permissions.decorator";
-import { Supplier } from "../entities/supplier.entity";
-import { UpdateSupplierDto } from "../dto/supplier/update-supplier.dto";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { SupplierService } from '../services/supplier.service';
+import { CreateSupplierDto } from '../dto/supplier/create-supplier.dto';
+import { RequirePermissions } from '../decorators/permissions.decorator';
+import { Supplier } from '../entities/Supplier.entity';
+import { UpdateSupplierDto } from '../dto/supplier/update-supplier.dto';
 
 @Controller('suppliers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -20,7 +30,9 @@ export class SupplierController {
 
   @Get()
   @RequirePermissions('view_suppliers')
-  findAll(@Query() query: { page: number, limit: number, search: string }): Promise<{ data: Supplier[], total: number }> {
+  findAll(
+    @Query() query: { page: number; limit: number; search: string },
+  ): Promise<{ data: Supplier[]; total: number }> {
     return this.supplierService.findAll(query.page, query.limit, query.search);
   }
 
@@ -32,7 +44,10 @@ export class SupplierController {
 
   @Put(':id')
   @RequirePermissions('update_suppliers')
-  update(@Param('id') id: number, @Body() updateSupplierDto: UpdateSupplierDto): Promise<Supplier> {
+  update(
+    @Param('id') id: number,
+    @Body() updateSupplierDto: UpdateSupplierDto,
+  ): Promise<Supplier> {
     return this.supplierService.update(id, updateSupplierDto);
   }
 

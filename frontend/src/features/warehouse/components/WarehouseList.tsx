@@ -108,16 +108,12 @@ export const WarehouseList = () => {
     },
     {
       header: WAREHOUSE_TEXTS.warehouses.table.columns.employee,
-      accessor: 'employee.firstName',
-      accessor2: 'employee.lastName',
+      accessor: 'manager.firstName',
+      accessor2: 'manager.lastName',
     },
     {
       header: WAREHOUSE_TEXTS.warehouses.table.columns.hireDate,
       accessor: 'hireDate',
-    },
-    {
-      header: WAREHOUSE_TEXTS.warehouses.table.columns.dismissalDate,
-      accessor: 'dismissalDate',
     },
     {
       header: WAREHOUSE_TEXTS.warehouses.table.columns.valued,

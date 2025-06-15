@@ -34,6 +34,16 @@ export class RoleService {
     return role;
   }
 
+  async findDefaultRole(): Promise<Role> {
+    const role = await this.roleRepository.findOne({
+      where: { name: 'default' },
+    });
+    if (!role) {
+      throw new NotFoundException(`Role default not found`);
+    }
+    return role;
+  }
+
   async updatePermissions(
     id: number,
     updatePermissionsDto: UpdatePermissionsDto,

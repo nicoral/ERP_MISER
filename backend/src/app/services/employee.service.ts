@@ -14,16 +14,21 @@ export class EmployeeService {
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
     private readonly roleService: RoleService,
-  ) {}
+  ) { }
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Employee> {
-    const hashedPassword = await bcrypt.hash(createEmployeeDto.password, 10);
+    const hashedPassword = await bcrypt.hash(
+      createEmployeeDto.password ?? createEmployeeDto.documentId,
+      10,
+    );
     const employee = this.employeeRepository.create({
       ...createEmployeeDto,
       password: hashedPassword,
       active: true,
-      role: { id: 2 },
-      warehousesAssigned: createEmployeeDto.warehousesAssigned.map(id => ({ id })),
+      role: { id: createEmployeeDto.role ?? (await this.roleService.findDefaultRole()).id },
+      warehousesAssigned: createEmployeeDto.warehousesAssigned.map((id) => ({
+        id,
+      })),
     });
     return this.employeeRepository.save(employee);
   }
@@ -62,7 +67,7 @@ export class EmployeeService {
   async findOne(id: number): Promise<Employee> {
     const employee = await this.employeeRepository.findOne({
       where: { id },
-      relations: ['role'],
+      relations: ['role', 'warehousesAssigned'],
     });
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
@@ -91,7 +96,9 @@ export class EmployeeService {
     }
 
     if (updateEmployeeDto.warehousesAssigned) {
-      employee.warehousesAssigned = updateEmployeeDto.warehousesAssigned.map(id => ({ id: id } as Warehouse));
+      employee.warehousesAssigned = updateEmployeeDto.warehousesAssigned.map(
+        (id) => ({ id: id }) as Warehouse,
+      );
       delete updateEmployeeDto.warehousesAssigned;
     }
 

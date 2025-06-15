@@ -8,7 +8,7 @@ export interface Warehouse {
   dismissalDate: Date | null;
   active: boolean;
   valued: number;
-  employee: Employee;
+  manager: Employee;
 }
 
 export interface WarehouseCreate {

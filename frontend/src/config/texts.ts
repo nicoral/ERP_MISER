@@ -63,6 +63,7 @@ export const EMPLOYEES_TEXTS = {
       dischargeDate: 'Fecha de baja',
       role: 'Rol',
       active: 'Activo',
+      warehousesAssigned: 'Almacenes asignados',
     },
     buttons: {
       save: 'Guardar',
@@ -72,15 +73,17 @@ export const EMPLOYEES_TEXTS = {
     },
     errors: {
       save: 'Error al guardar el empleado',
+      update: 'Error al actualizar el empleado',
     },
     select: {
+      warehouses: {
+        placeholder: 'Seleccione almacenes asignados',
+      },
+      documentType: {
+        placeholder: 'Seleccione un tipo de documento',
+      },
       role: {
         placeholder: 'Seleccione un rol',
-        options: {
-          admin: 'Administrador',
-          supervisor: 'Supervisor',
-          user: 'Usuario',
-        },
       },
     },
   },
@@ -89,6 +92,8 @@ export const EMPLOYEES_TEXTS = {
 export const SIDEBAR_TEXTS = {
   administration: 'Administración',
   employees: 'Empleados',
+  process: 'Procesos',
+  processRequirement: 'Requerimiento',
   warehouse: 'Almacén',
   warehouseArticles: 'Artículos',
   warehouseServices: 'Servicios',
@@ -142,6 +147,7 @@ export const COMMON_TEXTS = {
   noResults: 'No se encontraron resultados',
   required: 'Campo requerido',
   invalid: 'Campo inválido',
+  group: 'GRUPO',
 };
 
 export const ADMINISTRATION_TEXTS = {
@@ -207,6 +213,39 @@ export const WAREHOUSE_TEXTS = {
     buttons: {
       create: 'Crear Artículo',
     },
+    form: {
+      title: {
+        create: 'Crear nuevo artículo',
+        edit: 'Editar artículo',
+        back: 'Volver',
+      },
+      fields: {
+        code: 'Código',
+        name: 'Nombre',
+        brand: 'Marca',
+        line: 'Linea',
+        shelf: 'Estante',
+        type: 'Tipo',
+        unitOfMeasure: 'Unidad de medida',
+        rotationClassification: 'Clasificación de rotación',
+        minStock: 'Stock mínimo',
+        maxStock: 'Stock de reestablecimiento',
+        imageUrl: 'URL de la imagen',
+        active: 'Activo',
+        warehouse: 'Almacén',
+        stock: 'Stock',
+        selectWarehouse: 'Seleccionar almacén',
+        warehouseArticles: 'Stocks de almacenes',
+      },
+      buttons: {
+        addWarehouse: 'Agregar almacén',
+      },
+      errors: {
+        save: 'Error al guardar el artículo',
+        warehouseDuplicate: 'No puedes asignar el mismo almacén más de una vez',
+        warehouseAlreadyAssigned: 'Este almacén ya está asignado',
+      },
+    },
     filters: {
       title: 'Filtros',
       code: 'Código',
@@ -221,10 +260,12 @@ export const WAREHOUSE_TEXTS = {
     },
     table: {
       columns: {
-        code: 'Código',
+        id: 'ID',
         name: 'Nombre',
-        category: 'Categoría',
-        stock: 'Stock',
+        code: 'Código',
+        line: 'Linea',
+        shelf: 'Estante',
+        type: 'Tipo',
         status: 'Estado',
         actions: 'Acciones',
       },
@@ -240,6 +281,9 @@ export const WAREHOUSE_TEXTS = {
     },
     loading: 'Cargando artículos...',
     empty: 'No hay artículos para mostrar.',
+    details: {
+      title: 'Detalles del Artículo',
+    },
   },
   services: {
     title: 'Servicios',

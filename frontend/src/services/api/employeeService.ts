@@ -1,5 +1,9 @@
 import { STORAGE_KEY_TOKEN } from '../../config/constants';
-import type { Employee, EmployeeFilters } from '../../types/employee';
+import type {
+  CreateEmployee,
+  Employee,
+  EmployeeFilters,
+} from '../../types/employee';
 import type { PaginatedResponse } from '../../types/generic';
 
 export const getEmployee = async (
@@ -52,3 +56,43 @@ export async function getEmployees(
   }
   throw new Error(data.message);
 }
+
+export const createEmployee = async (
+  employee: CreateEmployee
+): Promise<Employee> => {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/employees`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+    },
+    body: JSON.stringify(employee),
+  });
+  const data = await response.json();
+  if (response.status === 201) {
+    return data;
+  }
+  throw new Error(data.message);
+};
+
+export const updateEmployee = async (
+  id: number,
+  employee: CreateEmployee
+): Promise<Employee> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/employees/${id}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: JSON.stringify(employee),
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+};

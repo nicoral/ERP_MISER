@@ -1,5 +1,14 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { WarehouseArticle } from './WarehouseArticle.entity';
+import { Brand } from './Brand.entity';
 
 @Entity()
 export class Article {
@@ -24,7 +33,11 @@ export class Article {
   @Column('varchar', { length: 100, name: 'type', nullable: false })
   type: string;
 
-  @Column('varchar', { length: 100, name: 'rotation_classification', nullable: false })
+  @Column('varchar', {
+    length: 100,
+    name: 'rotation_classification',
+    nullable: false,
+  })
   rotationClassification: string;
 
   @Column('int', { name: 'min_stock', nullable: false })
@@ -33,17 +46,20 @@ export class Article {
   @Column('int', { name: 'max_stock', nullable: false })
   maxStock: number;
 
-  @Column('int', { name: 'reorder_quantity', nullable: false, default: 0 })
-  reorderQuantity: number;
-
   @Column('boolean', { name: 'active', nullable: false, default: true })
   active: boolean;
 
   @Column('varchar', { length: 255, name: 'image_url', nullable: true })
   imageUrl: string;
 
-  @OneToMany(() => WarehouseArticle, (warehouseArticle) => warehouseArticle.article)
+  @OneToMany(
+    () => WarehouseArticle,
+    (warehouseArticle) => warehouseArticle.article,
+  )
   warehouseArticles: WarehouseArticle[];
+
+  @ManyToOne(() => Brand, (brand) => brand.article)
+  brand: Brand;
 
   @CreateDateColumn({
     name: 'created_at',
@@ -58,5 +74,4 @@ export class Article {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
-  
 }

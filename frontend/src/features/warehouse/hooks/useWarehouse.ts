@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { Warehouse, WarehouseCreate } from '../../../types/warehouse';
+import type {
+  Warehouse,
+  WarehouseCreate,
+  WarehouseFilters,
+} from '../../../types/warehouse';
 import {
   createWarehouse,
   getWarehouseById,
@@ -8,7 +12,11 @@ import {
 } from '../../../services/api/warehouseService';
 import type { PaginatedResponse } from '../../../types/generic';
 
-export const useWarehouses = (page: number = 1, pageSize: number = 10) => {
+export const useWarehouses = (
+  page: number = 1,
+  pageSize: number = 10,
+  filters?: WarehouseFilters
+) => {
   const [warehouses, setWarehouses] =
     useState<PaginatedResponse<Warehouse> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,7 +26,7 @@ export const useWarehouses = (page: number = 1, pageSize: number = 10) => {
     const fetchWarehouses = async () => {
       try {
         setLoading(true);
-        const response = await getWarehouses(page, pageSize);
+        const response = await getWarehouses(page, pageSize, filters);
         setWarehouses(response);
       } catch (error) {
         setError('Error al cargar los almacenes');

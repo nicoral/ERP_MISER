@@ -75,7 +75,7 @@ export const WarehouseForm = () => {
 
   useEffect(() => {
     if (isEditing && warehouse) {
-      setFormData({ ...warehouse, employeeId: warehouse.employee.id });
+      setFormData({ ...warehouse, employeeId: warehouse.manager.id });
     }
   }, [isEditing, warehouse, setFormData]);
 
@@ -104,7 +104,7 @@ export const WarehouseForm = () => {
             : WAREHOUSE_TEXTS.form.title.create}
         </h2>
         <button
-          onClick={() => navigate('/warehouses')}
+          onClick={() => navigate(ROUTES.WAREHOUSE)}
           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
         >
           ← {COMMON_TEXTS.back}

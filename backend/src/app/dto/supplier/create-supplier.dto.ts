@@ -1,5 +1,12 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
-import { SupplierStatus } from "../../common/enum";
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { SupplierStatus } from '../../common/enum';
 
 export class CreateSupplierDto {
   @IsNotEmpty()
@@ -41,5 +48,4 @@ export class CreateSupplierDto {
   @IsNotEmpty()
   @IsEnum(SupplierStatus)
   status: SupplierStatus;
-
 }

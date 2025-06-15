@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
 import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
-import { getArticles } from '../../../services/api/articleService';
+import { getArticles, getArticle } from '../../../services/api/articleService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
@@ -9,9 +9,16 @@ import {
   type TableColumn,
 } from '../../../components/common/Table';
 import type { Article } from '../../../types/article';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../../config/constants';
+import { Modal } from '../../../components/common/Modal';
+import { ArticleDetails } from './ArticleDetails';
 
 export const ArticleList = () => {
+  const navigate = useNavigate();
   const [articles, setArticles] = useState<Article[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 10,
@@ -21,12 +28,10 @@ export const ArticleList = () => {
   const [filters, setFilters] = useState({
     code: '',
     name: '',
-    category: '',
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Cargar artículos iniciales
   useEffect(() => {
     (async () => {
       setIsFiltering(true);
@@ -43,7 +48,6 @@ export const ArticleList = () => {
     // eslint-disable-next-line
   }, []);
 
-  // Manejar cambios en los filtros
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -52,7 +56,6 @@ export const ArticleList = () => {
     }));
   };
 
-  // Aplicar filtros
   const applyFilters = async () => {
     setIsFiltering(true);
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -66,9 +69,8 @@ export const ArticleList = () => {
     setIsFiltering(false);
   };
 
-  // Limpiar filtros
   const clearFilters = async () => {
-    setFilters({ code: '', name: '', category: '' });
+    setFilters({ code: '', name: '' });
     setIsFiltering(true);
     const response = await getArticles(1, pagination.pageSize);
     setArticles(response.data);
@@ -81,12 +83,10 @@ export const ArticleList = () => {
     setIsFiltering(false);
   };
 
-  // Cambiar de página
   const handlePageChange = async (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
     setIsFiltering(true);
-    // Si hay filtros activos, forzar página 1
-    if (filters.code || filters.name || filters.category) {
+    if (filters.code || filters.name) {
       newPage = 1;
     }
     const response = await getArticles(newPage, pagination.pageSize, filters);
@@ -98,15 +98,26 @@ export const ArticleList = () => {
     setIsFiltering(false);
   };
 
-  // Columnas para la tabla de artículos
+  const handleViewArticle = async (article: Article) => {
+    try {
+      const fullArticle = await getArticle(article.id);
+      setSelectedArticle(fullArticle);
+      setShowDetailsModal(true);
+    } catch (error) {
+      console.error('Error fetching article details:', error);
+    }
+  };
+
   const columns: TableColumn<Article>[] = [
+    { header: WAREHOUSE_TEXTS.articles.table.columns.id, accessor: 'id' },
     { header: WAREHOUSE_TEXTS.articles.table.columns.code, accessor: 'code' },
     { header: WAREHOUSE_TEXTS.articles.table.columns.name, accessor: 'name' },
     {
-      header: WAREHOUSE_TEXTS.articles.table.columns.category,
-      accessor: 'category',
+      header: WAREHOUSE_TEXTS.articles.table.columns.line,
+      accessor: 'line',
     },
-    { header: WAREHOUSE_TEXTS.articles.table.columns.stock, accessor: 'stock' },
+    { header: WAREHOUSE_TEXTS.articles.table.columns.shelf, accessor: 'shelf' },
+    { header: WAREHOUSE_TEXTS.articles.table.columns.type, accessor: 'type' },
     {
       header: WAREHOUSE_TEXTS.articles.table.columns.status,
       render: (art: Article) => (
@@ -125,17 +136,20 @@ export const ArticleList = () => {
     },
   ];
 
-  // Acciones para la tabla de artículos
   const actions: TableAction<Article>[] = [
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: WAREHOUSE_TEXTS.articles.table.actions.view,
-      onClick: () => {},
+      onClick: handleViewArticle,
     },
     {
       icon: <EditIcon className="w-5 h-5 text-blue-600" />,
       label: WAREHOUSE_TEXTS.articles.table.actions.edit,
-      onClick: () => {},
+      onClick: (article: Article) => {
+        navigate(
+          ROUTES.WAREHOUSE_ARTICLE_EDIT.replace(':id', article.id.toString())
+        );
+      },
     },
     {
       icon: <TrashIcon className="w-5 h-5 text-red-600" />,
@@ -150,11 +164,13 @@ export const ArticleList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.articles.title}
         </h2>
-        <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <button
+          onClick={() => navigate(ROUTES.WAREHOUSE_ARTICLE_CREATE)}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
           {WAREHOUSE_TEXTS.articles.buttons.create}
         </button>
       </div>
-      {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -196,16 +212,6 @@ export const ArticleList = () => {
                 onChange={handleFilterChange}
                 placeholder={WAREHOUSE_TEXTS.articles.filters.namePlaceholder}
               />
-              <FormInput
-                id="category"
-                name="category"
-                label={WAREHOUSE_TEXTS.articles.filters.category}
-                value={filters.category}
-                onChange={handleFilterChange}
-                placeholder={
-                  WAREHOUSE_TEXTS.articles.filters.categoryPlaceholder
-                }
-              />
             </div>
             <div className="mt-4 flex justify-end space-x-3">
               <button
@@ -227,12 +233,11 @@ export const ArticleList = () => {
           </div>
         )}
       </div>
-      {/* Tabla reutilizable */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<Article>
           columns={columns}
           data={articles}
-          keyField="code"
+          keyField="id"
           loading={isFiltering}
           pagination={{
             page: pagination.page,
@@ -243,6 +248,14 @@ export const ArticleList = () => {
           pageSize={pagination.pageSize}
         />
       </div>
+
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title={WAREHOUSE_TEXTS.articles.details.title}
+      >
+        {selectedArticle && <ArticleDetails article={selectedArticle} />}
+      </Modal>
     </div>
   );
 };

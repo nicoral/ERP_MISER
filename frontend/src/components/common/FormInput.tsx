@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FormInputProps } from '../../../types/form';
+import type { FormInputProps } from '../../types/form';
 
 export const FormInput: React.FC<FormInputProps> = ({
   label,

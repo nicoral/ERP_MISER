@@ -7,7 +7,10 @@ import { EmployeeModule } from './employee.module';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Warehouse, WarehouseArticle]), EmployeeModule],
+  imports: [
+    TypeOrmModule.forFeature([Warehouse, WarehouseArticle]),
+    EmployeeModule,
+  ],
   controllers: [WarehouseController],
   providers: [WarehouseService],
   exports: [WarehouseService],
