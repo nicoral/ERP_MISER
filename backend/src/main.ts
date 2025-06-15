@@ -23,12 +23,14 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
-  // Configuración de CORS para permitir cualquier origen
+  // Configuración de CORS
   app.enableCors({
-    origin: '*',
+    origin: ['https://erp-miser.vercel.app', 'http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   });
 
   await app.listen(configService.get('PORT') ?? 3000);
