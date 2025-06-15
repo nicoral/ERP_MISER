@@ -9,7 +9,12 @@ import { useRoles } from '../hooks/userRoles';
 import { FormCheckbox } from '../../../components/common/FormCheckbox';
 import { ImagePreview } from '../../../components/common/ImagePreview';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
-import { DOCUMENT_TYPES, ROUTES } from '../../../config/constants';
+import {
+  DOCUMENT_TYPES,
+  EMPLOYEES_AREAS,
+  EMPLOYEES_POSITIONS,
+  ROUTES,
+} from '../../../config/constants';
 import { MultiSelect } from '../../../components/common/MultiSelect';
 import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
 import {
@@ -44,6 +49,8 @@ export const EmployeeForm = () => {
     imageUrl: '',
     hireDate: new Date(),
     dischargeDate: null,
+    birthDate: null,
+    area: null,
     role: 0,
     active: true,
     warehousesAssigned: [],
@@ -151,22 +158,6 @@ export const EmployeeForm = () => {
           </div>
         )}
 
-        <div className="flex justify-center mb-6">
-          <ImagePreview
-            imageUrl={formData.imageUrl}
-            onChange={file => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setFormData(prev => ({
-                  ...prev,
-                  imageUrl: reader.result as string,
-                }));
-              };
-              reader.readAsDataURL(file);
-            }}
-          />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <FormInput
@@ -235,17 +226,6 @@ export const EmployeeForm = () => {
 
           <div>
             <FormInput
-              id="position"
-              name="position"
-              label={EMPLOYEES_TEXTS.form.fields.position}
-              value={formData.position}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <FormInput
               id="phone"
               name="phone"
               label={EMPLOYEES_TEXTS.form.fields.phone}
@@ -257,11 +237,66 @@ export const EmployeeForm = () => {
           </div>
 
           <div>
+            <FormSelect
+              id="area"
+              name="area"
+              label={EMPLOYEES_TEXTS.form.fields.area}
+              value={formData.area}
+              onChange={handleChange}
+              required
+            >
+              <option value="">
+                {EMPLOYEES_TEXTS.form.select.area.placeholder}
+              </option>
+              {EMPLOYEES_AREAS.map(area => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </FormSelect>
+          </div>
+
+          <div>
+            <FormSelect
+              id="position"
+              name="position"
+              label={EMPLOYEES_TEXTS.form.fields.position}
+              value={formData.position}
+              onChange={handleChange}
+              required
+            >
+              <option value="">
+                {EMPLOYEES_TEXTS.form.select.position.placeholder}
+              </option>
+              {EMPLOYEES_POSITIONS.map(position => (
+                <option key={position} value={position}>
+                  {position}
+                </option>
+              ))}
+            </FormSelect>
+          </div>
+
+          <div>
             <FormInput
               id="address"
               name="address"
               label={EMPLOYEES_TEXTS.form.fields.address}
               value={formData.address}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div>
+            <FormInputDate
+              id="birthDate"
+              name="birthDate"
+              label={EMPLOYEES_TEXTS.form.fields.birthDate}
+              value={
+                formData.birthDate
+                  ? new Date(formData.birthDate).toISOString().split('T')[0]
+                  : ''
+              }
               onChange={handleChange}
               required
             />
@@ -334,6 +369,22 @@ export const EmployeeForm = () => {
               onChange={handleChange}
             />
           </div>
+        </div>
+
+        <div className="flex justify-center mb-6">
+          <ImagePreview
+            imageUrl={formData.imageUrl}
+            onChange={file => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setFormData(prev => ({
+                  ...prev,
+                  imageUrl: reader.result as string,
+                }));
+              };
+              reader.readAsDataURL(file);
+            }}
+          />
         </div>
 
         <div className="flex justify-end space-x-4">

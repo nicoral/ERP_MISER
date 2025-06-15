@@ -196,6 +196,9 @@ export const WarehouseForm = () => {
               required
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-base py-2 px-3 h-10"
             >
+              <option value="">
+                {WAREHOUSE_TEXTS.form.select.employee.placeholder}
+              </option>
               {employees?.data.map(employee => (
                 <option key={employee.id} value={employee.id}>
                   {`${employee.firstName} ${employee.lastName}`}

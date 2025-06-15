@@ -275,7 +275,7 @@ export const EmployeeList = () => {
         onClose={() => setSelectedEmployee(null)}
         title={
           selectedEmployee
-            ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`
+            ? `🧾 ${selectedEmployee.firstName} ${selectedEmployee.lastName}`
             : ''
         }
       >

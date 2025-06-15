@@ -51,6 +51,7 @@ export const EMPLOYEES_TEXTS = {
       edit: 'Editar empleado',
     },
     fields: {
+      area: 'Área',
       firstName: 'Nombre',
       lastName: 'Apellido',
       email: 'Correo electrónico',
@@ -61,6 +62,7 @@ export const EMPLOYEES_TEXTS = {
       phone: 'Teléfono',
       hireDate: 'Fecha de alta',
       dischargeDate: 'Fecha de baja',
+      birthDate: 'Fecha de nacimiento',
       role: 'Rol',
       active: 'Activo',
       warehousesAssigned: 'Almacenes asignados',
@@ -76,6 +78,9 @@ export const EMPLOYEES_TEXTS = {
       update: 'Error al actualizar el empleado',
     },
     select: {
+      area: {
+        placeholder: 'Seleccione un area',
+      },
       warehouses: {
         placeholder: 'Seleccione almacenes asignados',
       },
@@ -84,6 +89,9 @@ export const EMPLOYEES_TEXTS = {
       },
       role: {
         placeholder: 'Seleccione un rol',
+      },
+      position: {
+        placeholder: 'Seleccione un cargo',
       },
     },
   },
@@ -227,11 +235,13 @@ export const WAREHOUSE_TEXTS = {
         shelf: 'Estante',
         type: 'Tipo',
         unitOfMeasure: 'Unidad de medida',
+        unit: 'Unidad',
         rotationClassification: 'Clasificación de rotación',
+        rotation: 'Rotación',
         minStock: 'Stock mínimo',
-        maxStock: 'Stock de reestablecimiento',
+        maxStock: 'Stock máximo',
         imageUrl: 'URL de la imagen',
-        active: 'Activo',
+        active: 'Estado',
         warehouse: 'Almacén',
         stock: 'Stock',
         selectWarehouse: 'Seleccionar almacén',
@@ -282,7 +292,7 @@ export const WAREHOUSE_TEXTS = {
     loading: 'Cargando artículos...',
     empty: 'No hay artículos para mostrar.',
     details: {
-      title: 'Detalles del Artículo',
+      title: '🧾 Detalles del Artículo',
     },
   },
   services: {
@@ -412,6 +422,11 @@ export const WAREHOUSE_TEXTS = {
       dismissalDate: 'Fecha de baja',
       employee: 'Encargado',
       active: 'Activo',
+    },
+    select: {
+      employee: {
+        placeholder: 'Seleccione un encargado',
+      },
     },
     errors: {
       save: 'Error al guardar el almacén',

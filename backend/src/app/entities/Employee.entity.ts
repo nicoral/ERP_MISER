@@ -47,6 +47,9 @@ export class Employee {
   @Column('varchar', { length: 100, name: 'last_name', nullable: false })
   lastName: string;
 
+  @Column('varchar', { length: 100, name: 'area', nullable: true })
+  area: string;
+
   @Column('varchar', { length: 100, name: 'position', nullable: false })
   position: string;
 
@@ -67,6 +70,9 @@ export class Employee {
 
   @Column('date', { name: 'dismissal_date', nullable: true })
   dismissalDate: Date;
+
+  @Column('date', { name: 'birth_date', nullable: true })
+  birthDate: Date;
 
   @ManyToOne(() => Role, (role) => role.employees)
   role: Role;

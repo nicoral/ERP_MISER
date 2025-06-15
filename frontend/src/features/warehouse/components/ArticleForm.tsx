@@ -8,6 +8,7 @@ import {
   ALPHABET,
   ROTATION_CLASSIFICATIONS,
   ROUTES,
+  UNIQUE_CATEGORIES,
   UNITS_OF_MEASURE,
 } from '../../../config/constants';
 import { useArticle, useBrands } from '../hooks/useArticle';
@@ -318,10 +319,11 @@ export const ArticleForm = () => {
                   required
                 >
                   <option value="">Selecciona una línea</option>
-                  <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-                  <option value="REPUESTO">REPUESTO</option>
-                  <option value="CONSUMIBLE">CONSUMIBLE</option>
-                  <option value="EPPS">EPPS</option>
+                  {UNIQUE_CATEGORIES.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
                 </FormSelect>
 
                 <FormSelect

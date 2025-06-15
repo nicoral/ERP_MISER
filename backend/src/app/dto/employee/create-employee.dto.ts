@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsArray, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateEmployeeDto {
@@ -48,10 +49,20 @@ export class CreateEmployeeDto {
   imageUrl: string;
 
   @IsOptional()
+  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
   hireDate: Date;
 
   @IsOptional()
+  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
   dismissalDate: Date;
+
+  @IsOptional()
+  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
+  birthDate: Date;
+
+  @IsNotEmpty()
+  @IsString()
+  area: string;
 
   @IsOptional()
   @IsArray()

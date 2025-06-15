@@ -96,3 +96,43 @@ export const DOCUMENT_TYPES = [
   'NIF',
   'NIM',
 ] as const;
+
+export const UNIQUE_CATEGORIES = [
+  'Cerradura',
+  'Combustible',
+  'Equipo De Proteccion Personal',
+  'Filtros Y Aceites',
+  'Fusibles , Focos Y Cables',
+  'Herramientas Manuales Y De Apoyo',
+  'Implementacion De Equipos',
+  'Insumos',
+  'Mangueras, Soportes Y Amortiguadores',
+  'Materiales Para Obra Civil',
+  'Materiales Y Otros Insumos',
+  'Perneria',
+  'Pernos, Tuerca, Volandas Y Pintura',
+  'Repuestos',
+  'Seguridad',
+  'Servicios Administrativos En General',
+  'Servicios Generales De  Mantenimiento Y Equipos',
+  'Soldadura',
+  'Uniones,  Conectores Y Resortes',
+  'Utiles De Escritorio',
+  'Valvulas  Y Interruptor',
+];
+
+export const EMPLOYEES_POSITIONS = [
+  'Sup. Mantenimiento',
+  'Planner De Mantenimiento',
+  'Tecnico Mecanico',
+  'Ayudante Mecanico',
+  'Soldador',
+  'Ing. Residente',
+  'Ing. Seguridad',
+  'Sup. Campo',
+  'Op. Minibus',
+  'Op. Cisterna',
+  'Op. Tractor',
+] as const;
+
+export const EMPLOYEES_AREAS = ['MANTTO', 'RUMA'] as const;

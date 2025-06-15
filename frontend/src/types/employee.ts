@@ -15,6 +15,8 @@ export interface Employee {
   imageUrl: string;
   hireDate: Date;
   dischargeDate: Date | null;
+  birthDate: Date | null;
+  area: string | null;
   role: Role;
   active: boolean;
   warehousesAssigned: Warehouse[];

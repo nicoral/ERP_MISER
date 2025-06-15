@@ -1,8 +1,8 @@
+import { Transform } from 'class-transformer';
 import {
   IsNotEmpty,
   IsString,
   IsNumber,
-  IsDate,
   IsBoolean,
   IsOptional,
 } from 'class-validator';
@@ -21,11 +21,11 @@ export class CreateWarehouseDto {
   employeeId: number;
 
   @IsNotEmpty()
-  @IsDate()
+  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
   hireDate: Date;
 
   @IsOptional()
-  @IsDate()
+  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
   dismissalDate?: Date;
 
   @IsNotEmpty()
