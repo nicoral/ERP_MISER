@@ -32,7 +32,7 @@ export interface ArticleFilters {
 
 export interface WarehouseStockCreate {
   warehouseId: number;
-  articleId: number;
+  articleId?: number;
   stock: number;
 }
 
@@ -40,4 +40,20 @@ export interface WarehouseStock {
   warehouse: Warehouse;
   article: Article;
   stock: number;
+}
+
+export interface ArticleCreateDto {
+  name: string;
+  code: string;
+  unitOfMeasure: string;
+  line: string;
+  shelf: string;
+  type: string;
+  rotationClassification: string;
+  minStock: number;
+  maxStock: number;
+  active: boolean;
+  brandId: number;
+  imageUrl?: string;
+  warehouseArticles: WarehouseStockCreate[];
 }

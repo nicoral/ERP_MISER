@@ -18,7 +18,6 @@ import {
 } from '../../../components/common/Table';
 import { Modal } from '../../../components/common/Modal';
 import { EmployeeDetails } from './EmployeeDetails';
-import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 
 export const EmployeeList = () => {
   const navigate = useNavigate();
@@ -177,14 +176,6 @@ export const EmployeeList = () => {
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="h-full flex-1 flex justify-center items-center">
-        <LoadingSpinner size="lg" className="text-blue-600" />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
@@ -260,7 +251,7 @@ export const EmployeeList = () => {
           columns={columns}
           data={employees}
           keyField="id"
-          loading={isFiltering}
+          loading={loading || isFiltering}
           pagination={{
             page: pagination.page,
             totalPages: pagination.totalPages,

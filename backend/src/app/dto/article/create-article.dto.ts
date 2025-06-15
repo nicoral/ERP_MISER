@@ -38,9 +38,6 @@ export class CreateArticleDto {
   maxStock: number;
 
   @IsOptional()
-  imageUrl: string;
-
-  @IsOptional()
   active: boolean;
 
   @IsOptional()

@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Label } from '../components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import {
   Tabs,
@@ -15,13 +14,17 @@ import {
   TabsList,
   TabsTrigger,
 } from '../components/ui/tabs';
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
 import { useEmployee } from '../features/employees/hooks/useEmployee';
 import { FormInput } from '../components/common/FormInput';
+import { uploadEmployeeImage } from '../services/api/employeeService';
+import type { Employee } from '../types/employee';
+import { PROFILE_TEXTS } from '../config/texts';
 
 export default function Profile() {
   const { user } = useAuth();
-  const { employee } = useEmployee(user?.id);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const { employee: employeeData } = useEmployee(user?.id);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -35,10 +38,10 @@ export default function Profile() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      toast.success('Perfil actualizado correctamente');
+      toast.success(PROFILE_TEXTS.messages.profileUpdated);
     } catch (error) {
       console.error(error);
-      toast.error('Error al actualizar el perfil');
+      toast.error(PROFILE_TEXTS.messages.errorUpdateProfile);
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +50,7 @@ export default function Profile() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+      toast.error(PROFILE_TEXTS.messages.passwordsDontMatch);
       return;
     }
 
@@ -59,10 +62,10 @@ export default function Profile() {
         newPassword: '',
         confirmPassword: '',
       }));
-      toast.success('Contraseña actualizada correctamente');
+      toast.success(PROFILE_TEXTS.messages.passwordUpdated);
     } catch (error) {
       console.error(error);
-      toast.error('Error al actualizar la contraseña');
+      toast.error(PROFILE_TEXTS.messages.errorUpdatePassword);
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +77,12 @@ export default function Profile() {
 
     setIsLoading(true);
     try {
-      toast.success('Imagen de perfil actualizada correctamente');
+      const employee = await uploadEmployeeImage(user?.id ?? 0, file);
+      setEmployee(employee);
+      toast.success(PROFILE_TEXTS.messages.imageUpdated);
     } catch (error) {
       console.error(error);
-      toast.error('Error al actualizar la imagen de perfil');
+      toast.error(PROFILE_TEXTS.messages.errorUpdateImage);
     } finally {
       setIsLoading(false);
     }
@@ -92,25 +97,27 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    if (employee) {
+    if (employeeData) {
+      setEmployee(employeeData);
       setFormData({
-        email: employee?.email || '',
-        phone: employee?.phone || '',
+        email: employeeData.email || '',
+        phone: employeeData.phone || '',
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
     }
-  }, [employee]);
+  }, [employeeData]);
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Mi Perfil</h1>
+      <Toaster position="top-right" />
+      <h1 className="text-3xl font-bold mb-8">{PROFILE_TEXTS.title}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Información Personal</CardTitle>
+            <CardTitle>{PROFILE_TEXTS.personalInfo.title}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center space-y-4">
@@ -125,47 +132,51 @@ export default function Profile() {
                 <h2 className="text-xl font-semibold">
                   {employee?.firstName} {employee?.lastName}
                 </h2>
+                <p className="text-gray-500">{employee?.area}</p>
                 <p className="text-gray-500">{employee?.position}</p>
               </div>
-              <div className="w-full">
-                <Label htmlFor="image-upload" className="cursor-pointer">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Actualizando...' : 'Cambiar Foto'}
-                  </Button>
-                  <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                    disabled={isLoading}
-                  />
-                </Label>
-              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => document.getElementById('image-upload')?.click()}
+                disabled={isLoading}
+              >
+                {isLoading
+                  ? PROFILE_TEXTS.personalInfo.updating
+                  : PROFILE_TEXTS.personalInfo.changePhoto}
+              </Button>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+                disabled={isLoading}
+              />
             </div>
           </CardContent>
         </Card>
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Configuración</CardTitle>
+            <CardTitle>{PROFILE_TEXTS.settings.title}</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="profile">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="profile">Perfil</TabsTrigger>
-                <TabsTrigger value="password">Contraseña</TabsTrigger>
+                <TabsTrigger value="profile">
+                  {PROFILE_TEXTS.settings.profile}
+                </TabsTrigger>
+                <TabsTrigger value="password">
+                  {PROFILE_TEXTS.settings.password}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="profile">
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
                   <div className="space-y-2">
                     <FormInput
-                      label="Correo Electrónico"
+                      label={PROFILE_TEXTS.settings.email}
                       id="email"
                       name="email"
                       value={formData.email}
@@ -175,7 +186,7 @@ export default function Profile() {
                   </div>
                   <div className="space-y-2">
                     <FormInput
-                      label="Teléfono"
+                      label={PROFILE_TEXTS.settings.phone}
                       id="phone"
                       name="phone"
                       value={formData.phone}
@@ -184,7 +195,9 @@ export default function Profile() {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                    {isLoading
+                      ? PROFILE_TEXTS.settings.saving
+                      : PROFILE_TEXTS.settings.saveChanges}
                   </Button>
                 </form>
               </TabsContent>
@@ -193,7 +206,7 @@ export default function Profile() {
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                   <div className="space-y-2">
                     <FormInput
-                      label="Contraseña Actual"
+                      label={PROFILE_TEXTS.settings.currentPassword}
                       id="currentPassword"
                       name="currentPassword"
                       value={formData.currentPassword}
@@ -203,7 +216,7 @@ export default function Profile() {
                   </div>
                   <div className="space-y-2">
                     <FormInput
-                      label="Nueva Contraseña"
+                      label={PROFILE_TEXTS.settings.newPassword}
                       id="newPassword"
                       name="newPassword"
                       value={formData.newPassword}
@@ -213,7 +226,7 @@ export default function Profile() {
                   </div>
                   <div className="space-y-2">
                     <FormInput
-                      label="Confirmar Nueva Contraseña"
+                      label={PROFILE_TEXTS.settings.confirmPassword}
                       id="confirmPassword"
                       name="confirmPassword"
                       value={formData.confirmPassword}
@@ -222,7 +235,9 @@ export default function Profile() {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Actualizando...' : 'Cambiar Contraseña'}
+                    {isLoading
+                      ? PROFILE_TEXTS.settings.updating
+                      : PROFILE_TEXTS.settings.changePassword}
                   </Button>
                 </form>
               </TabsContent>

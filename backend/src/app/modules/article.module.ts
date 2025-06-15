@@ -6,11 +6,13 @@ import { ArticleService } from '../services/article.service';
 import { EmployeeModule } from './employee.module';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { Brand } from '../entities/Brand.entity';
+import { CloudinaryModule } from './cloudinary.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Article, WarehouseArticle, Brand]),
     EmployeeModule,
+    CloudinaryModule,
   ],
   controllers: [ArticleController],
   providers: [ArticleService],

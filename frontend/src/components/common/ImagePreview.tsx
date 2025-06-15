@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import defaultAvatar from '../../assets/default-avatar.png';
 
 type Props = {
@@ -30,6 +30,10 @@ export const ImagePreview: React.FC<Props> = ({
       onChange(file);
     }
   };
+
+  useEffect(() => {
+    setPreview(imageUrl);
+  }, [imageUrl]);
 
   return (
     <div className={`relative ${className}`}>

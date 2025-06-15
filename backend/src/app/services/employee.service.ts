@@ -7,6 +7,7 @@ import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/employee/update-employee.dto';
 import { RoleService } from './role.service';
 import { Warehouse } from '../entities/Warehouse.entity';
+import { CloudinaryService } from './cloudinary.service';
 
 @Injectable()
 export class EmployeeService {
@@ -14,6 +15,7 @@ export class EmployeeService {
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
     private readonly roleService: RoleService,
+    private readonly cloudinaryService: CloudinaryService,
   ) { }
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Employee> {
@@ -109,5 +111,15 @@ export class EmployeeService {
   async remove(id: number): Promise<void> {
     const employee = await this.findOne(id);
     await this.employeeRepository.remove(employee);
+  }
+
+  async updateImage(id: number, file: Express.Multer.File) {
+    const employee = await this.findOne(id);
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
+    const uploadResult = await this.cloudinaryService.uploadFile(file, 'employees');
+    employee.imageUrl = uploadResult.secure_url;
+    return this.employeeRepository.save(employee);
   }
 }

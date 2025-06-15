@@ -433,3 +433,35 @@ export const WAREHOUSE_TEXTS = {
     },
   },
 };
+
+export const PROFILE_TEXTS = {
+  title: 'Mi Perfil',
+  personalInfo: {
+    title: 'Información Personal',
+    changePhoto: 'Cambiar foto de perfil',
+    updating: 'Actualizando...',
+  },
+  settings: {
+    title: 'Configuración',
+    profile: 'Perfil',
+    password: 'Contraseña',
+    email: 'Correo Electrónico',
+    phone: 'Teléfono',
+    currentPassword: 'Contraseña Actual',
+    newPassword: 'Nueva Contraseña',
+    confirmPassword: 'Confirmar Nueva Contraseña',
+    saveChanges: 'Guardar Cambios',
+    saving: 'Guardando...',
+    changePassword: 'Cambiar Contraseña',
+    updating: 'Actualizando...',
+  },
+  messages: {
+    profileUpdated: 'Perfil actualizado correctamente',
+    passwordUpdated: 'Contraseña actualizada correctamente',
+    imageUpdated: 'Imagen de perfil actualizada correctamente',
+    passwordsDontMatch: 'Las contraseñas no coinciden',
+    errorUpdateProfile: 'Error al actualizar el perfil',
+    errorUpdatePassword: 'Error al actualizar la contraseña',
+    errorUpdateImage: 'Error al actualizar la imagen de perfil',
+  },
+};

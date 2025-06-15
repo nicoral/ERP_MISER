@@ -13,9 +13,9 @@ export const ArticleDetails: React.FC<Props> = ({ article }) => {
       <div className="flex justify-center mb-6">
         <img
           src={
-            article.imageUrl || article.imageUrl === ''
-              ? defaultAvatar
-              : article.imageUrl
+            article.imageUrl && article.imageUrl !== ''
+              ? article.imageUrl
+              : defaultAvatar
           }
           alt={article.name}
           className="w-32 h-32 object-contain"

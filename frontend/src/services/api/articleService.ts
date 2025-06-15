@@ -1,7 +1,7 @@
 import { STORAGE_KEY_TOKEN } from '../../config/constants';
 import type {
   Article,
-  ArticleCreate,
+  ArticleCreateDto,
   ArticleFilters,
   Brand,
 } from '../../types/article';
@@ -56,7 +56,9 @@ export async function getArticle(
   throw new Error(data.message);
 }
 
-export async function createArticle(article: ArticleCreate): Promise<Article> {
+export async function createArticle(
+  article: ArticleCreateDto
+): Promise<Article> {
   const response = await fetch(`${import.meta.env.VITE_API_URL}/articles`, {
     method: 'POST',
     headers: {
@@ -74,7 +76,7 @@ export async function createArticle(article: ArticleCreate): Promise<Article> {
 
 export async function updateArticle(
   id: number,
-  article: Omit<Article, 'id'>
+  article: ArticleCreateDto
 ): Promise<Article> {
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/articles/${id}`,
@@ -89,6 +91,30 @@ export async function updateArticle(
   );
   const data = await response.json();
   if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
+export async function uploadArticleImage(
+  id: number,
+  file: File
+): Promise<Article> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles/${id}/image`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: formData,
+    }
+  );
+  const data = await response.json();
+  if (response.status === 201) {
     return data;
   }
   throw new Error(data.message);
@@ -110,16 +136,24 @@ export async function getBrands(): Promise<Brand[]> {
   throw new Error(data.message);
 }
 
-export async function createBrand(brand: Brand): Promise<Brand> {
+export const createBrand = async (
+  brand: Brand,
+  file?: File
+): Promise<Brand> => {
+  const formData = new FormData();
+  if (file) {
+    formData.append('file', file);
+  }
+  formData.append('name', brand.name);
+
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/articles/brands`,
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
-      body: JSON.stringify(brand),
+      body: formData,
     }
   );
   const data = await response.json();
@@ -127,4 +161,4 @@ export async function createBrand(brand: Brand): Promise<Brand> {
     return data;
   }
   throw new Error(data.message);
-}
+};

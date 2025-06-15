@@ -16,7 +16,7 @@ import { useWarehouses } from '../hooks/useWarehouse';
 import {
   createArticle,
   updateArticle,
-  createBrand,
+  uploadArticleImage,
 } from '../../../services/api/articleService';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { PlusIcon, TrashIcon } from '../../../components/common/Icons';
@@ -26,12 +26,27 @@ import type {
   Brand,
   WarehouseStock,
   WarehouseStockCreate,
+  ArticleCreateDto,
 } from '../../../types/article';
 import { Modal } from '../../../components/common/Modal';
+import { BrandForm } from './BrandForm';
 
-interface NewBrand {
+interface FormData {
   name: string;
+  code: string;
+  unitOfMeasure: string;
+  line: string;
+  lineId: string;
+  shelf: string;
+  shelfId: string;
+  type: string;
+  rotationClassification: string;
+  minStock: number;
+  maxStock: number;
+  active: boolean;
+  brandId: string;
   imageUrl: string;
+  warehouseArticles: WarehouseStockCreate[];
 }
 
 export const ArticleForm = () => {
@@ -45,8 +60,7 @@ export const ArticleForm = () => {
 
   const { brands, refreshBrands } = useBrands();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     code: '',
     unitOfMeasure: '',
@@ -61,34 +75,38 @@ export const ArticleForm = () => {
     active: true,
     brandId: '',
     imageUrl: '',
-    warehouseArticles: [] as WarehouseStockCreate[],
+    warehouseArticles: [],
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBrandModal, setShowBrandModal] = useState(false);
-  const [newBrand, setNewBrand] = useState<NewBrand>({
-    name: '',
-    imageUrl: '',
-  });
-  const [creatingBrand, setCreatingBrand] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     const { line, lineId, shelf, shelfId, ...rest } = formData;
-    const data = {
+    const data: ArticleCreateDto = {
       ...rest,
       line: `${line} - ${lineId}`,
       shelf: `${COMMON_TEXTS.group} ${shelf} - ${shelfId}`,
+      brandId: Number(formData.brandId),
     };
     try {
+      let savedArticle;
       if (isEditing) {
-        await updateArticle(articleId ?? 0, data);
+        savedArticle = await updateArticle(articleId ?? 0, data);
       } else {
-        await createArticle(data);
+        savedArticle = await createArticle(data);
       }
+
+      // Si hay una imagen seleccionada, subirla después de crear/actualizar el artículo
+      if (selectedFile) {
+        await uploadArticleImage(savedArticle.id, selectedFile);
+      }
+
       navigate(ROUTES.WAREHOUSE_ARTICLES);
     } catch {
       setError(WAREHOUSE_TEXTS.articles.form.errors.save);
@@ -164,48 +182,35 @@ export const ArticleForm = () => {
     }));
   };
 
-  const handleCreateBrand = async () => {
-    if (!newBrand.name.trim()) return;
-
-    setCreatingBrand(true);
-    try {
-      const createdBrand = await createBrand({
-        ...newBrand,
-        id: 0, // El backend asignará el ID real
-      } as Brand);
-
-      // Actualizar la lista de marcas
-      await refreshBrands();
-      setFormData((prev: typeof formData) => ({
-        ...prev,
-        brandId: createdBrand.id,
-      }));
-
-      setShowBrandModal(false);
-      setNewBrand({
-        name: '',
-        imageUrl: '',
-      });
-    } catch (error) {
-      console.error(error);
-      setError('Error al crear la marca');
-    } finally {
-      setCreatingBrand(false);
-    }
+  const handleBrandSuccess = (brand: Brand) => {
+    refreshBrands();
+    setFormData((prev: FormData) => ({
+      ...prev,
+      brandId: brand.id.toString(),
+    }));
+    setShowBrandModal(false);
   };
 
   useEffect(() => {
     if (isEditing && article) {
-      const [line, lineId] = article.line.replace(/\s+/g, '').split('-');
-      const [shelf, shelfId] = article.shelf.replace(/\s+/g, '').split('-');
+      const [line, lineId] = article.line.split('-');
+      const [shelf, shelfId] = article.shelf.split('-');
       const shelfName = shelf.replace(COMMON_TEXTS.group, '');
       setFormData({
-        ...article,
-        brandId: article.brand.id,
-        line,
-        shelf: shelfName,
-        lineId,
-        shelfId,
+        name: article.name,
+        code: article.code,
+        unitOfMeasure: article.unitOfMeasure,
+        line: line.trim(),
+        shelf: shelfName.trim(),
+        lineId: lineId.trim(),
+        shelfId: shelfId.trim(),
+        type: article.type,
+        rotationClassification: article.rotationClassification,
+        minStock: article.minStock,
+        maxStock: article.maxStock,
+        active: article.active,
+        brandId: article.brand.id.toString(),
+        imageUrl: article.imageUrl ?? '',
         warehouseArticles: article.warehouseArticles.map(
           (warehouseStock: WarehouseStock) => ({
             warehouseId: warehouseStock.warehouse.id,
@@ -214,7 +219,7 @@ export const ArticleForm = () => {
         ),
       });
     }
-  }, [isEditing, article, setFormData]);
+  }, [isEditing, article]);
 
   if (loading || loadingArticle) {
     return (
@@ -465,15 +470,7 @@ export const ArticleForm = () => {
               <ImagePreview
                 imageUrl={formData.imageUrl}
                 onChange={file => {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      imageUrl: reader.result as string,
-                    }));
-                  };
-                  reader.readAsDataURL(file);
+                  setSelectedFile(file);
                 }}
               />
             </div>
@@ -578,53 +575,10 @@ export const ArticleForm = () => {
         onClose={() => setShowBrandModal(false)}
         title="Crear nueva marca"
       >
-        <div className="space-y-4">
-          <div className="flex justify-center mb-4">
-            <ImagePreview
-              imageUrl={newBrand.imageUrl}
-              onChange={file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  setNewBrand(prev => ({
-                    ...prev,
-                    imageUrl: reader.result as string,
-                  }));
-                };
-                reader.readAsDataURL(file);
-              }}
-            />
-          </div>
-          <FormInput
-            id="brandName"
-            name="name"
-            label="Nombre de la marca"
-            value={newBrand.name}
-            onChange={e =>
-              setNewBrand(prev => ({
-                ...prev,
-                name: e.target.value,
-              }))
-            }
-            required
-          />
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => setShowBrandModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {COMMON_TEXTS.cancel}
-            </button>
-            <button
-              type="button"
-              onClick={handleCreateBrand}
-              disabled={creatingBrand || !newBrand.name.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creatingBrand ? COMMON_TEXTS.loading : COMMON_TEXTS.save}
-            </button>
-          </div>
-        </div>
+        <BrandForm
+          onSuccess={handleBrandSuccess}
+          onCancel={() => setShowBrandModal(false)}
+        />
       </Modal>
     </div>
   );

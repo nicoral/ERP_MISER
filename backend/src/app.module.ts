@@ -14,10 +14,12 @@ import { AuditInterceptor } from './app/common/audit.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditLog } from './app/entities/AuditLog.entity';
 import { Employee } from './app/entities/Employee.entity';
+import { CloudinaryModule } from './app/modules/cloudinary.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(forRootObject),
+    CloudinaryModule,
     DatabaseModule,
     PermissionModule,
     RoleModule,

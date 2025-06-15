@@ -96,3 +96,26 @@ export const updateEmployee = async (
   }
   throw new Error(data.message);
 };
+
+export const uploadEmployeeImage = async (
+  id: number,
+  file: File
+): Promise<Employee> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/employees/${id}/image`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: formData,
+    }
+  );
+  const data = await response.json();
+  if (response.status === 201) {
+    return data;
+  }
+  throw new Error(data.message);
+};

@@ -7,6 +7,7 @@ import { UpdateArticleDto } from '../dto/article/update-article.dto';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { Brand } from '../entities/Brand.entity';
 import { CreateBrandDto } from '../dto/article/create-brand.dto';
+import { CloudinaryService } from './cloudinary.service';
 
 @Injectable()
 export class ArticleService {
@@ -17,7 +18,8 @@ export class ArticleService {
     private readonly warehouseArticleRepository: Repository<WarehouseArticle>,
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
-  ) {}
+    private readonly cloudinaryService: CloudinaryService,
+  ) { }
 
   async create(createArticleDto: CreateArticleDto): Promise<Article> {
     const { brandId, ...rest } = createArticleDto;
@@ -27,10 +29,12 @@ export class ArticleService {
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
+
     const article = this.articleRepository.create({
       ...rest,
       brand,
     });
+
     const savedArticle = await this.articleRepository.save(article);
     const warehousesArticles = createArticleDto.warehouseArticles.map(
       (warehouseArticle) =>
@@ -96,6 +100,7 @@ export class ArticleService {
       ...rest,
       brand,
     });
+
     if (article.warehouseArticles.length > 0) {
       await this.warehouseArticleRepository.delete({ article: { id } });
     }
@@ -113,6 +118,19 @@ export class ArticleService {
     return this.findOne(id);
   }
 
+  async updateImage(id: number, file: Express.Multer.File): Promise<Article> {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const uploadResult = await this.cloudinaryService.uploadFile(file, 'articles');
+    article.imageUrl = uploadResult.secure_url;
+    return this.articleRepository.save(article);
+  }
+
   async remove(id: number): Promise<void> {
     await this.articleRepository.delete(id);
   }
@@ -121,8 +139,12 @@ export class ArticleService {
     return this.brandRepository.find();
   }
 
-  async createBrand(createBrandDto: CreateBrandDto): Promise<Brand> {
+  async createBrand(createBrandDto: CreateBrandDto, file: Express.Multer.File): Promise<Brand> {
     const brand = this.brandRepository.create(createBrandDto);
+    if (file) {
+      const uploadResult = await this.cloudinaryService.uploadFile(file, 'brands');
+      brand.imageUrl = uploadResult.secure_url;
+    }
     return this.brandRepository.save(brand);
   }
 }

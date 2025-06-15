@@ -8,6 +8,8 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { Employee } from '../entities/Employee.entity';
 import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
@@ -16,6 +18,7 @@ import { EmployeeService } from '../services/employee.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { PermissionsGuard } from '../guards/permissions.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -64,5 +67,15 @@ export class EmployeeController {
   @RequirePermissions('delete_employee')
   async remove(@Param('id') id: number): Promise<void> {
     return this.employeeService.remove(id);
+  }
+
+  @Post(':id/image')
+  @RequirePermissions('update_employee')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @Param('id') id: number,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.employeeService.updateImage(id, file);
   }
 }
