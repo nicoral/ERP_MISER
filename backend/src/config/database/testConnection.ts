@@ -1,17 +1,25 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { Employee } from '../../app/entities/Employee.entity';
+import { Warehouse } from '../../app/entities/Warehouse.entity';
+import { Supplier } from '../../app/entities/Supplier.entity';
+import { AuditLog } from '../../app/entities/AuditLog.entity';
+import { Role } from '../../app/entities/Role.entity';
+import { Permission } from '../../app/entities/Permission.entity';
+import { Article } from '../../app/entities/Article.entity';
+import { WarehouseArticle } from '../../app/entities/WarehouseArticle.entity';
+import { Brand } from '../../app/entities/Brand.entity';
 
 config();
 
 const dataSource = new DataSource({
   type: 'postgres',
   host: process.env.TYPEORM_HOST,
-  port: parseInt(process.env.TYPEORM_PORT || '5432'),
+  port: parseInt(process.env.TYPEORM_PORT ?? '5432'),
   username: process.env.TYPEORM_USERNAME,
   password: process.env.TYPEORM_PASSWORD,
   database: process.env.TYPEORM_DATABASE,
-  entities: [Employee],
+  entities: [Employee, Role, Permission, Warehouse, Article, Supplier, WarehouseArticle, AuditLog, Brand],
   synchronize: false,
 });
 

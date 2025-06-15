@@ -25,7 +25,7 @@ export default class RoleSeeder implements Seeder {
       },
       {
         id: 3,
-        name: 'guest',
+        name: 'default',
         description: 'Invitado del sistema'
       }
     ];
