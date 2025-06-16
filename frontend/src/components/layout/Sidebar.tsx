@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { SIDEBAR_TEXTS } from '../../config/texts';
 import { ROUTES } from '../../config/constants';
@@ -75,16 +75,23 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-const user = getCurrentUser();
-const permissions = user?.role.permissions.map(permission => permission.name);
-
-const menuItemsAllowed = menuItems.filter(item =>
-  item.permission ? permissions?.includes(item.permission) : true
-);
-
 export const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [menuItemsAllowed, setMenuItemsAllowed] = useState<MenuItem[]>([]);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    const permissions = user?.role.permissions.map(
+      permission => permission.name
+    );
+
+    const filteredItems = menuItems.filter(item =>
+      item.permission ? permissions?.includes(item.permission) : true
+    );
+
+    setMenuItemsAllowed(filteredItems);
+  }, []);
 
   const toggleSubmenu = (path: string) => {
     setExpandedItems(prev =>
