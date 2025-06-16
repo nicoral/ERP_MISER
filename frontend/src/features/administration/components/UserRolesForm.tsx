@@ -18,7 +18,8 @@ export const UserRolesForm = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const { permissions } = usePermissionsByRole(selectedRoleId);
+  const { permissions, loading: loadingPermissions } =
+    usePermissionsByRole(selectedRoleId);
 
   useEffect(() => {
     if (initialRoles) {
@@ -93,12 +94,19 @@ export const UserRolesForm = () => {
         />
       </div>
       <Modal
+        title={
+          selectedRole
+            ? selectedRole.name[0].toUpperCase() + selectedRole.name.slice(1)
+            : ''
+        }
         isOpen={!!selectedRole}
         onClose={() => setSelectedRole(null)}
-        title=""
       >
         {selectedRole && (
-          <RoleDetails role={{ ...selectedRole, permissions }} />
+          <RoleDetails
+            role={{ ...selectedRole, permissions }}
+            loading={loadingPermissions}
+          />
         )}
       </Modal>
     </div>

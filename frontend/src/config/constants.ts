@@ -141,3 +141,26 @@ export const EMPLOYEES_POSITIONS = [
 ] as const;
 
 export const EMPLOYEES_AREAS = ['MANTTO', 'RUMA'] as const;
+
+export const MODULES = [
+  {
+    key: 'employee',
+    label: 'Empleados',
+  },
+  {
+    key: 'warehouses',
+    label: 'Almacenes',
+  },
+  {
+    key: 'articles',
+    label: 'Artículos',
+  },
+  {
+    key: 'cost_centers',
+    label: 'Centros de costo',
+  },
+  {
+    key: 'suppliers',
+    label: 'Proveedores',
+  },
+];

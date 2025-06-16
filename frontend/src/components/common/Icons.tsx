@@ -314,3 +314,41 @@ export const CostCenterIcon: React.FC<{ className?: string }> = ({
     />
   </svg>
 );
+
+// Check SVG
+export const CheckIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <circle cx="12" cy="12" r="10" fill="#22c55e" />
+    <path
+      stroke="#fff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M7 13l3 3 5-5"
+    />
+  </svg>
+);
+
+// Cross SVG
+export const CrossIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <circle cx="12" cy="12" r="10" fill="#ef4444" />
+    <path
+      stroke="#fff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15 9l-6 6m0-6l6 6"
+    />
+  </svg>
+);

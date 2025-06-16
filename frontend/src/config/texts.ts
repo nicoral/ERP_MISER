@@ -169,6 +169,7 @@ export const ADMINISTRATION_TEXTS = {
     },
     roles: {
       title: 'Roles y permisos',
+      view: 'Ver detalles del rol',
       description: 'Administración de roles y permisos',
     },
     audit: {
