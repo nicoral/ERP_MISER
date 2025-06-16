@@ -47,6 +47,9 @@ export class Supplier {
   })
   status: SupplierStatus;
 
+  @Column('text', { name: 'lines', nullable: true })
+  lines: string;
+
   @CreateDateColumn({
     name: 'created_at',
     nullable: false,

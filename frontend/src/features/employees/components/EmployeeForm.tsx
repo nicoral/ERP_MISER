@@ -20,6 +20,7 @@ import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
 import {
   createEmployee,
   updateEmployee,
+  uploadEmployeeImage,
 } from '../../../services/api/employeeService';
 import { FormSelect } from '../../../components/common/FormSelect';
 
@@ -27,7 +28,10 @@ export const EmployeeForm = () => {
   const navigate = useNavigate();
   const params = useParams();
   const isEditing = Boolean(params.id);
+  const [selectedEmployeeImage, setSelectedEmployeeImage] =
+    useState<File | null>(null);
   const employeeId = params.id ? Number(params.id) : undefined;
+  const [loading, setLoading] = useState(false);
 
   const {
     employee,
@@ -79,6 +83,7 @@ export const EmployeeForm = () => {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setLoading(true);
 
     try {
       if (isEditing) {
@@ -92,6 +97,10 @@ export const EmployeeForm = () => {
           warehousesAssigned: selectedValues.map(Number),
         });
       }
+
+      if (selectedEmployeeImage) {
+        await uploadEmployeeImage(employeeId!, selectedEmployeeImage);
+      }
       navigate(ROUTES.EMPLOYEES);
     } catch (error) {
       console.error(error);
@@ -102,6 +111,7 @@ export const EmployeeForm = () => {
       );
     } finally {
       setSaving(false);
+      setLoading(false);
     }
   };
 
@@ -116,7 +126,7 @@ export const EmployeeForm = () => {
     }));
   };
 
-  if (isEditing && (loadingEmployee || loadingRoles)) {
+  if (isEditing && (loadingEmployee || loadingRoles || loading)) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />
@@ -375,14 +385,7 @@ export const EmployeeForm = () => {
           <ImagePreview
             imageUrl={formData.imageUrl}
             onChange={file => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setFormData(prev => ({
-                  ...prev,
-                  imageUrl: reader.result as string,
-                }));
-              };
-              reader.readAsDataURL(file);
+              setSelectedEmployeeImage(file);
             }}
           />
         </div>

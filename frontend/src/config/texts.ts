@@ -23,6 +23,7 @@ export const EMPLOYEES_TEXTS = {
   table: {
     columns: {
       id: 'ID',
+      area: 'Área',
       firstName: 'Nombre',
       lastName: 'Apellido',
       position: 'Cargo',
@@ -350,22 +351,50 @@ export const WAREHOUSE_TEXTS = {
       clear: 'Limpiar',
       filtering: 'Filtrando...',
     },
+    details: {
+      title: '🧾 Detalles del Proveedor',
+    },
     table: {
       columns: {
-        code: 'Código',
-        name: 'Nombre',
-        contact: 'Contacto',
+        id: 'ID',
+        ruc: 'RUC',
+        business_name: 'Razón social',
+        contact_person: 'Contacto',
         status: 'Estado',
         actions: 'Acciones',
       },
       status: {
         active: 'Activo',
         inactive: 'Inactivo',
+        blacklisted: 'Lista negra',
       },
       actions: {
         view: 'Ver',
         edit: 'Editar',
         delete: 'Eliminar',
+      },
+    },
+    form: {
+      fields: {
+        ruc: 'RUC',
+        business_name: 'Razón social',
+        address: 'Dirección',
+        contact_person: 'Contacto',
+        mobile: 'Teléfono',
+        email: 'Correo electrónico',
+        bank_account: 'Cuenta bancaria',
+        return_policy: 'Política de devolución',
+        rating: 'Calificación',
+        status: 'Estado',
+        categories: 'Líneas',
+      },
+      title: {
+        create: 'Crear nuevo proveedor',
+        edit: 'Editar proveedor',
+        back: 'Volver',
+      },
+      errors: {
+        save: 'Error al guardar el proveedor',
       },
     },
     loading: 'Cargando proveedores...',
@@ -417,7 +446,7 @@ export const WAREHOUSE_TEXTS = {
     fields: {
       name: 'Nombre',
       address: 'Dirección',
-      valued: 'Valor',
+      valued: 'Valorizado',
       hireDate: 'Fecha de alta',
       dismissalDate: 'Fecha de baja',
       employee: 'Encargado',

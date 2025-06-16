@@ -2,8 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { EMPLOYEES_TEXTS } from '../../../config/texts';
 import { useEmployees } from '../hooks/useEmployees';
 import type { Employee } from '../../../types/employee';
-import { useState, useEffect } from 'react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronDownIcon,
   EditIcon,
@@ -142,6 +141,7 @@ export const EmployeeList = () => {
       accessor2: 'lastName',
     },
     { header: EMPLOYEES_TEXTS.table.columns.email, accessor: 'email' },
+    { header: EMPLOYEES_TEXTS.table.columns.area, accessor: 'area' },
     { header: EMPLOYEES_TEXTS.table.columns.position, accessor: 'position' },
     { header: EMPLOYEES_TEXTS.table.columns.phone, accessor: 'phone' },
     {

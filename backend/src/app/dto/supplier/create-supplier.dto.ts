@@ -45,6 +45,10 @@ export class CreateSupplierDto {
   @IsNumber()
   rating: number;
 
+  @IsOptional()
+  @IsString()
+  lines: string;
+
   @IsNotEmpty()
   @IsEnum(SupplierStatus)
   status: SupplierStatus;

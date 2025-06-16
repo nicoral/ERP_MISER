@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
+import { EyeIcon, EditIcon } from '../../../components/common/Icons';
 import { getWarehouses } from '../../../services/api/warehouseService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
@@ -10,6 +10,9 @@ import {
 } from '../../../components/common/Table';
 import type { Warehouse } from '../../../types/warehouse';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../../config/constants';
+import { Modal } from '../../../components/common/Modal';
+import { WarehouseDetails } from './WarehouseDetails';
 
 export const WarehouseList = () => {
   const navigate = useNavigate();
@@ -25,6 +28,10 @@ export const WarehouseList = () => {
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(
+    null
+  );
 
   // Cargar almacenes iniciales
   useEffect(() => {
@@ -138,11 +145,11 @@ export const WarehouseList = () => {
   ];
 
   const handleCreate = () => {
-    navigate(`/warehouse/create`);
+    navigate(ROUTES.WAREHOUSE_CREATE);
   };
 
   const handleEdit = (id: number) => {
-    navigate(`/warehouse/${id}/edit`);
+    navigate(ROUTES.WAREHOUSE_EDIT.replace(':id', id.toString()));
   };
 
   // Acciones para la tabla de almacenes
@@ -150,18 +157,21 @@ export const WarehouseList = () => {
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: WAREHOUSE_TEXTS.warehouses.table.actions.view,
-      onClick: () => {},
+      onClick: (warehouse: Warehouse) => {
+        setSelectedWarehouse(warehouse);
+        setShowDetailsModal(true);
+      },
     },
     {
       icon: <EditIcon className="w-5 h-5 text-blue-600" />,
       label: WAREHOUSE_TEXTS.warehouses.table.actions.edit,
       onClick: (warehouse: Warehouse) => handleEdit(warehouse.id),
     },
-    {
+    /* {
       icon: <TrashIcon className="w-5 h-5 text-red-600" />,
       label: WAREHOUSE_TEXTS.warehouses.table.actions.delete,
       onClick: () => {},
-    },
+    }, */
   ];
 
   return (
@@ -252,6 +262,15 @@ export const WarehouseList = () => {
           pageSize={pagination.pageSize}
         />
       </div>
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title={`🏢 ${selectedWarehouse?.name ?? ''}`}
+      >
+        {selectedWarehouse && (
+          <WarehouseDetails warehouse={selectedWarehouse} />
+        )}
+      </Modal>
     </div>
   );
 };

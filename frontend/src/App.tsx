@@ -22,6 +22,7 @@ import { RoleForm } from './features/administration/components/RoleForm';
 import { WarehouseForm } from './features/warehouse/components/WarehouseForm';
 import Profile from './pages/Profile';
 import { ArticleForm } from './features/warehouse/components/ArticleForm';
+import { SupplierForm } from './features/warehouse/components/SupplierForm';
 
 function App() {
   return (
@@ -73,6 +74,14 @@ function App() {
                 <Route
                   path={ROUTES.WAREHOUSE_SUPPLIERS}
                   element={<SupplierList />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_SUPPLIERS_CREATE}
+                  element={<SupplierForm />}
+                />
+                <Route
+                  path={ROUTES.WAREHOUSE_SUPPLIERS_EDIT}
+                  element={<SupplierForm />}
                 />
                 <Route path={ROUTES.PROFILE} element={<Profile />} />
               </Route>

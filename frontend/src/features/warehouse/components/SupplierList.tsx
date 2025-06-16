@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
+import { EyeIcon, EditIcon } from '../../../components/common/Icons';
 import { getSuppliers } from '../../../services/api/supplierService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
@@ -8,9 +8,14 @@ import {
   type TableAction,
   type TableColumn,
 } from '../../../components/common/Table';
-import type { Supplier } from '../../../types/supplier';
+import { SupplierStatus, type Supplier } from '../../../types/supplier';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../../config/constants';
+import { Modal } from '../../../components/common/Modal';
+import { SupplierDetails } from './SupplierDetails';
 
 export const SupplierList = () => {
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -25,6 +30,10 @@ export const SupplierList = () => {
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null
+  );
 
   useEffect(() => {
     (async () => {
@@ -92,28 +101,51 @@ export const SupplierList = () => {
     setIsFiltering(false);
   };
 
+  const getStatusDisplay = (status: SupplierStatus) => {
+    const statusConfig = {
+      [SupplierStatus.ACTIVE]: {
+        text: WAREHOUSE_TEXTS.suppliers.table.status.active,
+        className:
+          'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      },
+      [SupplierStatus.INACTIVE]: {
+        text: WAREHOUSE_TEXTS.suppliers.table.status.inactive,
+        className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      },
+      [SupplierStatus.BLACKLISTED]: {
+        text: WAREHOUSE_TEXTS.suppliers.table.status.blacklisted,
+        className:
+          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+      },
+    };
+
+    const config = statusConfig[status];
+    return (
+      <span
+        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.className}`}
+      >
+        {config.text}
+      </span>
+    );
+  };
+
   const columns: TableColumn<Supplier>[] = [
-    { header: WAREHOUSE_TEXTS.suppliers.table.columns.code, accessor: 'code' },
-    { header: WAREHOUSE_TEXTS.suppliers.table.columns.name, accessor: 'name' },
+    { header: WAREHOUSE_TEXTS.suppliers.table.columns.id, accessor: 'id' },
     {
-      header: WAREHOUSE_TEXTS.suppliers.table.columns.contact,
-      accessor: 'contact',
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.ruc,
+      accessor: 'ruc',
+    },
+    {
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.business_name,
+      accessor: 'businessName',
+    },
+    {
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.contact_person,
+      accessor: 'contactPerson',
     },
     {
       header: WAREHOUSE_TEXTS.suppliers.table.columns.status,
-      render: (sup: Supplier) => (
-        <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            sup.active
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-          }`}
-        >
-          {sup.active
-            ? WAREHOUSE_TEXTS.suppliers.table.status.active
-            : WAREHOUSE_TEXTS.suppliers.table.status.inactive}
-        </span>
-      ),
+      render: (sup: Supplier) => getStatusDisplay(sup.status),
     },
   ];
 
@@ -121,18 +153,25 @@ export const SupplierList = () => {
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: WAREHOUSE_TEXTS.suppliers.table.actions.view,
-      onClick: () => {},
+      onClick: (supplier: Supplier) => {
+        setSelectedSupplier(supplier);
+        setShowDetailsModal(true);
+      },
     },
     {
       icon: <EditIcon className="w-5 h-5 text-blue-600" />,
       label: WAREHOUSE_TEXTS.suppliers.table.actions.edit,
-      onClick: () => {},
+      onClick: (supplier: Supplier) => {
+        navigate(
+          ROUTES.WAREHOUSE_SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
+        );
+      },
     },
-    {
+    /* {
       icon: <TrashIcon className="w-5 h-5 text-red-600" />,
       label: WAREHOUSE_TEXTS.suppliers.table.actions.delete,
       onClick: () => {},
-    },
+    }, */
   ];
 
   return (
@@ -141,7 +180,10 @@ export const SupplierList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.suppliers.title}
         </h2>
-        <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <button
+          onClick={() => navigate(ROUTES.WAREHOUSE_SUPPLIERS_CREATE)}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
           {WAREHOUSE_TEXTS.suppliers.buttons.create}
         </button>
       </div>
@@ -223,7 +265,7 @@ export const SupplierList = () => {
         <Table<Supplier>
           columns={columns}
           data={suppliers}
-          keyField="code"
+          keyField="id"
           loading={isFiltering}
           pagination={{
             page: pagination.page,
@@ -234,6 +276,13 @@ export const SupplierList = () => {
           pageSize={pagination.pageSize}
         />
       </div>
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title={WAREHOUSE_TEXTS.suppliers.details.title}
+      >
+        {selectedSupplier && <SupplierDetails supplier={selectedSupplier} />}
+      </Modal>
     </div>
   );
 };

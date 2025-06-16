@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
+import { EyeIcon, EditIcon } from '../../../components/common/Icons';
 import { getArticles, getArticle } from '../../../services/api/articleService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
@@ -151,11 +151,11 @@ export const ArticleList = () => {
         );
       },
     },
-    {
+    /* {
       icon: <TrashIcon className="w-5 h-5 text-red-600" />,
       label: WAREHOUSE_TEXTS.articles.table.actions.delete,
       onClick: () => {},
-    },
+    }, */
   ];
 
   return (

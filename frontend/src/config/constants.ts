@@ -30,6 +30,8 @@ export const ROUTES = {
   WAREHOUSE_ARTICLE_EDIT: '/warehouse/articles/:id/edit',
   WAREHOUSE_SERVICES: '/warehouse/services',
   WAREHOUSE_SUPPLIERS: '/warehouse/suppliers',
+  WAREHOUSE_SUPPLIERS_CREATE: '/warehouse/suppliers/create',
+  WAREHOUSE_SUPPLIERS_EDIT: '/warehouse/suppliers/:id/edit',
   PROFILE: '/profile',
 } as const;
 
