@@ -11,6 +11,7 @@ import { Article } from '../../app/entities/Article.entity';
 import { Supplier } from '../../app/entities/Supplier.entity';
 import { AuditLog } from '../../app/entities/AuditLog.entity';
 import { Brand } from '../../app/entities/Brand.entity';
+import { CostCenter } from '../../app/entities/CostCenter.entity';
 
 @Global()
 @Module({
@@ -27,6 +28,7 @@ import { Brand } from '../../app/entities/Brand.entity';
         WarehouseArticle,
         AuditLog,
         Brand,
+        CostCenter,
       ],
     }),
   ],

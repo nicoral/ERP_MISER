@@ -16,6 +16,7 @@ import { AuditLog } from './app/entities/AuditLog.entity';
 import { Employee } from './app/entities/Employee.entity';
 import { CloudinaryModule } from './app/modules/cloudinary.module';
 import { AuditLogModule } from './app/modules/auditLog.module';
+import { CostCenterModule } from './app/modules/costCenter.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AuditLogModule } from './app/modules/auditLog.module';
     ArticleModule,
     SupplierModule,
     AuditLogModule,
+    CostCenterModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],

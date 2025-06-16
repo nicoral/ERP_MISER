@@ -23,6 +23,8 @@ import { WarehouseForm } from './features/warehouse/components/WarehouseForm';
 import Profile from './pages/Profile';
 import { ArticleForm } from './features/warehouse/components/ArticleForm';
 import { SupplierForm } from './features/warehouse/components/SupplierForm';
+import { CostCenterList } from './features/costCenter/components/costCenterList';
+import { CostCenterForm } from './features/costCenter/components/costCenterForm';
 
 function App() {
   return (
@@ -84,6 +86,15 @@ function App() {
                   element={<SupplierForm />}
                 />
                 <Route path={ROUTES.PROFILE} element={<Profile />} />
+                <Route path={ROUTES.COST_CENTER} element={<CostCenterList />} />
+                <Route
+                  path={ROUTES.COST_CENTER_CREATE}
+                  element={<CostCenterForm />}
+                />
+                <Route
+                  path={ROUTES.COST_CENTER_EDIT}
+                  element={<CostCenterForm />}
+                />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

@@ -109,6 +109,7 @@ export const SIDEBAR_TEXTS = {
   warehouseSuppliers: 'Proveedores',
   collapse: 'Colapsar menú',
   expand: 'Expandir menú',
+  costCenter: 'Centro de costos',
 };
 
 export const HEADER_TEXTS = {
@@ -492,5 +493,57 @@ export const PROFILE_TEXTS = {
     errorUpdateProfile: 'Error al actualizar el perfil',
     errorUpdatePassword: 'Error al actualizar la contraseña',
     errorUpdateImage: 'Error al actualizar la imagen de perfil',
+  },
+};
+
+export const COST_CENTER_TEXTS = {
+  title: 'Centros de costo',
+  buttons: {
+    create: 'Crear centro de costo',
+  },
+  filters: {
+    title: 'Filtros',
+    name: 'Nombre',
+    description: 'Descripción',
+    apply: 'Aplicar',
+    clear: 'Limpiar',
+    filtering: 'Filtrando...',
+    search: 'Buscar:',
+  },
+  table: {
+    columns: {
+      id: 'ID',
+      name: 'Nombre',
+      description: 'Descripción',
+      actions: 'Acciones',
+    },
+    status: {
+      active: 'Activo',
+      inactive: 'Inactivo',
+    },
+    actions: {
+      view: 'Ver',
+      edit: 'Editar',
+      delete: 'Eliminar',
+    },
+  },
+  form: {
+    title: {
+      create: 'Crear centro de costo',
+      edit: 'Editar centro de costo',
+    },
+    fields: {
+      name: 'Nombre',
+      description: 'Descripción',
+    },
+    buttons: {
+      save: 'Guardar',
+      saving: 'Guardando...',
+      cancel: 'Cancelar',
+      back: 'Volver',
+    },
+    errors: {
+      save: 'Error al guardar el centro de costo',
+    },
   },
 };

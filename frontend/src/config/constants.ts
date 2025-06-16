@@ -33,6 +33,9 @@ export const ROUTES = {
   WAREHOUSE_SUPPLIERS_CREATE: '/warehouse/suppliers/create',
   WAREHOUSE_SUPPLIERS_EDIT: '/warehouse/suppliers/:id/edit',
   PROFILE: '/profile',
+  COST_CENTER: '/cost-center',
+  COST_CENTER_CREATE: '/cost-center/create',
+  COST_CENTER_EDIT: '/cost-center/:id/edit',
 } as const;
 
 export const ALPHABET = [

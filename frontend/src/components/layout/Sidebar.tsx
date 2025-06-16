@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   ProcessIcon,
   DocumentIcon,
+  CostCenterIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
 
@@ -46,6 +47,12 @@ const menuItems: MenuItem[] = [
         icon: <DocumentIcon className="w-4 h-4" />,
       },
     ],
+  },
+  {
+    label: SIDEBAR_TEXTS.costCenter,
+    path: ROUTES.COST_CENTER,
+    permission: 'view_cost_centers',
+    icon: <CostCenterIcon className="w-5 h-5" />,
   },
   {
     label: SIDEBAR_TEXTS.warehouse,
