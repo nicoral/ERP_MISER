@@ -145,7 +145,15 @@ export const Header = () => {
               aria-expanded={isUserMenuOpen}
             >
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
-                A
+                {user?.imageUrl ? (
+                  <img
+                    src={user.imageUrl}
+                    alt="User"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  <span className="text-sm">{user?.firstName?.[0]}</span>
+                )}
               </div>
               <span className="text-sm">{user?.firstName}</span>
               <svg

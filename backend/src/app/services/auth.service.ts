@@ -40,6 +40,7 @@ export class AuthService {
       sub: employee.id,
       email: employee.email,
       role: employee.role,
+      imageUrl: employee.imageUrl,
     };
 
     return {
@@ -49,6 +50,7 @@ export class AuthService {
         email: employee.email,
         firstName: employee.firstName,
         lastName: employee.lastName,
+        imageUrl: employee.imageUrl,
         role: await this.employeeService.getRoleWithPermissions(
           employee.role.id,
         ),
