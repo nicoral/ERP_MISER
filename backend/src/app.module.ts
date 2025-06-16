@@ -15,6 +15,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditLog } from './app/entities/AuditLog.entity';
 import { Employee } from './app/entities/Employee.entity';
 import { CloudinaryModule } from './app/modules/cloudinary.module';
+import { AuditLogModule } from './app/modules/auditLog.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CloudinaryModule } from './app/modules/cloudinary.module';
     WarehouseModule,
     ArticleModule,
     SupplierModule,
+    AuditLogModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],

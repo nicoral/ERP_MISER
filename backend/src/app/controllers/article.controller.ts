@@ -20,6 +20,7 @@ import { RequirePermissions } from '../decorators/permissions.decorator';
 import { CreateBrandDto } from '../dto/article/create-brand.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from '../services/cloudinary.service';
+import { AuditDescription } from '../common/decorators/audit-description.decorator';
 
 @Controller('articles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -31,29 +32,39 @@ export class ArticleController {
 
   @Post()
   @RequirePermissions('create_articles')
+  @AuditDescription('Creación de nuevo artículo')
   create(@Body() createArticleDto: CreateArticleDto) {
     return this.articleService.create(createArticleDto);
   }
 
   @Get()
   @RequirePermissions('view_articles')
-  findAll(@Query() query: { page: number; limit: number; search: string }) {
-    return this.articleService.findAll(query.page, query.limit, query.search);
+  @AuditDescription('Consulta de lista de artículos')
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+  ) {
+    const { data, total } = await this.articleService.findAll(page, limit, search);
+    return { data, total, page, limit };
   }
 
   @Get('brands')
+  @AuditDescription('Consulta de lista de marcas')
   findAllBrands() {
     return this.articleService.findAllBrands();
   }
 
   @Get(':id')
   @RequirePermissions('view_articles')
+  @AuditDescription('Consulta de detalle de artículo')
   findOne(@Param('id') id: number) {
     return this.articleService.findOne(id);
   }
 
   @Put(':id')
   @RequirePermissions('update_articles')
+  @AuditDescription('Actualización de artículo')
   update(@Param('id') id: number, @Body() updateArticleDto: UpdateArticleDto) {
     return this.articleService.update(id, updateArticleDto);
   }
@@ -61,6 +72,7 @@ export class ArticleController {
   @Post(':id/image')
   @RequirePermissions('update_articles')
   @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Actualización de imagen de artículo')
   async uploadImage(
     @Param('id') id: number,
     @UploadedFile() file: Express.Multer.File
@@ -70,12 +82,14 @@ export class ArticleController {
 
   @Delete(':id')
   @RequirePermissions('delete_articles')
+  @AuditDescription('Eliminación de artículo')
   remove(@Param('id') id: number) {
     return this.articleService.remove(id);
   }
 
   @Post('brands')
   @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Creación de nueva marca')
   createBrand(@Body() createBrandDto: CreateBrandDto, @UploadedFile() file: Express.Multer.File) {
     return this.articleService.createBrand(createBrandDto, file);
   }

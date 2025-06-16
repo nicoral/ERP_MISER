@@ -16,6 +16,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { CreateWarehouseDto } from '../dto/warehouse/create-warehouse.dto';
 import { UpdateWarehouseDto } from '../dto/warehouse/update-warehouse.dto';
+import { AuditDescription } from '../common/decorators/audit-description.decorator';
 
 @Controller('warehouses')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -24,6 +25,7 @@ export class WarehouseController {
 
   @Get()
   @RequirePermissions('view_warehouses')
+  @AuditDescription('Consulta de lista de almacenes')
   async getWarehouses(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -44,12 +46,14 @@ export class WarehouseController {
 
   @Get(':id')
   @RequirePermissions('view_warehouses')
+  @AuditDescription('Consulta de detalle de almacén')
   async getWarehouseById(@Param('id') id: number): Promise<Warehouse> {
     return this.warehouseService.getWarehouseById(id);
   }
 
   @Post()
   @RequirePermissions('create_warehouse')
+  @AuditDescription('Creación de nuevo almacén')
   async createWarehouse(
     @Body() warehouse: CreateWarehouseDto,
   ): Promise<Warehouse> {
@@ -58,6 +62,7 @@ export class WarehouseController {
 
   @Put(':id')
   @RequirePermissions('update_warehouse')
+  @AuditDescription('Actualización de almacén')
   async updateWarehouse(
     @Param('id') id: number,
     @Body() warehouse: UpdateWarehouseDto,
@@ -67,6 +72,7 @@ export class WarehouseController {
 
   @Delete(':id')
   @RequirePermissions('delete_warehouse')
+  @AuditDescription('Eliminación de almacén')
   async deleteWarehouse(@Param('id') id: number): Promise<void> {
     return this.warehouseService.deleteWarehouse(id);
   }

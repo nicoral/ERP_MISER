@@ -25,7 +25,13 @@ export async function getSuppliers(
   );
   const data = await response.json();
   if (response.status === 200) {
-    return data;
+    return {
+      data: data.data,
+      total: data.total,
+      page: data.page,
+      pageSize: data.limit,
+      totalPages: Math.ceil(data.total / data.limit),
+    };
   }
   throw new Error(data.message);
 }

@@ -20,7 +20,7 @@ export class SupplierService {
   async findAll(
     page: number,
     limit: number,
-    search: string,
+    search?: string,
   ): Promise<{ data: Supplier[]; total: number }> {
     const query = this.supplierRepository.createQueryBuilder('supplier');
     if (search) {

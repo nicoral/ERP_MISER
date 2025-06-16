@@ -32,6 +32,9 @@ export class AuditLog {
   })
   timestamp: Date;
 
+  @Column('varchar', { length: 100, name: 'url', nullable: true })
+  url: string;
+
   @Column('varchar', { length: 100, name: 'ip_address', nullable: true })
   ipAddress: string;
 
