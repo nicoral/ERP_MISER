@@ -6,6 +6,7 @@ export type TableColumn<T> = {
   accessor2?: keyof T | string;
   render?: (row: T) => ReactNode;
   className?: string;
+  isKey?: boolean;
 };
 
 export type TableAction<T> = {

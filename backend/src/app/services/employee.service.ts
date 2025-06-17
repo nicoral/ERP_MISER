@@ -89,7 +89,6 @@ export class EmployeeService {
     updateEmployeeDto: UpdateEmployeeDto,
   ): Promise<Employee> {
     const employee = await this.findOne(id);
-    console.log(updateEmployeeDto);
     if (updateEmployeeDto.password) {
       updateEmployeeDto.password = await bcrypt.hash(
         updateEmployeeDto.password,

@@ -1,24 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
 import { EyeIcon, EditIcon } from '../../../components/common/Icons';
-import { getArticles, getArticle } from '../../../services/api/articleService';
+import { getSuppliers } from '../../../services/api/supplierService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
   type TableAction,
   type TableColumn,
 } from '../../../components/common/Table';
-import type { Article } from '../../../types/article';
+import { SupplierStatus, type Supplier } from '../../../types/supplier';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { Modal } from '../../../components/common/Modal';
-import { ArticleDetails } from './ArticleDetails';
+import { SupplierDetails } from './SupplierDetails';
 
-export const ArticleList = () => {
+export const SupplierList = () => {
   const navigate = useNavigate();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 10,
@@ -28,15 +26,20 @@ export const ArticleList = () => {
   const [filters, setFilters] = useState({
     code: '',
     name: '',
+    contact: '',
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null
+  );
 
   useEffect(() => {
     (async () => {
       setIsFiltering(true);
-      const response = await getArticles(1, pagination.pageSize);
-      setArticles(response.data);
+      const response = await getSuppliers(1, pagination.pageSize);
+      setSuppliers(response.data);
       setPagination({
         page: response.page,
         pageSize: response.pageSize,
@@ -59,8 +62,8 @@ export const ArticleList = () => {
   const applyFilters = async () => {
     setIsFiltering(true);
     setPagination(prev => ({ ...prev, page: 1 }));
-    const response = await getArticles(1, pagination.pageSize, filters);
-    setArticles(response.data);
+    const response = await getSuppliers(1, pagination.pageSize, filters);
+    setSuppliers(response.data);
     setPagination(prev => ({
       ...prev,
       total: response.total,
@@ -70,10 +73,10 @@ export const ArticleList = () => {
   };
 
   const clearFilters = async () => {
-    setFilters({ code: '', name: '' });
+    setFilters({ code: '', name: '', contact: '' });
     setIsFiltering(true);
-    const response = await getArticles(1, pagination.pageSize);
-    setArticles(response.data);
+    const response = await getSuppliers(1, pagination.pageSize);
+    setSuppliers(response.data);
     setPagination({
       page: response.page,
       pageSize: response.pageSize,
@@ -86,11 +89,11 @@ export const ArticleList = () => {
   const handlePageChange = async (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
     setIsFiltering(true);
-    if (filters.code || filters.name) {
+    if (filters.code || filters.name || filters.contact) {
       newPage = 1;
     }
-    const response = await getArticles(newPage, pagination.pageSize, filters);
-    setArticles(response.data);
+    const response = await getSuppliers(newPage, pagination.pageSize, filters);
+    setSuppliers(response.data);
     setPagination(prev => ({
       ...prev,
       page: newPage,
@@ -98,86 +101,100 @@ export const ArticleList = () => {
     setIsFiltering(false);
   };
 
-  const handleViewArticle = async (article: Article) => {
-    try {
-      const fullArticle = await getArticle(article.id);
-      setSelectedArticle(fullArticle);
-      setShowDetailsModal(true);
-    } catch (error) {
-      console.error('Error fetching article details:', error);
-    }
+  const getStatusDisplay = (status: SupplierStatus) => {
+    const statusConfig = {
+      [SupplierStatus.ACTIVE]: {
+        text: WAREHOUSE_TEXTS.suppliers.table.status.active,
+        className:
+          'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      },
+      [SupplierStatus.INACTIVE]: {
+        text: WAREHOUSE_TEXTS.suppliers.table.status.inactive,
+        className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      },
+      [SupplierStatus.BLACKLISTED]: {
+        text: WAREHOUSE_TEXTS.suppliers.table.status.blacklisted,
+        className:
+          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+      },
+    };
+
+    const config = statusConfig[status];
+    return (
+      <span
+        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.className}`}
+      >
+        {config.text}
+      </span>
+    );
   };
 
-  const columns: TableColumn<Article>[] = [
-    { header: WAREHOUSE_TEXTS.articles.table.columns.id, accessor: 'id' },
-    { header: WAREHOUSE_TEXTS.articles.table.columns.code, accessor: 'code' },
-    { header: WAREHOUSE_TEXTS.articles.table.columns.name, accessor: 'name' },
+  const columns: TableColumn<Supplier>[] = [
+    { header: WAREHOUSE_TEXTS.suppliers.table.columns.id, accessor: 'id' },
     {
-      header: WAREHOUSE_TEXTS.articles.table.columns.line,
-      accessor: 'line',
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.ruc,
+      accessor: 'ruc',
     },
-    { header: WAREHOUSE_TEXTS.articles.table.columns.shelf, accessor: 'shelf' },
-    { header: WAREHOUSE_TEXTS.articles.table.columns.type, accessor: 'type' },
     {
-      header: WAREHOUSE_TEXTS.articles.table.columns.status,
-      render: (art: Article) => (
-        <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            art.active
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-          }`}
-        >
-          {art.active
-            ? WAREHOUSE_TEXTS.articles.table.status.active
-            : WAREHOUSE_TEXTS.articles.table.status.inactive}
-        </span>
-      ),
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.business_name,
+      accessor: 'businessName',
+    },
+    {
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.contact_person,
+      accessor: 'contactPerson',
+    },
+    {
+      header: WAREHOUSE_TEXTS.suppliers.table.columns.status,
+      render: (sup: Supplier) => getStatusDisplay(sup.status),
     },
   ];
 
-  const actions: TableAction<Article>[] = [
+  const actions: TableAction<Supplier>[] = [
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
-      label: WAREHOUSE_TEXTS.articles.table.actions.view,
-      onClick: handleViewArticle,
+      label: WAREHOUSE_TEXTS.suppliers.table.actions.view,
+      onClick: (supplier: Supplier) => {
+        setSelectedSupplier(supplier);
+        setShowDetailsModal(true);
+      },
     },
     {
       icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: WAREHOUSE_TEXTS.articles.table.actions.edit,
-      onClick: (article: Article) => {
+      label: WAREHOUSE_TEXTS.suppliers.table.actions.edit,
+      onClick: (supplier: Supplier) => {
         navigate(
-          ROUTES.WAREHOUSE_ARTICLE_EDIT.replace(':id', article.id.toString())
+          ROUTES.WAREHOUSE_SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
         );
       },
     },
     /* {
       icon: <TrashIcon className="w-5 h-5 text-red-600" />,
-      label: WAREHOUSE_TEXTS.articles.table.actions.delete,
+      label: WAREHOUSE_TEXTS.suppliers.table.actions.delete,
       onClick: () => {},
     }, */
   ];
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="sm:p-8 p-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {WAREHOUSE_TEXTS.articles.title}
+          {WAREHOUSE_TEXTS.suppliers.title}
         </h2>
         <button
-          onClick={() => navigate(ROUTES.WAREHOUSE_ARTICLE_CREATE)}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          onClick={() => navigate(ROUTES.WAREHOUSE_SUPPLIERS_CREATE)}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
         >
-          {WAREHOUSE_TEXTS.articles.buttons.create}
+          {WAREHOUSE_TEXTS.suppliers.buttons.create}
         </button>
       </div>
+      {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center justify-between w-full text-left text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 px-4 py-2 rounded-md"
         >
           <span className="font-medium text-base">
-            {WAREHOUSE_TEXTS.articles.filters.title}
+            {WAREHOUSE_TEXTS.suppliers.filters.title}
           </span>
           <svg
             className={`w-5 h-5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
@@ -199,18 +216,28 @@ export const ArticleList = () => {
               <FormInput
                 id="code"
                 name="code"
-                label={WAREHOUSE_TEXTS.articles.filters.code}
+                label={WAREHOUSE_TEXTS.suppliers.filters.code}
                 value={filters.code}
                 onChange={handleFilterChange}
-                placeholder={WAREHOUSE_TEXTS.articles.filters.codePlaceholder}
+                placeholder={WAREHOUSE_TEXTS.suppliers.filters.codePlaceholder}
               />
               <FormInput
                 id="name"
                 name="name"
-                label={WAREHOUSE_TEXTS.articles.filters.name}
+                label={WAREHOUSE_TEXTS.suppliers.filters.name}
                 value={filters.name}
                 onChange={handleFilterChange}
-                placeholder={WAREHOUSE_TEXTS.articles.filters.namePlaceholder}
+                placeholder={WAREHOUSE_TEXTS.suppliers.filters.namePlaceholder}
+              />
+              <FormInput
+                id="contact"
+                name="contact"
+                label={WAREHOUSE_TEXTS.suppliers.filters.contact}
+                value={filters.contact}
+                onChange={handleFilterChange}
+                placeholder={
+                  WAREHOUSE_TEXTS.suppliers.filters.contactPlaceholder
+                }
               />
             </div>
             <div className="mt-4 flex justify-end space-x-3">
@@ -218,7 +245,7 @@ export const ArticleList = () => {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
               >
-                {WAREHOUSE_TEXTS.articles.filters.clear}
+                {WAREHOUSE_TEXTS.suppliers.filters.clear}
               </button>
               <button
                 onClick={applyFilters}
@@ -226,17 +253,18 @@ export const ArticleList = () => {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {isFiltering
-                  ? WAREHOUSE_TEXTS.articles.filters.filtering
-                  : WAREHOUSE_TEXTS.articles.filters.apply}
+                  ? WAREHOUSE_TEXTS.suppliers.filters.filtering
+                  : WAREHOUSE_TEXTS.suppliers.filters.apply}
               </button>
             </div>
           </div>
         )}
       </div>
+      {/* Tabla reutilizable */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <Table<Article>
+        <Table<Supplier>
           columns={columns}
-          data={articles}
+          data={suppliers}
           keyField="id"
           loading={isFiltering}
           pagination={{
@@ -248,13 +276,12 @@ export const ArticleList = () => {
           pageSize={pagination.pageSize}
         />
       </div>
-
       <Modal
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
-        title={WAREHOUSE_TEXTS.articles.details.title}
+        title={WAREHOUSE_TEXTS.suppliers.details.title}
       >
-        {selectedArticle && <ArticleDetails article={selectedArticle} />}
+        {selectedSupplier && <SupplierDetails supplier={selectedSupplier} />}
       </Modal>
     </div>
   );

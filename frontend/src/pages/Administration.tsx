@@ -10,7 +10,7 @@ export const Administration = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:p-8 p-2">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
         {ADMINISTRATION_TEXTS.title}
       </h1>
@@ -24,7 +24,7 @@ export const Administration = () => {
             <h2 className="text-lg font-medium text-blue-900 dark:text-blue-100">
               {ADMINISTRATION_TEXTS.panels.general.title}
             </h2>
-            <p className="mt-2 text-blue-700 dark:text-blue-300">
+            <p className="mt-2 text-blue-700 dark:text-blue-300 hidden sm:block">
               {ADMINISTRATION_TEXTS.panels.general.description}
             </p>
           </button>
@@ -36,7 +36,7 @@ export const Administration = () => {
             <h2 className="text-lg font-medium text-green-900 dark:text-green-100">
               {ADMINISTRATION_TEXTS.panels.roles.title}
             </h2>
-            <p className="mt-2 text-green-700 dark:text-green-300">
+            <p className="mt-2 text-green-700 dark:text-green-300 hidden sm:block">
               {ADMINISTRATION_TEXTS.panels.roles.description}
             </p>
           </button>
@@ -48,7 +48,7 @@ export const Administration = () => {
             <h2 className="text-lg font-medium text-purple-900 dark:text-purple-100">
               {ADMINISTRATION_TEXTS.panels.audit.title}
             </h2>
-            <p className="mt-2 text-purple-700 dark:text-purple-300">
+            <p className="mt-2 text-purple-700 dark:text-purple-300 hidden sm:block">
               {ADMINISTRATION_TEXTS.panels.audit.description}
             </p>
           </button>

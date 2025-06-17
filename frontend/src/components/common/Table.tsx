@@ -4,6 +4,7 @@ import type {
   TablePaginationProps,
   TableProps,
 } from '../../types/table';
+import { useEffect, useState } from 'react';
 
 function getPaginationItems(current: number, total: number) {
   const delta = 2;
@@ -98,66 +99,175 @@ export function Table<T>({
   actions,
   pageSize = 10,
 }: TableProps<T>) {
+  // Simple mobile detection (can be improved with a custom hook)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640); // Tailwind 'sm'
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Mobile stacked view
+  if (isMobile) {
+    return (
+      <div className="p-2">
+        {loading ? (
+          <div>
+            {Array.from({ length: pageSize }).map((_, idx) => (
+              <div
+                key={idx}
+                className="mb-6 max-w-md mx-auto p-4 rounded-xl shadow-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 animate-pulse"
+              >
+                {columns.map((_col, cidx) => (
+                  <div
+                    key={cidx}
+                    className="flex justify-between items-center py-1"
+                  >
+                    <span className="font-semibold text-gray-400 dark:text-gray-500 w-1/2">
+                      &nbsp;
+                    </span>
+                    <span className="bg-gray-200 dark:bg-gray-700 h-4 w-1/3 rounded" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          data.map((row, rowIdx) => (
+            <div
+              key={String(row[keyField]) || rowIdx}
+              className="mb-6 max-w-md mx-auto p-4 rounded-xl shadow-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+            >
+              {columns.map((col, colIdx) => (
+                <div
+                  key={colIdx}
+                  className="flex justify-between items-center py-1"
+                >
+                  <span className="font-semibold text-gray-500 dark:text-gray-400 text-sm">
+                    {col.header}:
+                  </span>
+                  <span className="text-gray-900 dark:text-white text-base font-medium text-right break-words max-w-[60%]">
+                    {renderCell(col, row)}
+                  </span>
+                </div>
+              ))}
+              {actions && actions.length > 0 && (
+                <div className="flex justify-center gap-4 mt-4">
+                  {actions.map((action, aIdx) => (
+                    <button
+                      key={aIdx}
+                      onClick={() => action.onClick(row)}
+                      title={action.label}
+                      className="p-2 rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
+                      disabled={loading}
+                    >
+                      {action.icon}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex justify-center mt-4">
+            {/* Simple mobile pagination */}
+            <button
+              onClick={() => pagination.onPageChange(pagination.page - 1)}
+              disabled={pagination.page === 1 || loading}
+              className="mx-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {'<'}
+            </button>
+            <span className="mx-2 text-gray-700 dark:text-gray-300">
+              {pagination.page} / {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => pagination.onPageChange(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages || loading}
+              className="mx-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {'>'}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead>
-          <tr>
-            {columns.map((col, idx) => (
-              <th
-                key={idx}
-                className={
-                  col.className ||
-                  'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
+      <div className="overflow-x-auto w-full">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead>
+            <tr>
+              {columns.map((col, idx) => (
+                <th
+                  key={idx}
+                  className={
+                    (col.isKey !== false
+                      ? 'table-cell '
+                      : 'table-cell md:hidden lg:table-cell ') +
+                    (col.className ||
+                      'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider')
+                  }
+                >
+                  {col.header}
+                </th>
+              ))}
+              {actions && actions.length > 0 && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Acciones
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {loading ? (
+              <TableSkeleton
+                rows={pageSize}
+                columns={
+                  columns.length + (actions && actions.length > 0 ? 1 : 0)
                 }
-              >
-                {col.header}
-              </th>
-            ))}
-            {actions && actions.length > 0 && (
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Acciones
-              </th>
+              />
+            ) : (
+              data.map((row, rowIdx) => (
+                <tr key={String(row[keyField]) || rowIdx}>
+                  {columns.map((col, colIdx) => (
+                    <td
+                      key={colIdx}
+                      className={
+                        (col.isKey !== false
+                          ? 'table-cell '
+                          : 'table-cell md:hidden lg:table-cell ') +
+                        'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white'
+                      }
+                    >
+                      {renderCell(col, row)}
+                    </td>
+                  ))}
+                  {actions && actions.length > 0 && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                      {actions.map((action, aIdx) => (
+                        <button
+                          key={aIdx}
+                          onClick={() => action.onClick(row)}
+                          title={action.label}
+                          className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
+                          disabled={loading}
+                        >
+                          {action.icon}
+                        </button>
+                      ))}
+                    </td>
+                  )}
+                </tr>
+              ))
             )}
-          </tr>
-        </thead>
-        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          {loading ? (
-            <TableSkeleton
-              rows={pageSize}
-              columns={columns.length + (actions && actions.length > 0 ? 1 : 0)}
-            />
-          ) : (
-            data.map((row, rowIdx) => (
-              <tr key={String(row[keyField]) || rowIdx}>
-                {columns.map((col, colIdx) => (
-                  <td
-                    key={colIdx}
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
-                  >
-                    {renderCell(col, row)}
-                  </td>
-                ))}
-                {actions && actions.length > 0 && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                    {actions.map((action, aIdx) => (
-                      <button
-                        key={aIdx}
-                        onClick={() => action.onClick(row)}
-                        title={action.label}
-                        className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
-                        disabled={loading}
-                      >
-                        {action.icon}
-                      </button>
-                    ))}
-                  </td>
-                )}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
       {pagination && pagination.totalPages > 1 && (
         <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">

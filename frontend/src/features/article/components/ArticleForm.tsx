@@ -11,13 +11,13 @@ import {
   UNIQUE_CATEGORIES,
   UNITS_OF_MEASURE,
 } from '../../../config/constants';
-import { useArticle, useBrands } from '../hooks/useArticle';
-import { useWarehouses } from '../hooks/useWarehouse';
 import {
-  createArticle,
-  updateArticle,
-  uploadArticleImage,
-} from '../../../services/api/articleService';
+  useArticle,
+  useCreateArticle,
+  useUpdateArticle,
+} from '../hooks/useArticle';
+import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
+import { uploadArticleImage } from '../../../services/api/articleService';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { PlusIcon, TrashIcon } from '../../../components/common/Icons';
 import type { Warehouse } from '../../../types/warehouse';
@@ -30,6 +30,7 @@ import type {
 } from '../../../types/article';
 import { Modal } from '../../../components/common/Modal';
 import { BrandForm } from './BrandForm';
+import { useBrands } from '../hooks/useBrand';
 
 interface FormData {
   name: string;
@@ -55,10 +56,15 @@ export const ArticleForm = () => {
   const isEditing = Boolean(params.id);
   const articleId = params.id ? Number(params.id) : undefined;
 
-  const { article, loading: loadingArticle } = useArticle(articleId);
-  const { warehouses } = useWarehouses(1, 1000);
+  const { data: article, isLoading: loadingArticle } = useArticle(articleId);
+  const { data: warehouses, isLoading: loadingWarehouses } = useWarehouses(
+    1,
+    1000
+  );
+  const { brands, refreshBrands, loading: loadingBrands } = useBrands();
 
-  const { brands, refreshBrands } = useBrands();
+  const createMutation = useCreateArticle();
+  const updateMutation = useUpdateArticle();
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -87,22 +93,27 @@ export const ArticleForm = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     const { line, lineId, shelf, shelfId, ...rest } = formData;
+
     const data: ArticleCreateDto = {
       ...rest,
       line: `${line} - ${lineId}`,
       shelf: `${COMMON_TEXTS.group} ${shelf} - ${shelfId}`,
       brandId: Number(formData.brandId),
     };
+
     try {
       let savedArticle;
       if (isEditing) {
-        savedArticle = await updateArticle(articleId ?? 0, data);
+        savedArticle = await updateMutation.mutateAsync({
+          id: articleId ?? 0,
+          data,
+        });
       } else {
-        savedArticle = await createArticle(data);
+        savedArticle = await createMutation.mutateAsync(data);
       }
 
-      // Si hay una imagen seleccionada, subirla después de crear/actualizar el artículo
       if (selectedFile) {
         await uploadArticleImage(savedArticle.id, selectedFile);
       }
@@ -119,8 +130,7 @@ export const ArticleForm = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev: any) => ({
+    setFormData(prev => ({
       ...prev,
       [name]:
         type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
@@ -132,8 +142,7 @@ export const ArticleForm = () => {
     field: string,
     value: string | number
   ) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev: any) => {
+    setFormData(prev => {
       const newWarehouseStocks = [...prev.warehouseArticles];
       newWarehouseStocks[index] = {
         ...newWarehouseStocks[index],
@@ -161,8 +170,7 @@ export const ArticleForm = () => {
   };
 
   const addWarehouseStock = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev: any) => ({
+    setFormData(prev => ({
       ...prev,
       warehouseArticles: [
         ...prev.warehouseArticles,
@@ -172,19 +180,15 @@ export const ArticleForm = () => {
   };
 
   const removeWarehouseStock = (index: number) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev: any) => ({
+    setFormData(prev => ({
       ...prev,
-      warehouseArticles: prev.warehouseArticles.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (_: any, i: number) => i !== index
-      ),
+      warehouseArticles: prev.warehouseArticles.filter((_, i) => i !== index),
     }));
   };
 
   const handleBrandSuccess = (brand: Brand) => {
     refreshBrands();
-    setFormData((prev: FormData) => ({
+    setFormData(prev => ({
       ...prev,
       brandId: brand.id.toString(),
     }));
@@ -221,7 +225,7 @@ export const ArticleForm = () => {
     }
   }, [isEditing, article]);
 
-  if (loading || loadingArticle) {
+  if (loadingArticle || loadingWarehouses || loadingBrands || loading) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />
@@ -230,8 +234,8 @@ export const ArticleForm = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-6xl mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditing
             ? WAREHOUSE_TEXTS.articles.form.title.edit
@@ -239,7 +243,7 @@ export const ArticleForm = () => {
         </h2>
         <button
           onClick={() => navigate(ROUTES.WAREHOUSE_ARTICLES)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
         >
           ← {COMMON_TEXTS.back}
         </button>
@@ -255,7 +259,7 @@ export const ArticleForm = () => {
           </div>
         )}
 
-        <div className="flex gap-6">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-6">
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -465,7 +469,7 @@ export const ArticleForm = () => {
             </div>
           </div>
 
-          <div className="w-96 border-l border-gray-200 dark:border-gray-700 pl-6">
+          <div className="w-full sm:w-96 sm:border-l border-gray-200 dark:border-gray-700 pl-6">
             <div className="flex justify-center mb-6">
               <ImagePreview
                 imageUrl={formData.imageUrl}

@@ -140,7 +140,7 @@ export const RequirementForm = () => {
 
   return (
     <form
-      className="p-8 mx-auto space-y-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow"
+      className="p-4 sm:p-8 mx-auto space-y-8 bg-white dark:bg-gray-800 sm:rounded-lg shadow"
       onSubmit={handleSubmit}
     >
       {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
@@ -192,11 +192,11 @@ export const RequirementForm = () => {
 
       {/* 2. Artículos solicitados */}
       <div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
           <h2 className="text-xl font-bold">Artículos solicitados</h2>
           <button
             type="button"
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
             onClick={() => setShowProductModal(true)}
           >
             <PlusIcon className="w-5 h-5 mr-2" /> Añadir artículos

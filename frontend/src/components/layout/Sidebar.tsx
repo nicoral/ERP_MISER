@@ -8,7 +8,6 @@ import {
   SettingsIcon,
   EmployeesIcon,
   WarehouseIcon,
-  ServicesIcon,
   SuppliersIcon,
   ChevronLeftIcon,
   ChevronDownIcon,
@@ -66,12 +65,12 @@ const menuItems: MenuItem[] = [
         permission: 'view_articles',
         icon: <WarehouseIcon className="w-4 h-4" />,
       },
-      {
+      /* {
         label: SIDEBAR_TEXTS.warehouseServices,
         path: ROUTES.WAREHOUSE_SERVICES,
         permission: 'view_services',
         icon: <ServicesIcon className="w-4 h-4" />,
-      },
+      }, */
       {
         label: SIDEBAR_TEXTS.warehouseSuppliers,
         path: ROUTES.WAREHOUSE_SUPPLIERS,
@@ -82,7 +81,12 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [menuItemsAllowed, setMenuItemsAllowed] = useState<MenuItem[]>([]);
@@ -108,14 +112,21 @@ export const Sidebar = () => {
 
   return (
     <>
+      {/* Overlay para móvil */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
       <aside
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${
-          isCollapsed ? 'w-16' : 'w-64'
-        }`}
+        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 z-40
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'w-16' : 'w-64'}`}
       >
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 z-10"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 z-10 hidden lg:block"
         >
           <ChevronLeftIcon
             className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
@@ -134,6 +145,11 @@ export const Sidebar = () => {
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`
                   }
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      onClose();
+                    }
+                  }}
                 >
                   <div
                     className={`flex items-center ${isCollapsed ? 'w-full justify-center' : 'space-x-3'}`}
@@ -199,6 +215,11 @@ export const Sidebar = () => {
                               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                           }`
                         }
+                        onClick={() => {
+                          if (window.innerWidth < 1024) {
+                            onClose();
+                          }
+                        }}
                       >
                         {subItem.icon}
                         <span>{subItem.label}</span>
@@ -211,7 +232,9 @@ export const Sidebar = () => {
         </nav>
       </aside>
       <div
-        className={`transition-all duration-300 ${isCollapsed ? 'pl-16' : 'pl-64'}`}
+        className={`transition-all duration-300 ${
+          isOpen ? 'lg:pl-64' : 'lg:pl-16'
+        } ${isCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}
       />
     </>
   );

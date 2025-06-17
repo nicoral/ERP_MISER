@@ -140,10 +140,26 @@ export const EmployeeList = () => {
       accessor: 'firstName',
       accessor2: 'lastName',
     },
-    { header: EMPLOYEES_TEXTS.table.columns.email, accessor: 'email' },
-    { header: EMPLOYEES_TEXTS.table.columns.area, accessor: 'area' },
-    { header: EMPLOYEES_TEXTS.table.columns.position, accessor: 'position' },
-    { header: EMPLOYEES_TEXTS.table.columns.phone, accessor: 'phone' },
+    {
+      header: EMPLOYEES_TEXTS.table.columns.email,
+      accessor: 'email',
+      isKey: false,
+    },
+    {
+      header: EMPLOYEES_TEXTS.table.columns.area,
+      accessor: 'area',
+      isKey: true,
+    },
+    {
+      header: EMPLOYEES_TEXTS.table.columns.position,
+      accessor: 'position',
+      isKey: false,
+    },
+    {
+      header: EMPLOYEES_TEXTS.table.columns.phone,
+      accessor: 'phone',
+      isKey: false,
+    },
     {
       header: EMPLOYEES_TEXTS.table.columns.status,
       render: (emp: Employee) => (
@@ -185,8 +201,8 @@ export const EmployeeList = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="sm:p-8 p-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {EMPLOYEES_TEXTS.title}
         </h2>

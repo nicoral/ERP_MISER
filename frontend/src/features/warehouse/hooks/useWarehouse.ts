@@ -1,127 +1,70 @@
-import { useEffect, useState } from 'react';
-import type {
-  Warehouse,
-  WarehouseCreate,
-  WarehouseFilters,
-} from '../../../types/warehouse';
 import {
   createWarehouse,
   getWarehouseById,
   getWarehouses,
   updateWarehouse,
 } from '../../../services/api/warehouseService';
+
+import type {
+  Warehouse,
+  WarehouseCreate,
+  WarehouseFilters,
+} from '../../../types/warehouse';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PaginatedResponse } from '../../../types/generic';
 
+// 🟢 GET Paginated Warehouses
 export const useWarehouses = (
   page: number = 1,
   pageSize: number = 10,
   filters?: WarehouseFilters
 ) => {
-  const [warehouses, setWarehouses] =
-    useState<PaginatedResponse<Warehouse> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchWarehouses = async () => {
-      try {
-        setLoading(true);
-        const response = await getWarehouses(page, pageSize, filters);
-        setWarehouses(response);
-      } catch (error) {
-        setError('Error al cargar los almacenes');
-        console.error('Error fetching warehouses:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWarehouses();
-  }, [page, pageSize]);
-
-  return {
-    warehouses,
-    loading,
-    error,
-  };
+  return useQuery<PaginatedResponse<Warehouse>>({
+    queryKey: ['warehouses', page, pageSize, filters],
+    queryFn: () => getWarehouses(page, pageSize, filters),
+    placeholderData: prev => prev,
+    staleTime: 1000 * 60 * 5,
+  });
 };
 
+// 🟢 GET Warehouse by ID
 export const useWarehouse = (id: number | undefined) => {
-  const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchWarehouse = async () => {
-      try {
-        setLoading(true);
-        const response = await getWarehouseById(id);
-        setWarehouse(response);
-      } catch (error) {
-        setError('Error al cargar el almacén');
-        console.error('Error fetching warehouse:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWarehouse();
-  }, [id]);
-
-  return {
-    warehouse,
-    loading,
-    error,
-  };
+  return useQuery<Warehouse | null>({
+    queryKey: ['warehouse', id],
+    queryFn: () => getWarehouseById(id!),
+    enabled: !!id, // solo ejecuta si hay ID
+    staleTime: 1000 * 60 * 5,
+  });
 };
 
-export const useWarehouseCreate = (warehouse: WarehouseCreate) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// 🔴 CREATE Warehouse
+export const useWarehouseCreate = () => {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const saveWarehouse = async () => {
-      try {
-        setLoading(true);
-        await createWarehouse(warehouse);
-      } catch (error) {
-        setError('Error al crear el almacén');
-        console.error('Error creating warehouse:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    saveWarehouse();
-  }, [warehouse]);
-
-  return {
-    loading,
-    error,
-  };
+  return useMutation({
+    mutationFn: (data: WarehouseCreate) => createWarehouse(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+    },
+  });
 };
 
-export const useWarehouseUpdate = (
-  id: number,
-  warehouse: Partial<WarehouseCreate>
-) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// 🟡 UPDATE Warehouse
+export const useWarehouseUpdate = () => {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const updWarehouse = async () => {
-      try {
-        setLoading(true);
-        await updateWarehouse(id, warehouse);
-      } catch (error) {
-        setError('Error al actualizar el almacén');
-        console.error('Error updating warehouse:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    updWarehouse();
-  }, [id, warehouse]);
-
-  return {
-    loading,
-    error,
-  };
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<WarehouseCreate>;
+    }) => updateWarehouse(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse', id] });
+    },
+  });
 };

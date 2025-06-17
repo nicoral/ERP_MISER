@@ -84,8 +84,8 @@ export const CostCenterForm = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-2xl mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditing
             ? COST_CENTER_TEXTS.form.title.edit
@@ -93,7 +93,7 @@ export const CostCenterForm = () => {
         </h2>
         <button
           onClick={() => navigate(ROUTES.COST_CENTER)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
         >
           ← {COMMON_TEXTS.back}
         </button>

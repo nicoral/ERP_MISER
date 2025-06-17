@@ -49,7 +49,6 @@ export class RequirementService {
     page: number,
     limit: number,
   ): Promise<{ requirements: Requirement[], total: number }> {
-    console.log(userId, page, limit);
     const [requirements, total] = await this.requirementRepository.findAndCount({
       where: { employee: { id: userId } },
       relations: ['employee', 'costCenter'],

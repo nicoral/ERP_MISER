@@ -7,28 +7,24 @@ import {
   type TableAction,
   type TableColumn,
 } from '../../../components/common/Table';
-import type { Warehouse } from '../../../types/warehouse';
+import type { Article, ArticleFilters } from '../../../types/article';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { Modal } from '../../../components/common/Modal';
-import { WarehouseDetails } from './WarehouseDetails';
-import { useWarehouses } from '../hooks/useWarehouse';
+import { ArticleDetails } from './ArticleDetails';
+import { useArticles } from '../hooks/useArticle';
 
-export const WarehouseList = () => {
+export const ArticleList = () => {
   const navigate = useNavigate();
 
-  const [filters, setFilters] = useState({ search: '' });
+  const [filters, setFilters] = useState<ArticleFilters>({ code: '' });
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(
-    null
-  );
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   // Hook con datos y estados automáticos de React Query
-  const { data, isLoading, isFetching } = useWarehouses(page, 10, {
-    search: filters.search,
-  });
+  const { data, isLoading, isFetching } = useArticles(page, 10, filters);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -36,7 +32,7 @@ export const WarehouseList = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ search: '' });
+    setFilters({ code: '' });
     setPage(1);
   };
 
@@ -45,61 +41,51 @@ export const WarehouseList = () => {
     setPage(newPage);
   };
 
-  const handleCreate = () => navigate(ROUTES.WAREHOUSE_CREATE);
+  const handleCreate = () => navigate(ROUTES.WAREHOUSE_ARTICLE_CREATE);
   const handleEdit = (id: number) =>
-    navigate(ROUTES.WAREHOUSE_EDIT.replace(':id', id.toString()));
+    navigate(ROUTES.WAREHOUSE_ARTICLE_EDIT.replace(':id', id.toString()));
 
-  const columns: TableColumn<Warehouse>[] = [
-    { header: WAREHOUSE_TEXTS.warehouses.table.columns.id, accessor: 'id' },
-    { header: WAREHOUSE_TEXTS.warehouses.table.columns.name, accessor: 'name' },
+  const columns: TableColumn<Article>[] = [
+    { header: WAREHOUSE_TEXTS.articles.table.columns.id, accessor: 'id' },
+    { header: WAREHOUSE_TEXTS.articles.table.columns.code, accessor: 'code' },
+    { header: WAREHOUSE_TEXTS.articles.table.columns.name, accessor: 'name' },
     {
-      header: WAREHOUSE_TEXTS.warehouses.table.columns.address,
-      accessor: 'address',
+      header: WAREHOUSE_TEXTS.articles.table.columns.line,
+      accessor: 'line',
     },
+    { header: WAREHOUSE_TEXTS.articles.table.columns.shelf, accessor: 'shelf' },
+    { header: WAREHOUSE_TEXTS.articles.table.columns.type, accessor: 'type' },
     {
-      header: WAREHOUSE_TEXTS.warehouses.table.columns.employee,
-      accessor: 'manager.firstName',
-      accessor2: 'manager.lastName',
-    },
-    {
-      header: WAREHOUSE_TEXTS.warehouses.table.columns.hireDate,
-      accessor: 'hireDate',
-    },
-    {
-      header: WAREHOUSE_TEXTS.warehouses.table.columns.valued,
-      accessor: 'valued',
-    },
-    {
-      header: WAREHOUSE_TEXTS.warehouses.table.columns.status,
-      render: (wh: Warehouse) => (
+      header: WAREHOUSE_TEXTS.articles.table.columns.status,
+      render: (art: Article) => (
         <span
           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            wh.active
+            art.active
               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
           }`}
         >
-          {wh.active
-            ? WAREHOUSE_TEXTS.warehouses.table.status.active
-            : WAREHOUSE_TEXTS.warehouses.table.status.inactive}
+          {art.active
+            ? WAREHOUSE_TEXTS.articles.table.status.active
+            : WAREHOUSE_TEXTS.articles.table.status.inactive}
         </span>
       ),
     },
   ];
 
-  const actions: TableAction<Warehouse>[] = [
+  const actions: TableAction<Article>[] = [
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
-      label: WAREHOUSE_TEXTS.warehouses.table.actions.view,
-      onClick: (warehouse: Warehouse) => {
-        setSelectedWarehouse(warehouse);
+      label: WAREHOUSE_TEXTS.articles.table.actions.view,
+      onClick: (article: Article) => {
+        setSelectedArticle(article);
         setShowDetailsModal(true);
       },
     },
     {
       icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: WAREHOUSE_TEXTS.warehouses.table.actions.edit,
-      onClick: (warehouse: Warehouse) => handleEdit(warehouse.id),
+      label: WAREHOUSE_TEXTS.articles.table.actions.edit,
+      onClick: (article: Article) => handleEdit(article.id),
     },
   ];
 
@@ -107,13 +93,13 @@ export const WarehouseList = () => {
     <div className="sm:p-8 p-2">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {WAREHOUSE_TEXTS.warehouses.title}
+          {WAREHOUSE_TEXTS.articles.title}
         </h2>
         <button
           onClick={handleCreate}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
         >
-          {WAREHOUSE_TEXTS.warehouses.buttons.create}
+          {WAREHOUSE_TEXTS.articles.buttons.create}
         </button>
       </div>
 
@@ -123,7 +109,7 @@ export const WarehouseList = () => {
           onClick={() => setShowFilters(!showFilters)}
           className="flex justify-between w-full text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-md"
         >
-          <span>{WAREHOUSE_TEXTS.warehouses.filters.title}</span>
+          <span>{WAREHOUSE_TEXTS.articles.filters.title}</span>
           <svg
             className={`w-5 h-5 transition-transform ${
               showFilters ? 'rotate-180' : ''
@@ -144,14 +130,12 @@ export const WarehouseList = () => {
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormInput
-                id="search"
-                name="search"
-                label={WAREHOUSE_TEXTS.warehouses.filters.search}
-                value={filters.search}
+                id="code"
+                name="code"
+                label={WAREHOUSE_TEXTS.articles.filters.code}
+                value={filters.code}
                 onChange={handleFilterChange}
-                placeholder={
-                  WAREHOUSE_TEXTS.warehouses.filters.searchPlaceholder
-                }
+                placeholder={WAREHOUSE_TEXTS.articles.filters.codePlaceholder}
               />
             </div>
             <div className="mt-4 flex justify-end space-x-3">
@@ -159,7 +143,7 @@ export const WarehouseList = () => {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
               >
-                {WAREHOUSE_TEXTS.warehouses.filters.clear}
+                {WAREHOUSE_TEXTS.articles.filters.clear}
               </button>
             </div>
           </div>
@@ -167,7 +151,7 @@ export const WarehouseList = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <Table<Warehouse>
+        <Table<Article>
           columns={columns}
           data={data?.data ?? []}
           keyField="id"
@@ -185,11 +169,9 @@ export const WarehouseList = () => {
       <Modal
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
-        title={`🏢 ${selectedWarehouse?.name ?? ''}`}
+        title={`📦 ${selectedArticle?.name ?? ''}`}
       >
-        {selectedWarehouse && (
-          <WarehouseDetails warehouse={selectedWarehouse} />
-        )}
+        {selectedArticle && <ArticleDetails article={selectedArticle} />}
       </Modal>
     </div>
   );

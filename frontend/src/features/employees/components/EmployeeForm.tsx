@@ -31,7 +31,6 @@ export const EmployeeForm = () => {
   const [selectedEmployeeImage, setSelectedEmployeeImage] =
     useState<File | null>(null);
   const employeeId = params.id ? Number(params.id) : undefined;
-  const [loading, setLoading] = useState(false);
 
   const {
     employee,
@@ -39,7 +38,13 @@ export const EmployeeForm = () => {
     error: errorEmployee,
   } = useEmployee(employeeId);
 
-  const { warehouses } = useWarehouses(1, 1000);
+  const { data: warehouses, isLoading: loadingWarehouses } = useWarehouses(
+    1,
+    1000
+  );
+  const { roles, loading: loadingRoles, error: errorRoles } = useRoles();
+
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState<CreateEmployee>({
     firstName: '',
@@ -63,7 +68,7 @@ export const EmployeeForm = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
-  const { roles, loading: loadingRoles, error: errorRoles } = useRoles();
+
   useEffect(() => {
     if (isEditing && employee) {
       setFormData({
@@ -126,7 +131,7 @@ export const EmployeeForm = () => {
     }));
   };
 
-  if (isEditing && (loadingEmployee || loadingRoles || loading)) {
+  if (loading || loadingEmployee || loadingWarehouses || loadingRoles) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />
@@ -143,8 +148,8 @@ export const EmployeeForm = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-2xl mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditing
             ? EMPLOYEES_TEXTS.form.title.edit
@@ -152,7 +157,7 @@ export const EmployeeForm = () => {
         </h2>
         <button
           onClick={() => navigate(ROUTES.EMPLOYEES)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
         >
           ← {EMPLOYEES_TEXTS.form.buttons.back}
         </button>

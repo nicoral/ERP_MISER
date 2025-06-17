@@ -7,11 +7,11 @@ import { useEffect, useState } from 'react';
 import type { WarehouseCreate } from '../../../types/warehouse';
 import { FormInput } from '../../../components/common/FormInput';
 import { FormInputDate } from '../../../components/common/FormInputDate';
-import { useWarehouse } from '../hooks/useWarehouse';
 import {
-  createWarehouse,
-  updateWarehouse,
-} from '../../../services/api/warehouseService';
+  useWarehouse,
+  useWarehouseCreate,
+  useWarehouseUpdate,
+} from '../hooks/useWarehouse';
 import { ROUTES } from '../../../config/constants';
 
 export const WarehouseForm = () => {
@@ -20,11 +20,13 @@ export const WarehouseForm = () => {
   const isEditing = Boolean(params.id);
   const warehouseId = params.id ? Number(params.id) : undefined;
   const {
-    warehouse,
-    loading: loadingWarehouse,
+    data: warehouse,
+    isLoading: loadingWarehouse,
     error: errorWarehouse,
   } = useWarehouse(warehouseId);
 
+  const { mutate: createWarehouse } = useWarehouseCreate();
+  const { mutate: updateWarehouse } = useWarehouseUpdate();
   const [formData, setFormData] = useState<WarehouseCreate>({
     name: '',
     address: '',
@@ -50,9 +52,12 @@ export const WarehouseForm = () => {
 
     try {
       if (isEditing) {
-        await updateWarehouse(warehouseId ?? 0, formData);
+        await updateWarehouse({
+          id: warehouseId ?? -1,
+          data: formData,
+        });
       } else {
-        await createWarehouse(formData);
+        createWarehouse(formData);
       }
       navigate(ROUTES.WAREHOUSE);
     } catch {
@@ -90,14 +95,14 @@ export const WarehouseForm = () => {
   if (isEditing && (errorWarehouse || errorEmployees)) {
     return (
       <div className="p-8 text-center text-red-500 dark:text-red-400">
-        {errorWarehouse || errorEmployees}
+        {errorWarehouse?.message || errorEmployees}
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-2xl mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditing
             ? WAREHOUSE_TEXTS.form.title.edit
@@ -105,7 +110,7 @@ export const WarehouseForm = () => {
         </h2>
         <button
           onClick={() => navigate(ROUTES.WAREHOUSE)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
         >
           ← {COMMON_TEXTS.back}
         </button>
