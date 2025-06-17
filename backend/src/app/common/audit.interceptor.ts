@@ -12,6 +12,7 @@ import { AuditLog } from '../entities/AuditLog.entity';
 import { Employee } from '../entities/Employee.entity';
 import { Reflector } from '@nestjs/core';
 import { AUDIT_DESCRIPTION_KEY } from './decorators/audit-description.decorator';
+import { getCurrentDateTimeMinus5 } from '../utils/transformer';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -83,6 +84,7 @@ export class AuditInterceptor implements NestInterceptor {
             oldValue: oldValue ?? null,
             newValue: result ?? null,
             details: description || defaultDescription,
+            timestamp: getCurrentDateTimeMinus5(),
           } as DeepPartial<AuditLog>);
           await this.auditLogRepository.save(audit);
         }
