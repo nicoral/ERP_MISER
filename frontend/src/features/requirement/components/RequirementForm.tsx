@@ -13,6 +13,8 @@ import { useCostCenters } from '../../costCenter/hooks/useCostCenter';
 import { PRIORITIES, ROUTES } from '../../../config/constants';
 import { createRequirement } from '../../../services/api/requirementService';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
+import { ErrorBanner } from '../../../components/common/ErrorBanner';
 
 interface ArticlesSelected {
   id: number;
@@ -59,6 +61,8 @@ export const RequirementForm = () => {
   });
   const [articlesSelected, setArticlesSelected] = useState<Products[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Manejo de inputs generales
   const handleChange = (
@@ -66,6 +70,7 @@ export const RequirementForm = () => {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
+    setError(null);
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
@@ -102,6 +107,13 @@ export const RequirementForm = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    if (articlesSelected.length === 0) {
+      setError('Debe seleccionar al menos un artículo');
+      setLoading(false);
+      return;
+    }
     const data = {
       priority: form.priority,
       costCenterId: form.costCenter,
@@ -113,15 +125,25 @@ export const RequirementForm = () => {
         justification: article.justification,
       })),
     };
-    const requirement = await createRequirement(data);
-    console.log(requirement);
+    try {
+      await createRequirement(data);
+      navigate(ROUTES.REQUIREMENTS);
+    } catch (error) {
+      console.log(error);
+      setError('Error al crear el requerimiento');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <form
       className="p-8 mx-auto space-y-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow"
       onSubmit={handleSubmit}
     >
+      {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
       {/* 1. Información del requerimiento */}
       <div>
         <h2 className="text-xl font-bold mb-4">
