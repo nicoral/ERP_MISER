@@ -84,12 +84,6 @@ export const RoleForm = () => {
             ? ADMINISTRATION_TEXTS.rolesForm.edit
             : ADMINISTRATION_TEXTS.rolesForm.create}
         </h2>
-        <button
-          onClick={() => navigate('/administration')}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800"
-        >
-          ← {ADMINISTRATION_TEXTS.rolesForm.back}
-        </button>
       </div>
 
       <form

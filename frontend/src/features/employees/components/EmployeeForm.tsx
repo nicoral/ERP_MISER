@@ -155,12 +155,6 @@ export const EmployeeForm = () => {
             ? EMPLOYEES_TEXTS.form.title.edit
             : EMPLOYEES_TEXTS.form.title.create}
         </h2>
-        <button
-          onClick={() => navigate(ROUTES.EMPLOYEES)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
-        >
-          ← {EMPLOYEES_TEXTS.form.buttons.back}
-        </button>
       </div>
 
       <form

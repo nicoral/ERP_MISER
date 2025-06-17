@@ -241,12 +241,6 @@ export const ArticleForm = () => {
             ? WAREHOUSE_TEXTS.articles.form.title.edit
             : WAREHOUSE_TEXTS.articles.form.title.create}
         </h2>
-        <button
-          onClick={() => navigate(ROUTES.WAREHOUSE_ARTICLES)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
-        >
-          ← {COMMON_TEXTS.back}
-        </button>
       </div>
 
       <form

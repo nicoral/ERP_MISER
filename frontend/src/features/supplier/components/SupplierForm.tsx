@@ -123,12 +123,6 @@ export const SupplierForm = () => {
             ? WAREHOUSE_TEXTS.suppliers.form.title.edit
             : WAREHOUSE_TEXTS.suppliers.form.title.create}
         </h2>
-        <button
-          onClick={() => navigate(ROUTES.WAREHOUSE_SUPPLIERS)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 w-fit"
-        >
-          ← {COMMON_TEXTS.back}
-        </button>
       </div>
 
       <form
