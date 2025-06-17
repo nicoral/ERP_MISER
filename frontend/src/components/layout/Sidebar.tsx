@@ -37,17 +37,6 @@ const menuItems: MenuItem[] = [
     icon: <EmployeesIcon className="w-5 h-5" />,
   },
   {
-    label: SIDEBAR_TEXTS.process,
-    icon: <ProcessIcon className="w-5 h-5" />,
-    subItems: [
-      {
-        label: SIDEBAR_TEXTS.processRequirement,
-        path: ROUTES.REQUIREMENTS,
-        icon: <DocumentIcon className="w-4 h-4" />,
-      },
-    ],
-  },
-  {
     label: SIDEBAR_TEXTS.costCenter,
     path: ROUTES.COST_CENTER,
     permission: 'view_cost_centers',
@@ -76,6 +65,17 @@ const menuItems: MenuItem[] = [
         path: ROUTES.WAREHOUSE_SUPPLIERS,
         permission: 'view_suppliers',
         icon: <SuppliersIcon className="w-4 h-4" />,
+      },
+    ],
+  },
+  {
+    label: SIDEBAR_TEXTS.process,
+    icon: <ProcessIcon className="w-5 h-5" />,
+    subItems: [
+      {
+        label: SIDEBAR_TEXTS.processRequirement,
+        path: ROUTES.REQUIREMENTS,
+        icon: <DocumentIcon className="w-4 h-4" />,
       },
     ],
   },
