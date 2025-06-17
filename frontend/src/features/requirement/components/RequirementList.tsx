@@ -135,7 +135,6 @@ export const RequirementList = () => {
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
         title="Detalles del Requerimiento"
-        size="xl"
       >
         {selectedRequirement && (
           <RequirementDetails requirementInput={selectedRequirement} />

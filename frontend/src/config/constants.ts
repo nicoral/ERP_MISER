@@ -166,6 +166,10 @@ export const MODULES = [
     key: 'suppliers',
     label: 'Proveedores',
   },
+  {
+    key: 'requirements',
+    label: 'Requerimientos',
+  },
 ];
 
 export const PRIORITIES = [
