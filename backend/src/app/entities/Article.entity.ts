@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { WarehouseArticle } from './WarehouseArticle.entity';
 import { Brand } from './Brand.entity';
+import { RequirementArticle } from './RequirementArticle.entity';
 
 @Entity()
 export class Article {
@@ -57,6 +58,12 @@ export class Article {
     (warehouseArticle) => warehouseArticle.article,
   )
   warehouseArticles: WarehouseArticle[];
+
+  @OneToMany(
+    () => RequirementArticle,
+    (requirementArticle) => requirementArticle.article,
+  )
+  requirementArticles: RequirementArticle[];
 
   @ManyToOne(() => Brand, (brand) => brand.article)
   brand: Brand;

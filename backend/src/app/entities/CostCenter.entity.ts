@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Requirement } from "./Requirement.entity";
 
 
 @Entity()
@@ -11,6 +12,9 @@ export class CostCenter {
 
   @Column('text', { name: 'description', nullable: true })
   description: string;
+
+  @OneToMany(() => Requirement, (requirement) => requirement.costCenter)
+  requirements: Requirement[];
 
   @CreateDateColumn({
     name: 'created_at',

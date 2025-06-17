@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Article } from '../entities/Article.entity';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateArticleDto } from '../dto/article/create-article.dto';
 import { UpdateArticleDto } from '../dto/article/update-article.dto';
@@ -64,6 +64,44 @@ export class ArticleService {
       .take(limit)
       .getManyAndCount();
     return { data, total };
+  }
+
+  async listSimple(
+    search?: string,
+  ): Promise<Article[]> {
+    const query = this.articleRepository.find({
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        unitOfMeasure: true,
+        brand: {
+          id: true,
+          name: true,
+        },
+      },
+      where: [
+        {
+          id: Number(search),
+        },
+        {
+          name: ILike(`%${search}%`),
+        },
+        {
+          code: ILike(`%${search}%`),
+        },
+        {
+          brand: {
+            name: ILike(`%${search}%`),
+          },
+        },
+        {
+          unitOfMeasure: ILike(`%${search}%`),
+        },
+      ],
+      relations: ['brand'],
+    });
+    return query;
   }
 
   async findOne(id: number): Promise<Article> {

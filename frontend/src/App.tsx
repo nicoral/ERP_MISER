@@ -25,6 +25,8 @@ import { ArticleForm } from './features/warehouse/components/ArticleForm';
 import { SupplierForm } from './features/warehouse/components/SupplierForm';
 import { CostCenterList } from './features/costCenter/components/costCenterList';
 import { CostCenterForm } from './features/costCenter/components/costCenterForm';
+import { RequirementForm } from './features/requirement/components/RequirementForm';
+import { RequirementList } from './features/requirement/components/RequirementList';
 
 function App() {
   return (
@@ -94,6 +96,18 @@ function App() {
                 <Route
                   path={ROUTES.COST_CENTER_EDIT}
                   element={<CostCenterForm />}
+                />
+                <Route
+                  path={ROUTES.REQUIREMENTS}
+                  element={<RequirementList />}
+                />
+                <Route
+                  path={ROUTES.REQUIREMENTS_CREATE}
+                  element={<RequirementForm />}
+                />
+                <Route
+                  path={ROUTES.REQUIREMENT_EDIT}
+                  element={<RequirementForm />}
                 />
               </Route>
             </Route>

@@ -40,6 +40,22 @@ export async function getArticles(
   throw new Error(data.message);
 }
 
+export async function getArticlesSimple(search?: string): Promise<Article[]> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/articles/list/simple?search=${search}`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
 export async function getArticle(
   id: number | undefined
 ): Promise<Article | null> {

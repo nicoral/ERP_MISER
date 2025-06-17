@@ -43,7 +43,7 @@ const menuItems: MenuItem[] = [
     subItems: [
       {
         label: SIDEBAR_TEXTS.processRequirement,
-        path: ROUTES.PROCESS_REQUIREMENT,
+        path: ROUTES.REQUIREMENTS,
         icon: <DocumentIcon className="w-4 h-4" />,
       },
     ],

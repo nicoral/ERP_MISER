@@ -19,7 +19,6 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { CreateBrandDto } from '../dto/article/create-brand.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CloudinaryService } from '../services/cloudinary.service';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
 
 @Controller('articles')
@@ -27,7 +26,6 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 export class ArticleController {
   constructor(
     private readonly articleService: ArticleService,
-    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Post()
@@ -47,6 +45,12 @@ export class ArticleController {
   ) {
     const { data, total } = await this.articleService.findAll(page, limit, search);
     return { data, total, page, limit };
+  }
+
+  @Get('list/simple')
+  @AuditDescription('Consulta de lista de artículos')
+  async listSimple(@Query('search') search?: string) {
+    return this.articleService.listSimple(search);
   }
 
   @Get('brands')
@@ -93,4 +97,5 @@ export class ArticleController {
   createBrand(@Body() createBrandDto: CreateBrandDto, @UploadedFile() file: Express.Multer.File) {
     return this.articleService.createBrand(createBrandDto, file);
   }
+  
 }

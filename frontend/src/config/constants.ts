@@ -36,6 +36,9 @@ export const ROUTES = {
   COST_CENTER: '/cost-center',
   COST_CENTER_CREATE: '/cost-center/create',
   COST_CENTER_EDIT: '/cost-center/:id/edit',
+  REQUIREMENTS: '/requirements',
+  REQUIREMENTS_CREATE: '/requirements/create',
+  REQUIREMENT_EDIT: '/requirements/:id/edit',
 } as const;
 
 export const ALPHABET = [
@@ -163,4 +166,10 @@ export const MODULES = [
     key: 'suppliers',
     label: 'Proveedores',
   },
+];
+
+export const PRIORITIES = [
+  { value: 'LOW', label: 'Baja' },
+  { value: 'MEDIUM', label: 'Media' },
+  { value: 'HIGH', label: 'Alta' },
 ];

@@ -6,6 +6,7 @@ type ModalProps = {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 };
 
 export const Modal: React.FC<ModalProps> = ({
@@ -13,6 +14,7 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
+  size = 'md',
 }) => {
   if (!isOpen) return null;
 

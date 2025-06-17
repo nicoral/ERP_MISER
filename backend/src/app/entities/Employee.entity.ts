@@ -12,6 +12,7 @@ import {
 import { Exclude } from 'class-transformer';
 import { Role } from './Role.entity';
 import { Warehouse } from './Warehouse.entity';
+import { Requirement } from './Requirement.entity';
 
 @Entity()
 export class Employee {
@@ -79,6 +80,9 @@ export class Employee {
 
   @OneToMany(() => Warehouse, (warehouse) => warehouse.manager)
   warehouses: Warehouse[];
+
+  @OneToMany(() => Requirement, (requirement) => requirement.employee)
+  requirements: Requirement[];
 
   @ManyToMany(() => Warehouse, (warehouse) => warehouse.employees)
   @JoinTable()
