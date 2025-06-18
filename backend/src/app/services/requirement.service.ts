@@ -185,7 +185,10 @@ export class RequirementService {
     const template = Handlebars.compile(templateHtml);
     const html = template({ ...data });
 
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ 
+      headless: true, 
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
     const page = await browser.newPage();
 
     await page.setContent(html, { waitUntil: 'networkidle0' });
