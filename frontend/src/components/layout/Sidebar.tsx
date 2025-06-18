@@ -238,11 +238,6 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
           ))}
         </nav>
       </aside>
-      <div
-        className={`fixed top-16 left-0 right-0 bottom-0 transition-all duration-300 lg:pl-0
-          ${isOpen ? 'lg:pl-64' : 'lg:pl-0'}
-          ${isCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}
-      />
     </>
   );
 };
