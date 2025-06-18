@@ -36,9 +36,13 @@ export class SupplierController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ) {
-    const { data, total } = await this.supplierService.findAll(page, limit, search);
+    const { data, total } = await this.supplierService.findAll(
+      page,
+      limit,
+      search
+    );
     return { data, total, page, limit };
   }
 
@@ -54,7 +58,7 @@ export class SupplierController {
   @AuditDescription('Actualización de proveedor')
   update(
     @Param('id') id: number,
-    @Body() updateSupplierDto: UpdateSupplierDto,
+    @Body() updateSupplierDto: UpdateSupplierDto
   ): Promise<Supplier> {
     return this.supplierService.update(id, updateSupplierDto);
   }

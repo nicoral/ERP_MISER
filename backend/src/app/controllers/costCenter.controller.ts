@@ -1,11 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
-import { CostCenterService } from "../services/costCenter.service";
-import { CreateCostCenterDto } from "../dto/costCenter/create-costCenter.dto";
-import { UpdateCostCenterDto } from "../dto/costCenter/update-costCenter.dto";
-import { JwtAuthGuard } from "../guards/jwt-auth.guard";
-import { PermissionsGuard } from "../guards/permissions.guard";
-import { RequirePermissions } from "../decorators/permissions.decorator";
-import { AuditDescription } from "../common/decorators/audit-description.decorator";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { CostCenterService } from '../services/costCenter.service';
+import { CreateCostCenterDto } from '../dto/costCenter/create-costCenter.dto';
+import { UpdateCostCenterDto } from '../dto/costCenter/update-costCenter.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermissions } from '../decorators/permissions.decorator';
+import { AuditDescription } from '../common/decorators/audit-description.decorator';
 
 @Controller('cost-centers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -15,7 +25,11 @@ export class CostCenterController {
   @Get()
   @RequirePermissions('view_cost_centers')
   @AuditDescription('Consulta de lista de centros de costo')
-  async findAllCostCenters(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search?: string) {
+  async findAllCostCenters(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('search') search?: string
+  ) {
     return this.costCenterService.findAllCostCenters(page, limit, search);
   }
 
@@ -36,7 +50,10 @@ export class CostCenterController {
   @Put(':id')
   @RequirePermissions('update_cost_centers')
   @AuditDescription('Actualización de centro de costo')
-  async updateCostCenter(@Param('id') id: number, @Body() updateCostCenterDto: UpdateCostCenterDto) {
+  async updateCostCenter(
+    @Param('id') id: number,
+    @Body() updateCostCenterDto: UpdateCostCenterDto
+  ) {
     return this.costCenterService.updateCostCenter(id, updateCostCenterDto);
   }
 

@@ -15,3 +15,8 @@ export enum RequirementPriority {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
+
+export enum Currency {
+  PEN = 'PEN',
+  USD = 'USD',
+}

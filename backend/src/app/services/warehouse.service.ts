@@ -9,7 +9,7 @@ import { UpdateWarehouseDto } from '../dto/warehouse/update-warehouse.dto';
 export class WarehouseService {
   constructor(
     @InjectRepository(Warehouse)
-    private readonly warehouseRepository: Repository<Warehouse>,
+    private readonly warehouseRepository: Repository<Warehouse>
   ) {}
 
   async createWarehouse(warehouse: CreateWarehouseDto): Promise<Warehouse> {
@@ -23,12 +23,15 @@ export class WarehouseService {
   async getWarehouses(
     page: number,
     limit: number,
-    search?: string,
+    search?: string
   ): Promise<{ data: Warehouse[]; total: number }> {
-    const query = this.warehouseRepository.createQueryBuilder('warehouse').leftJoinAndSelect('warehouse.manager', 'manager');
+    const query = this.warehouseRepository
+      .createQueryBuilder('warehouse')
+      .leftJoinAndSelect('warehouse.manager', 'manager');
     if (search) {
       query.where('warehouse.name ILIKE :search', { search: `%${search}%` });
     }
+    query.orderBy('warehouse.id', 'DESC');
     query.skip((page - 1) * limit).take(limit);
     const [data, total] = await query.getManyAndCount();
     return { data, total };
@@ -47,7 +50,7 @@ export class WarehouseService {
 
   async updateWarehouse(
     id: number,
-    warehouse: UpdateWarehouseDto,
+    warehouse: UpdateWarehouseDto
   ): Promise<Warehouse> {
     const updateData = { ...warehouse };
     if (warehouse.employeeId) {
@@ -56,7 +59,7 @@ export class WarehouseService {
     }
     const updatedWarehouse = await this.warehouseRepository.update(
       id,
-      updateData,
+      updateData
     );
     if (updatedWarehouse.affected === 0) {
       throw new NotFoundException('Warehouse not found');

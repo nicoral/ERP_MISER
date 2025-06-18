@@ -6,13 +6,13 @@ import { EmployeeService } from '../services/employee.service';
 export class PermissionsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly employeeService: EmployeeService,
+    private readonly employeeService: EmployeeService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.get<string[]>(
       'permissions',
-      context.getHandler(),
+      context.getHandler()
     );
 
     if (!requiredPermissions) {
@@ -28,11 +28,11 @@ export class PermissionsGuard implements CanActivate {
 
     const employee = await this.employeeService.findOne(user.id);
     const role = await this.employeeService.getRoleWithPermissions(
-      employee.role.id,
+      employee.role.id
     );
 
-    return requiredPermissions.every((permission) =>
-      role.permissions.some((p) => p.name === permission),
+    return requiredPermissions.every(permission =>
+      role.permissions.some(p => p.name === permission)
     );
   }
 }

@@ -59,3 +59,18 @@ export async function createRequirement(requirement: CreateRequirementDto) {
   }
   throw new Error(data.message);
 }
+
+export async function generateRequirementPdf(id: number) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/requirements/generate/pdf/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  if (response.status === 200) {
+    return response.blob();
+  }
+  throw new Error('Error al generar el PDF');
+}

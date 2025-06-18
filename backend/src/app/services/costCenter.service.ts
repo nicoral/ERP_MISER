@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { Repository } from "typeorm";
-import { CostCenter } from "../entities/CostCenter.entity";
-import { InjectRepository } from "@nestjs/typeorm";
-import { CreateCostCenterDto } from "../dto/costCenter/create-costCenter.dto";
-import { UpdateCostCenterDto } from "../dto/costCenter/update-costCenter.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { CostCenter } from '../entities/CostCenter.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CreateCostCenterDto } from '../dto/costCenter/create-costCenter.dto';
+import { UpdateCostCenterDto } from '../dto/costCenter/update-costCenter.dto';
 
 @Injectable()
 export class CostCenterService {
@@ -15,12 +15,18 @@ export class CostCenterService {
     if (search) {
       query.where('costCenter.name LIKE :search', { search: `%${search}%` });
     }
-    const [data, total] = await query.orderBy('costCenter.createdAt', 'DESC').skip((page - 1) * limit).take(limit).getManyAndCount();
+    const [data, total] = await query
+      .orderBy('costCenter.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
     return { data, total };
   }
 
   async findOneCostCenter(id: number) {
-    const costCenter = await this.costCenterRepository.findOne({ where: { id } });
+    const costCenter = await this.costCenterRepository.findOne({
+      where: { id },
+    });
     if (!costCenter) {
       throw new NotFoundException('Cost center not found');
     }
@@ -33,15 +39,22 @@ export class CostCenterService {
   }
 
   async updateCostCenter(id: number, updateCostCenterDto: UpdateCostCenterDto) {
-    const costCenter = await this.costCenterRepository.findOne({ where: { id } });
+    const costCenter = await this.costCenterRepository.findOne({
+      where: { id },
+    });
     if (!costCenter) {
       throw new NotFoundException('Cost center not found');
     }
-    return this.costCenterRepository.save({ ...costCenter, ...updateCostCenterDto });
+    return this.costCenterRepository.save({
+      ...costCenter,
+      ...updateCostCenterDto,
+    });
   }
 
   async deleteCostCenter(id: number) {
-    const costCenter = await this.costCenterRepository.findOne({ where: { id } });
+    const costCenter = await this.costCenterRepository.findOne({
+      where: { id },
+    });
     if (!costCenter) {
       throw new NotFoundException('Cost center not found');
     }

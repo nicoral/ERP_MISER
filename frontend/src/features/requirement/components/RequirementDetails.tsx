@@ -1,18 +1,15 @@
 import { useRequirementService } from '../hooks/useRequirements';
-import type { Requirement } from '../../../types/requirement';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../../config/constants';
 
-interface RequirementDetailsProps {
-  requirementInput: Requirement;
-}
-
-export const RequirementDetails = ({
-  requirementInput,
-}: RequirementDetailsProps) => {
+export const RequirementDetails = () => {
+  const params = useParams();
+  const navigate = useNavigate();
   const { requirement, loading, error } = useRequirementService(
-    requirementInput.id
+    params.id ? Number(params.id) : 0
   );
   if (loading) return <LoadingSpinner />;
   if (error) return <div className="text-red-500">{error}</div>;
@@ -72,7 +69,7 @@ export const RequirementDetails = ({
       </div>
 
       {/* Articles Table */}
-      <div className="mb-6">
+      <div className="mb-6 overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-700">
@@ -93,6 +90,9 @@ export const RequirementDetails = ({
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Justificación
+              </th>
+              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Moneda
               </th>
               <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Costo Total
@@ -118,26 +118,54 @@ export const RequirementDetails = ({
                 <td className="px-3 py-2 text-sm">
                   {reqArticle.justification}
                 </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
+                  {reqArticle.currency}
+                </td>
                 <td className="px-3 py-2 whitespace-nowrap text-sm text-right">
-                  ${(reqArticle.quantity * reqArticle.unitPrice).toFixed(2)}
+                  {(reqArticle.quantity * reqArticle.unitPrice).toFixed(2)}{' '}
                 </td>
               </tr>
             ))}
-            <tr className="bg-gray-50 dark:bg-gray-700">
-              <td colSpan={6} className="px-3 py-2 text-right font-medium">
-                SUBTOTAL
-              </td>
-              <td className="px-3 py-2 text-right font-medium">
-                $
-                {requirement?.requirementArticles
-                  .reduce(
-                    (sum, article) =>
-                      sum + article.quantity * article.unitPrice,
-                    0
-                  )
-                  .toFixed(2)}
-              </td>
-            </tr>
+            {/* Subtotal PEN */}
+            {requirement?.requirementArticles.some(
+              article => article.currency === 'PEN'
+            ) && (
+              <tr className="bg-gray-50 dark:bg-gray-700">
+                <td colSpan={7} className="px-3 py-2 text-right font-medium">
+                  SUBTOTAL PEN
+                </td>
+                <td className="px-3 py-2 text-right font-medium">
+                  {requirement?.requirementArticles
+                    .filter(article => article.currency === 'PEN')
+                    .reduce(
+                      (sum, article) =>
+                        sum + article.quantity * article.unitPrice,
+                      0
+                    )
+                    .toFixed(2)}{' '}
+                </td>
+              </tr>
+            )}
+            {/* Subtotal USD */}
+            {requirement?.requirementArticles.some(
+              article => article.currency === 'USD'
+            ) && (
+              <tr className="bg-gray-50 dark:bg-gray-700">
+                <td colSpan={7} className="px-3 py-2 text-right font-medium">
+                  SUBTOTAL USD
+                </td>
+                <td className="px-3 py-2 text-right font-medium">
+                  {requirement?.requirementArticles
+                    .filter(article => article.currency === 'USD')
+                    .reduce(
+                      (sum, article) =>
+                        sum + article.quantity * article.unitPrice,
+                      0
+                    )
+                    .toFixed(2)}{' '}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -148,6 +176,16 @@ export const RequirementDetails = ({
         <p className="text-sm bg-gray-50 dark:bg-gray-700 p-3 rounded">
           {requirement?.observation || 'Sin observaciones'}
         </p>
+      </div>
+
+      {/* Botón de regreso */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => navigate(ROUTES.REQUIREMENTS)}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Volver
+        </button>
       </div>
     </div>
   );

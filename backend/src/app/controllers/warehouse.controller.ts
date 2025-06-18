@@ -29,7 +29,7 @@ export class WarehouseController {
   async getWarehouses(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ): Promise<{
     data: Warehouse[];
     total: number;
@@ -39,7 +39,7 @@ export class WarehouseController {
     const { data, total } = await this.warehouseService.getWarehouses(
       page,
       limit,
-      search,
+      search
     );
     return { data, total, page, limit };
   }
@@ -55,7 +55,7 @@ export class WarehouseController {
   @RequirePermissions('create_warehouse')
   @AuditDescription('Creación de nuevo almacén')
   async createWarehouse(
-    @Body() warehouse: CreateWarehouseDto,
+    @Body() warehouse: CreateWarehouseDto
   ): Promise<Warehouse> {
     return this.warehouseService.createWarehouse(warehouse);
   }
@@ -65,7 +65,7 @@ export class WarehouseController {
   @AuditDescription('Actualización de almacén')
   async updateWarehouse(
     @Param('id') id: number,
-    @Body() warehouse: UpdateWarehouseDto,
+    @Body() warehouse: UpdateWarehouseDto
   ): Promise<Warehouse> {
     return this.warehouseService.updateWarehouse(id, warehouse);
   }

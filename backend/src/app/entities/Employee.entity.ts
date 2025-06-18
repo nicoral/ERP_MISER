@@ -75,16 +75,16 @@ export class Employee {
   @Column('date', { name: 'birth_date', nullable: true })
   birthDate: Date;
 
-  @ManyToOne(() => Role, (role) => role.employees)
+  @ManyToOne(() => Role, role => role.employees)
   role: Role;
 
-  @OneToMany(() => Warehouse, (warehouse) => warehouse.manager)
+  @OneToMany(() => Warehouse, warehouse => warehouse.manager)
   warehouses: Warehouse[];
 
-  @OneToMany(() => Requirement, (requirement) => requirement.employee)
+  @OneToMany(() => Requirement, requirement => requirement.employee)
   requirements: Requirement[];
 
-  @ManyToMany(() => Warehouse, (warehouse) => warehouse.employees)
+  @ManyToMany(() => Warehouse, warehouse => warehouse.employees)
   @JoinTable()
   warehousesAssigned: Warehouse[];
 

@@ -20,12 +20,12 @@ export class AuditInterceptor implements NestInterceptor {
     private readonly auditLogRepository: Repository<AuditLog>,
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
-    private reflector: Reflector,
+    private reflector: Reflector
   ) {}
 
   intercept(
     context: ExecutionContext,
-    next: CallHandler,
+    next: CallHandler
   ): Observable<object | null> {
     const request = context.switchToHttp().getRequest();
     const userId = request.user?.id;
@@ -39,7 +39,7 @@ export class AuditInterceptor implements NestInterceptor {
     // Get the audit description from the decorator
     const description = this.reflector.get<string>(
       AUDIT_DESCRIPTION_KEY,
-      context.getHandler(),
+      context.getHandler()
     );
 
     return next.handle().pipe(
@@ -70,11 +70,14 @@ export class AuditInterceptor implements NestInterceptor {
             action,
             entity,
             result as object,
-            oldValue as object,
+            oldValue as object
           );
 
           const audit = this.auditLogRepository.create({
-            action: action === 'post' && entity === 'AuthController' ? 'login' : action,
+            action:
+              action === 'post' && entity === 'AuthController'
+                ? 'login'
+                : action,
             entity: entity ?? null,
             entityId: entityId ?? null,
             employee,
@@ -86,7 +89,7 @@ export class AuditInterceptor implements NestInterceptor {
           } as DeepPartial<AuditLog>);
           await this.auditLogRepository.save(audit);
         }
-      }),
+      })
     );
   }
 
@@ -94,7 +97,7 @@ export class AuditInterceptor implements NestInterceptor {
     action: string,
     entity: string,
     newValue: object,
-    oldValue: object,
+    oldValue: object
   ): string {
     const entityName = entity.replace('Controller', '');
     const actionMap = {

@@ -38,4 +38,4 @@ import { Requirement } from '../../app/entities/Requirement.entity';
   ],
   exports: [TypeOrmModule],
 })
-export class DatabaseModule { }
+export class DatabaseModule {}

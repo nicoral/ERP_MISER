@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Formato de Requerimiento</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .header-table {
+      border-collapse: collapse;
+      width: 100%;
+      border: 2px solid #333;
+    }
+
+    .header-table td,
+    .header-table th {
+      border: 1px solid #333;
+      padding: 4px 8px;
+      font-size: 14px;
+    }
+
+    .logo-cell {
+      width: 140px;
+      text-align: center;
+      vertical-align: middle;
+      background: #fff;
+    }
+
+    .logo-cell img {
+      width: 100px;
+      height: auto;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+      background: #fff;
+    }
+
+    .title-cell {
+      background: #000080;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .code-cell {
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      background: #fff;
+      width: 140px;
+    }
+
+    .subtitle-cell {
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      background: #fff;
+    }
+
+    .field-label {
+      font-weight: bold;
+      color: #000;
+      width: 80px;
+      text-align: left;
+      background: #fff;
+      font-size: 13px;
+      padding: 2px 6px;
+    }
+
+    .field-value {
+      text-align: center;
+      background: #fff;
+      font-size: 13px;
+      padding: 2px 6px;
+    }
+
+    .gray-row {
+      background: #e5e5e5;
+      border-top: none;
+      border-bottom: 2px solid #333;
+      height: 18px;
+    }
+
+    .spec-table {
+      border: 2px solid #333;
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: -2px;
+      font-size: 14px;
+    }
+
+    .spec-table td,
+    .spec-table th {
+      border: none;
+    }
+
+    .items-table {
+      border: 2px solid #333;
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+
+    .items-table td,
+    .items-table th {
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+  <table class="header-table">
+    <tr>
+      <td class="logo-cell" rowspan="4">
+        <img style="width: 100%;" src="https://res.cloudinary.com/dgvnt5xct/image/upload/v1750026998/mixer/brands/ui6vpk7xtpcefobeq8xk.jpg" alt="Logo Myser">
+      </td>
+      <td class="title-cell" colspan="2">FORMATO DE REQUERIMIENTO</td>
+      <td class="code-cell" colspan="2" rowspan="2">
+        <strong>CODIGO<br>MYS-LG-FT-{{id}}</strong>
+      </td>
+    </tr>
+    <tr>
+      <td class="subtitle-cell" colspan="2"><strong>SISTEMA INTEGRADO DE GESTION</strong></td>
+    </tr>
+    <tr>
+      <td class="field-label">&nbsp;REVISION:</td>
+      <td class="field-value">1</td>
+      <td class="field-label">&nbsp;VERSION:</td>
+      <td class="field-value">1</td>
+    </tr>
+    <tr>
+      <td class="field-label">&nbsp;FECHA:</td>
+      <td class="field-value">{{date}}</td>
+      <td class="field-label">&nbsp;PAGINA:</td>
+      <td class="field-value">1/1</td>
+    </tr>
+    <tr>
+      <td colspan="5" class="gray-row"></td>
+    </tr>
+  </table>
+  <table class="header-table" style="margin-top:-2px; font-size:5px;">
+    <tr style="background:#000080; color:#fff;">
+      <th style="width:23%; text-align:left;">N° Requerimiento</th>
+      <th style="width:23%; text-align:left;">Área Solicitante</th>
+      <th style="width:31%; text-align:left;">Persona Solicitante</th>
+      <th style="width:23%; text-align:left;">Fecha de Emisión</th>
+    </tr>
+    <tr>
+      <td style="font-weight:bold;"><span style="font-size:12px;">{{code}}</span></td>
+      <td>{{area}}</td>
+      <td>{{employee}}</td>
+      <td style="font-weight:bold;">{{date}}</td>
+    </tr>
+  </table>
+  <table class="header-table" style="margin-top:-2px; font-size:12px;">
+    <tr style="background:#000080; color:#fff;">
+      <th style="width:85%; text-align:left;">Nombre del Proyecto</th>
+      <th style="width:15%; text-align:left;">Prioridad</th>
+    </tr>
+    <tr>
+      <td>{{costCenter}}</td>
+      <td>{{priority}}</td>
+    </tr>
+  </table>
+  <table class="spec-table">
+    <tr style="background:#000080; color:#fff;">
+      <th colspan="2" style="text-align:left;">Especificaciones</th>
+    </tr>
+    <tr>
+      <td style="text-align:center; width:50%; font-weight:bold;">CENTRO DE COSTO :</td>
+      <td style="text-align:center; width:50%; font-weight:bold;">CENTRO DE COSTO SECUNDARIO:</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold;">{{costCenter}}</td>
+      <td style="text-align:center; font-weight:bold;">360524-Otros</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align:center; padding-top:8px; padding-bottom:8px;">
+        <span style="text-decoration:underline; font-weight:bold;">Sirvase ud. atender el pedido que a continuación
+          detallo</span>
+      </td>
+    </tr>
+  </table>
+  <div style="border-top:2px solid #222; margin-bottom:0; margin-top:15px; font-size:12px;">
+    <span style="font-weight:bold; padding-left:8px;">RESUMEN DE LO SOLICITADO:</span>
+  </div>
+  <table class="items-table">
+    <tr style="background:#000080; color:#fff;">
+      <th style="width:2%;">&nbsp;</th>
+      <th style="width:7%;">Cantidad</th>
+      <th style="width:5%;">Und</th>
+      <th style="width:10%;">Código Fabricante</th>
+      <th style="width:10%;">Código Artículo</th>
+      <th style="width:28%;">Descripción</th>
+      <th style="width:10%;">Marca</th>
+      <th style="width:16%;">Justificación y/o Observación</th>
+      <th style="width:12%; text-align:right;">Costo Total Referencial</th>
+    </tr>
+    {{#each articles}}
+    <tr>
+      <td style="text-align:center;">{{@index}}</td>
+      <td style="text-align:center;">{{quantity}}</td>
+      <td style="text-align:center;">{{unitOfMeasure}}</td>
+      <td style="text-align:center;">{{code}}</td>
+      <td style="text-align:center;">{{articleId}}</td>
+      <td>{{name}}</td>
+      <td style="text-align:center;">{{brand}}</td>
+      <td>{{justification}}</td>
+      <td style="text-align:right;">{{totalPrice}}</td>
+    </tr>
+    {{/each}}
+    
+    {{#if subtotalPEN}}
+    <tr>
+      <td colspan="8" style="text-align:right; font-weight:bold; background:#fff; border:none;">SUBTOTAL PEN ➜</td>
+      <td style="text-align:right; font-weight:bold; background:#fff;">{{subtotalPEN}}</td>
+    </tr>
+    {{/if}}
+    {{#if subtotalUSD}}
+    <tr>
+      <td colspan="8" style="text-align:right; font-weight:bold; background:#fff; border:none;">SUBTOTAL USD ➜</td>
+      <td style="text-align:right; font-weight:bold; background:#fff;">{{subtotalUSD}}</td>
+    </tr>
+    {{/if}}
+  </table>
+  <div style="border:2px solid #333; width:100%; margin-top:16px; padding-bottom:0;">
+    <div style="width:100%; display:flex; justify-content:flex-start;">
+      <table style="width:80%; border-collapse:collapse; margin-top:10px; margin-left: 10px;">
+        <tr style="">
+          <td style="background:#000080; color:#fff; font-weight:bold; padding:4px 8px; border:none; width: 300px;">FECHA DE RECEPCION
+            LOGISTICA</td>
+          <td style="border:none;">
+            <span style="display:inline-block; border:1px solid #333; background:#fff; width:50px; height:18px;"></span>
+            <span style="display:inline-block; border:1px solid #333; background:#fff; width:50px; height:18px;"></span>
+            <span style="display:inline-block; border:1px solid #333; background:#fff; width:50px; height:18px;"></span>
+
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div style="padding:6px 8px 0 8px; font-size:13px;">
+      <b>Observaciones:</b> {{observation}}
+    </div>
+    <table class="header-table"
+      style="margin-top:6px; font-size:12px; border-top:1px solid #333; border-left:none; border-right:none; border-bottom:none; width:100%;">
+      <tr>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
+      </tr>
+      <tr style="background:#000080; color:#fff; font-size:11px;">
+        <td style="text-align:center; font-weight:bold;">V°B° SOLICITANTE<br>ELABORA</td>
+        <td style="text-align:center; font-weight:bold;">V°B° OFICINA TECNICA<br>REVISA</td>
+        <td style="text-align:center; font-weight:bold;">V°B° ADMINISTRACION<br>REVISION</td>
+        <td style="text-align:center; font-weight:bold;">V°B° RESIDENTE<br>APRUEBA</td>
+      </tr>
+    </table>
+  </div>
+</body>
+
+</html>

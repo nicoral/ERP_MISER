@@ -7,15 +7,15 @@ import { AuditLog } from '../entities/AuditLog.entity';
 export class AuditLogService {
   constructor(
     @InjectRepository(AuditLog)
-    private readonly auditLogRepository: Repository<AuditLog>,
-  ) { }
+    private readonly auditLogRepository: Repository<AuditLog>
+  ) {}
 
   async findAll(
     page: number,
     limit: number,
     search?: string,
     userId?: number,
-    date?: string,
+    date?: string
   ): Promise<{ data: AuditLog[]; total: number }> {
     const query = this.auditLogRepository.createQueryBuilder('auditLog');
     query.leftJoinAndSelect('auditLog.employee', 'employee');
@@ -26,7 +26,13 @@ export class AuditLogService {
       query.where('auditLog.employee.id = :userId', { userId });
     }
     if (date) {
-      query.where('auditLog.timestamp >= :dateIni AND auditLog.timestamp <= :dateFin', { dateIni: new Date(date).setHours(0, 0, 0, 0), dateFin: new Date(date).setHours(23, 59, 59, 999) });
+      query.where(
+        'auditLog.timestamp >= :dateIni AND auditLog.timestamp <= :dateFin',
+        {
+          dateIni: new Date(date).setHours(0, 0, 0, 0),
+          dateFin: new Date(date).setHours(23, 59, 59, 999),
+        }
+      );
     }
     const [data, total] = await query
       .orderBy('auditLog.timestamp', 'DESC')
@@ -35,5 +41,4 @@ export class AuditLogService {
       .getManyAndCount();
     return { data, total };
   }
-
 }

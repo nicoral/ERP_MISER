@@ -8,7 +8,7 @@ import { EmployeeService } from '../../../services/employee.service';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
-    private readonly employeeService: EmployeeService,
+    private readonly employeeService: EmployeeService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

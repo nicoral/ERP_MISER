@@ -34,15 +34,15 @@ export class Warehouse {
   @Column('decimal', { name: 'valued', nullable: false })
   valued: number;
 
-  @ManyToOne(() => Employee, (employee) => employee.warehouses)
+  @ManyToOne(() => Employee, employee => employee.warehouses)
   manager: Employee;
 
-  @ManyToMany(() => Employee, (employee) => employee.warehousesAssigned)
+  @ManyToMany(() => Employee, employee => employee.warehousesAssigned)
   employees: Employee[];
 
   @OneToMany(
     () => WarehouseArticle,
-    (warehouseArticle) => warehouseArticle.warehouse,
+    warehouseArticle => warehouseArticle.warehouse
   )
   warehouseArticles: WarehouseArticle[];
 

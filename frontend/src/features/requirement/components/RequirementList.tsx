@@ -8,22 +8,28 @@ import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
 import { useNavigate } from 'react-router-dom';
 import { EyeIcon } from '../../../components/common/Icons';
-import { Modal } from '../../../components/common/Modal';
-import { RequirementDetails } from './RequirementDetails';
-import { useState } from 'react';
+import { DownloadIcon } from 'lucide-react';
+import { generateRequirementPdf } from '../../../services/api/requirementService';
 
 export const RequirementList = () => {
   const navigate = useNavigate();
   const { requirements, loading, pagination, handlePageChange } =
     useRequirements(1, 10);
 
-  const [selectedRequirement, setSelectedRequirement] =
-    useState<Requirement | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-
   const handleViewDetails = (requirement: Requirement) => {
-    setSelectedRequirement(requirement);
-    setShowDetailsModal(true);
+    navigate(
+      ROUTES.REQUIREMENTS_DETAILS.replace(':id', requirement.id.toString())
+    );
+  };
+
+  const handleDownloadPdf = (requirement: Requirement) => {
+    generateRequirementPdf(requirement.id).then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${requirement.code}.pdf`;
+      a.click();
+    });
   };
 
   const columns: TableColumn<Requirement>[] = [
@@ -99,6 +105,11 @@ export const RequirementList = () => {
       label: 'Ver detalles',
       onClick: handleViewDetails,
     },
+    {
+      icon: <DownloadIcon className="w-5 h-5 text-blue-600" />,
+      label: 'Descargar PDF',
+      onClick: handleDownloadPdf,
+    },
   ];
 
   return (
@@ -130,16 +141,6 @@ export const RequirementList = () => {
           actions={actions}
         />
       </div>
-
-      <Modal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        title="Detalles del Requerimiento"
-      >
-        {selectedRequirement && (
-          <RequirementDetails requirementInput={selectedRequirement} />
-        )}
-      </Modal>
     </div>
   );
 };

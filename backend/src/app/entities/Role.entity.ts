@@ -24,6 +24,6 @@ export class Role {
   @JoinTable()
   permissions: Permission[];
 
-  @OneToMany(() => Employee, (employee) => employee.role)
+  @OneToMany(() => Employee, employee => employee.role)
   employees: Employee[];
 }

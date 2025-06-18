@@ -7,7 +7,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 export class EmployeeRepository {
   constructor(
     @InjectRepository(Employee)
-    private readonly employeeRepository: Repository<Employee>,
+    private readonly employeeRepository: Repository<Employee>
   ) {}
 
   async findAll(): Promise<Employee[]> {

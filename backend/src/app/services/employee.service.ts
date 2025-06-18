@@ -15,20 +15,24 @@ export class EmployeeService {
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
     private readonly roleService: RoleService,
-    private readonly cloudinaryService: CloudinaryService,
-  ) { }
+    private readonly cloudinaryService: CloudinaryService
+  ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Employee> {
     const hashedPassword = await bcrypt.hash(
       createEmployeeDto.password ?? createEmployeeDto.documentId,
-      10,
+      10
     );
     const employee = this.employeeRepository.create({
       ...createEmployeeDto,
       password: hashedPassword,
       active: true,
-      role: { id: createEmployeeDto.role ?? (await this.roleService.findDefaultRole()).id },
-      warehousesAssigned: createEmployeeDto.warehousesAssigned.map((id) => ({
+      role: {
+        id:
+          createEmployeeDto.role ??
+          (await this.roleService.findDefaultRole()).id,
+      },
+      warehousesAssigned: createEmployeeDto.warehousesAssigned.map(id => ({
         id,
       })),
     });
@@ -46,19 +50,19 @@ export class EmployeeService {
   async findAll(
     page: number,
     limit: number,
-    search?: string,
+    search?: string
   ): Promise<{ data: Employee[]; total: number }> {
     const query = this.employeeRepository.createQueryBuilder('employee');
 
     if (search) {
       query.where(
         'employee.firstName ILIKE :search OR employee.lastName ILIKE :search OR employee.email ILIKE :search',
-        { search: `%${search}%` },
+        { search: `%${search}%` }
       );
     }
 
     const [data, total] = await query
-      .orderBy('employee.createdAt', 'DESC')
+      .orderBy('employee.id', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -86,19 +90,19 @@ export class EmployeeService {
 
   async update(
     id: number,
-    updateEmployeeDto: UpdateEmployeeDto,
+    updateEmployeeDto: UpdateEmployeeDto
   ): Promise<Employee> {
     const employee = await this.findOne(id);
     if (updateEmployeeDto.password) {
       updateEmployeeDto.password = await bcrypt.hash(
         updateEmployeeDto.password,
-        10,
+        10
       );
     }
 
     if (updateEmployeeDto.warehousesAssigned) {
       employee.warehousesAssigned = updateEmployeeDto.warehousesAssigned.map(
-        (id) => ({ id: id }) as Warehouse,
+        id => ({ id: id }) as Warehouse
       );
       delete updateEmployeeDto.warehousesAssigned;
     }
@@ -117,7 +121,10 @@ export class EmployeeService {
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
-    const uploadResult = await this.cloudinaryService.uploadFile(file, 'employees');
+    const uploadResult = await this.cloudinaryService.uploadFile(
+      file,
+      'employees'
+    );
     employee.imageUrl = uploadResult.secure_url;
     return this.employeeRepository.save(employee);
   }

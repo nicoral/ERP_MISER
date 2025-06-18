@@ -45,7 +45,7 @@ export class RoleController {
   @AuditDescription('Actualización de permisos de rol')
   async updatePermissions(
     @Param('id') id: number,
-    @Body() updatePermissionsDto: UpdatePermissionsDto,
+    @Body() updatePermissionsDto: UpdatePermissionsDto
   ) {
     return this.roleService.updatePermissions(id, updatePermissionsDto);
   }

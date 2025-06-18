@@ -12,6 +12,6 @@ export class Brand {
   @Column({ type: 'varchar', length: 255, nullable: true })
   imageUrl: string;
 
-  @OneToMany(() => Article, (article) => article.brand)
+  @OneToMany(() => Article, article => article.brand)
   article: Article[];
 }

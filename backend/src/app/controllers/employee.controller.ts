@@ -30,7 +30,7 @@ export class EmployeeController {
   @RequirePermissions('create_employee')
   @AuditDescription('Creación de nuevo empleado')
   async create(
-    @Body() createEmployeeDto: CreateEmployeeDto,
+    @Body() createEmployeeDto: CreateEmployeeDto
   ): Promise<Employee> {
     return this.employeeService.create(createEmployeeDto);
   }
@@ -41,12 +41,12 @@ export class EmployeeController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ) {
     const { data, total } = await this.employeeService.findAll(
       page,
       limit,
-      search,
+      search
     );
     return { data, total, page, limit };
   }
@@ -63,7 +63,7 @@ export class EmployeeController {
   @AuditDescription('Actualización de empleado')
   async update(
     @Param('id') id: number,
-    @Body() updateEmployeeDto: UpdateEmployeeDto,
+    @Body() updateEmployeeDto: UpdateEmployeeDto
   ): Promise<Employee> {
     return this.employeeService.update(id, updateEmployeeDto);
   }
@@ -81,7 +81,7 @@ export class EmployeeController {
   @AuditDescription('Actualización de imagen de empleado')
   async uploadImage(
     @Param('id') id: number,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File
   ) {
     return this.employeeService.updateImage(id, file);
   }

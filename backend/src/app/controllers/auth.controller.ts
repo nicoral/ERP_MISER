@@ -20,7 +20,7 @@ export class AuthController {
   async login(@Body() loginDto: AuthLoginDto) {
     const employee = await this.authService.validateUser(
       loginDto.email,
-      loginDto.password,
+      loginDto.password
     );
     return this.authService.login(employee);
   }

@@ -19,6 +19,7 @@ export interface RequirementArticle {
   quantity: number;
   unitPrice: number;
   justification: string;
+  currency: string;
 }
 
 export interface CreateRequirementDto {
@@ -33,4 +34,5 @@ export interface CreateRequirementArticleDto {
   quantity: number;
   unitPrice: number;
   justification: string;
+  currency: string;
 }

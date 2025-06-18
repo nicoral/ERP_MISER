@@ -32,6 +32,7 @@ interface Products {
   unit: string;
   quantity: string;
   unitPrice: string;
+  currency: 'PEN' | 'USD';
   justification: string;
 }
 
@@ -94,6 +95,7 @@ export const RequirementForm = () => {
           unit: product.unitOfMeasure,
           quantity: '',
           unitPrice: '',
+          currency: 'PEN',
           justification: '',
         } as Products,
       ]);
@@ -123,6 +125,7 @@ export const RequirementForm = () => {
         quantity: +article.quantity,
         unitPrice: +article.unitPrice,
         justification: article.justification,
+        currency: article.currency,
       })),
     };
     try {
@@ -212,6 +215,7 @@ export const RequirementForm = () => {
                 <th className="px-2 py-2 text-center">Unidad</th>
                 <th className="px-2 py-2 text-center">Cantidad</th>
                 <th className="px-2 py-2 text-center">Costo Ref Unitario</th>
+                <th className="px-2 py-2 text-center">Moneda</th>
                 <th className="px-2 py-2 text-center">Total</th>
                 <th className="px-2 py-2 text-center">Justificación</th>
                 <th className="px-2 py-2 text-center">Quitar</th>
@@ -269,7 +273,25 @@ export const RequirementForm = () => {
                         required
                       />
                     </td>
-                    <td className="px-2 py-2 text-center">{total}</td>
+                    <td className="w-20 px-2 py-2 text-center">
+                      <FormSelect
+                        value={article.currency}
+                        onChange={e =>
+                          handleArticleInput(
+                            article.id,
+                            'currency',
+                            e.target.value
+                          )
+                        }
+                        className="px-0"
+                      >
+                        <option value="PEN">PEN</option>
+                        <option value="USD">USD</option>
+                      </FormSelect>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      {total && `${total} ${article.currency}`}
+                    </td>
                     <td className="px-2 py-2 text-center">
                       <FormInput
                         name={`justification-${article.id}`}
@@ -305,23 +327,54 @@ export const RequirementForm = () => {
               )}
               {/* Fila de total final */}
               {articlesSelected.length > 0 && (
-                <tr className="bg-gray-100 dark:bg-gray-800 font-bold">
-                  <td colSpan={6} className="text-right px-2 py-2">
-                    Total final:
-                  </td>
-                  <td className="text-center px-2 py-2">
-                    {articlesSelected
-                      .reduce((acc, art) => {
-                        const t =
-                          Number(art.quantity) > 0 && Number(art.unitPrice) > 0
-                            ? Number(art.quantity) * Number(art.unitPrice)
-                            : 0;
-                        return acc + t;
-                      }, 0)
-                      .toFixed(2)}
-                  </td>
-                  <td colSpan={2}></td>
-                </tr>
+                <>
+                  {/* Subtotal PEN */}
+                  {articlesSelected.some(art => art.currency === 'PEN') && (
+                    <tr className="bg-gray-100 dark:bg-gray-800">
+                      <td colSpan={7} className="text-right px-2 py-2">
+                        Subtotal PEN:
+                      </td>
+                      <td className="text-center px-2 py-2">
+                        {articlesSelected
+                          .filter(art => art.currency === 'PEN')
+                          .reduce((acc, art) => {
+                            const t =
+                              Number(art.quantity) > 0 &&
+                              Number(art.unitPrice) > 0
+                                ? Number(art.quantity) * Number(art.unitPrice)
+                                : 0;
+                            return acc + t;
+                          }, 0)
+                          .toFixed(2)}{' '}
+                        PEN
+                      </td>
+                      <td colSpan={1}></td>
+                    </tr>
+                  )}
+                  {/* Subtotal USD */}
+                  {articlesSelected.some(art => art.currency === 'USD') && (
+                    <tr className="bg-gray-100 dark:bg-gray-800">
+                      <td colSpan={7} className="text-right px-2 py-2">
+                        Subtotal USD:
+                      </td>
+                      <td className="text-center px-2 py-2">
+                        {articlesSelected
+                          .filter(art => art.currency === 'USD')
+                          .reduce((acc, art) => {
+                            const t =
+                              Number(art.quantity) > 0 &&
+                              Number(art.unitPrice) > 0
+                                ? Number(art.quantity) * Number(art.unitPrice)
+                                : 0;
+                            return acc + t;
+                          }, 0)
+                          .toFixed(2)}{' '}
+                        USD
+                      </td>
+                      <td colSpan={1}></td>
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>

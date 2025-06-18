@@ -5,8 +5,12 @@ import { Requirement } from '../entities/Requirement.entity';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { UpdateRequirementDto } from '../dto/requirement/update-requirement.dto';
-import { RequirementStatus } from '../common/enum';
+import { Currency, RequirementStatus } from '../common/enum';
 import { formatNumber } from '../utils/transformer';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as Handlebars from 'handlebars';
+import * as puppeteer from 'puppeteer';
 
 @Injectable()
 export class RequirementService {
@@ -14,11 +18,15 @@ export class RequirementService {
     @InjectRepository(Requirement)
     private readonly requirementRepository: Repository<Requirement>,
     @InjectRepository(RequirementArticle)
-    private readonly requirementArticleRepository: Repository<RequirementArticle>,
-  ) { }
+    private readonly requirementArticleRepository: Repository<RequirementArticle>
+  ) {}
 
-  async create(userId: number, createRequirementDto: CreateRequirementDto): Promise<Requirement> {
-    const { costCenterId, requirementArticles, ...requirementData } = createRequirementDto;
+  async create(
+    userId: number,
+    createRequirementDto: CreateRequirementDto
+  ): Promise<Requirement> {
+    const { costCenterId, requirementArticles, ...requirementData } =
+      createRequirementDto;
     const requirement = this.requirementRepository.create({
       ...requirementData,
       employee: { id: userId },
@@ -37,7 +45,8 @@ export class RequirementService {
       quantity: Number(article.quantity),
       unitPrice: Number(article.unitPrice),
       justification: article.justification,
-    }))
+      currency: article.currency,
+    }));
 
     await this.requirementArticleRepository.save(articles);
 
@@ -47,21 +56,32 @@ export class RequirementService {
   async findAll(
     userId: number,
     page: number,
-    limit: number,
-  ): Promise<{ requirements: Requirement[], total: number }> {
-    const [requirements, total] = await this.requirementRepository.findAndCount({
-      where: { employee: { id: userId } },
-      relations: ['employee', 'costCenter'],
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    limit: number
+  ): Promise<{ requirements: Requirement[]; total: number }> {
+    const [requirements, total] = await this.requirementRepository.findAndCount(
+      {
+        where: { employee: { id: userId } },
+        relations: ['employee', 'costCenter'],
+        order: {
+          id: 'DESC',
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      }
+    );
     return { requirements, total };
   }
 
   async findOne(id: number): Promise<Requirement> {
     const requirement = await this.requirementRepository.findOne({
       where: { id },
-      relations: ['requirementArticles', 'requirementArticles.article', 'employee', 'costCenter'],
+      relations: [
+        'requirementArticles',
+        'requirementArticles.article',
+        'employee',
+        'costCenter',
+        'requirementArticles.article.brand',
+      ],
     });
     if (!requirement) {
       throw new NotFoundException('Requirement not found');
@@ -69,8 +89,12 @@ export class RequirementService {
     return requirement;
   }
 
-  async update(id: number, updateRequirementDto: UpdateRequirementDto): Promise<Requirement> {
-    const { costCenterId, requirementArticles, ...requirementData } = updateRequirementDto;
+  async update(
+    id: number,
+    updateRequirementDto: UpdateRequirementDto
+  ): Promise<Requirement> {
+    const { costCenterId, requirementArticles, ...requirementData } =
+      updateRequirementDto;
 
     // Find existing requirement with its articles
     const requirement = await this.requirementRepository.findOne({
@@ -86,7 +110,9 @@ export class RequirementService {
     const updatedRequirement = await this.requirementRepository.save({
       ...requirement,
       ...requirementData,
-      costCenter: costCenterId ? { id: Number(costCenterId) } : requirement.costCenter,
+      costCenter: costCenterId
+        ? { id: Number(costCenterId) }
+        : requirement.costCenter,
     });
 
     if (requirementArticles && requirementArticles.length > 0) {
@@ -100,6 +126,7 @@ export class RequirementService {
         quantity: Number(article.quantity),
         unitPrice: Number(article.unitPrice),
         justification: article.justification,
+        currency: article.currency,
       }));
 
       await this.requirementArticleRepository.save(articles);
@@ -107,5 +134,70 @@ export class RequirementService {
 
     // Return updated requirement with all relations
     return this.findOne(id);
+  }
+
+  async generateRequirementPdf(id: number): Promise<Buffer> {
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/requirement.template.html'),
+      'utf8'
+    );
+    const requirement = await this.findOne(id);
+    const { requirementArticles } = requirement;
+    const subtotalPEN = requirementArticles
+      .filter(reqArticle => reqArticle.currency === Currency.PEN)
+      .reduce(
+        (acc, reqArticle) => acc + reqArticle.unitPrice * reqArticle.quantity,
+        0
+      );
+    const subtotalUSD = requirementArticles
+      .filter(reqArticle => reqArticle.currency === Currency.USD)
+      .reduce(
+        (acc, reqArticle) => acc + reqArticle.unitPrice * reqArticle.quantity,
+        0
+      );
+    const data = {
+      id: requirement.id,
+      code: requirement.code,
+      employee:
+        requirement.employee.firstName + ' ' + requirement.employee.lastName,
+      area: requirement.employee.area,
+      date: requirement.createdAt.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+      costCenter: requirement.costCenter.name,
+      priority: requirement.priority,
+      observation: requirement.observation,
+      articles: requirementArticles.map(reqArticle => ({
+        articleId: reqArticle.article.id.toString().padStart(5, '0'),
+        code: reqArticle.article.code,
+        name: reqArticle.article.name,
+        unitOfMeasure: reqArticle.article.unitOfMeasure,
+        quantity: reqArticle.quantity,
+        totalPrice: reqArticle.currency + ' ' + (reqArticle.unitPrice * reqArticle.quantity).toFixed(2),
+        brand: reqArticle.article.brand.name,
+        justification: reqArticle.justification,
+      })),
+      subtotalPEN: +(subtotalPEN.toFixed(2)),
+      subtotalUSD: +(subtotalUSD.toFixed(2)),
+    };
+    const template = Handlebars.compile(templateHtml);
+    const html = template({ ...data });
+
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
+    });
+
+    await browser.close();
+
+    return Buffer.from(pdfBuffer);
   }
 }

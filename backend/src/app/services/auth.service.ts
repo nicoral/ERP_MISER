@@ -8,13 +8,13 @@ import { Employee } from '../entities/Employee.entity';
 export class AuthService {
   constructor(
     private readonly employeeService: EmployeeService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async getEmployeeWithPermissions(id: number) {
     const employee = await this.employeeService.findOne(id);
     const role = await this.employeeService.getRoleWithPermissions(
-      employee.role.id,
+      employee.role.id
     );
     return { employee, role };
   }
@@ -52,7 +52,7 @@ export class AuthService {
         lastName: employee.lastName,
         imageUrl: employee.imageUrl,
         role: await this.employeeService.getRoleWithPermissions(
-          employee.role.id,
+          employee.role.id
         ),
       },
     };

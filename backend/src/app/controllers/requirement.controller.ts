@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { RequirementService } from '../services/requirement.service';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
 import { Requirement } from '../entities/Requirement.entity';
@@ -7,17 +17,19 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { UpdateRequirementDto } from '../dto/requirement/update-requirement.dto';
+import { Response } from 'express';
+import { Res } from '@nestjs/common';
 
 @Controller('requirements')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RequirementController {
-  constructor(private readonly requirementService: RequirementService) { }
+  constructor(private readonly requirementService: RequirementService) {}
 
   @Post()
   @RequirePermissions('create_requirement')
   @AuditDescription('Creación de requerimiento')
   async create(
-    @Req() req, 
+    @Req() req,
     @Body() createRequirementDto: CreateRequirementDto
   ): Promise<Requirement> {
     return this.requirementService.create(req.user.id, createRequirementDto);
@@ -26,7 +38,11 @@ export class RequirementController {
   @Get()
   @RequirePermissions('view_requirements')
   @AuditDescription('Consulta de requerimientos')
-  async findAll(@Req() req, @Query('page') page: number, @Query('limit') limit: number): Promise<{ requirements: Requirement[], total: number }> {
+  async findAll(
+    @Req() req,
+    @Query('page') page: number,
+    @Query('limit') limit: number
+  ): Promise<{ requirements: Requirement[]; total: number }> {
     return this.requirementService.findAll(req.user.id, page, limit);
   }
 
@@ -40,7 +56,22 @@ export class RequirementController {
   @Put(':id')
   @RequirePermissions('update_requirement')
   @AuditDescription('Actualización de requerimiento')
-  async update(@Param('id') id: number, @Body() updateRequirementDto: UpdateRequirementDto): Promise<Requirement> {
+  async update(
+    @Param('id') id: number,
+    @Body() updateRequirementDto: UpdateRequirementDto
+  ): Promise<Requirement> {
     return this.requirementService.update(id, updateRequirementDto);
+  }
+
+  @Get('generate/pdf/:id')
+  @AuditDescription('Generación de PDF de requerimiento')
+  async generateRequirementPdf(@Res() res: Response, @Param('id') id: number) {
+    const pdfBuffer = await this.requirementService.generateRequirementPdf(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="requerimiento.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
   }
 }

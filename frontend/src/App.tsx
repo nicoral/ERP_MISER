@@ -27,6 +27,7 @@ import { CostCenterList } from './features/costCenter/components/costCenterList'
 import { CostCenterForm } from './features/costCenter/components/costCenterForm';
 import { RequirementForm } from './features/requirement/components/RequirementForm';
 import { RequirementList } from './features/requirement/components/RequirementList';
+import { RequirementDetails } from './features/requirement/components/RequirementDetails';
 
 function App() {
   return (
@@ -100,6 +101,10 @@ function App() {
                 <Route
                   path={ROUTES.REQUIREMENTS}
                   element={<RequirementList />}
+                />
+                <Route
+                  path={ROUTES.REQUIREMENTS_DETAILS}
+                  element={<RequirementDetails />}
                 />
                 <Route
                   path={ROUTES.REQUIREMENTS_CREATE}

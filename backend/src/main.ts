@@ -18,7 +18,7 @@ async function bootstrap() {
         enableImplicitConversion: true,
         exposeUnsetFields: true,
       },
-    }),
+    })
   );
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
@@ -26,8 +26,14 @@ async function bootstrap() {
   // Middleware para CORS
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', 'https://erp-miser.vercel.app');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+    res.header(
+      'Access-Control-Allow-Methods',
+      'GET,PUT,POST,DELETE,PATCH,OPTIONS'
+    );
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Accept, Authorization'
+    );
     res.header('Access-Control-Allow-Credentials', 'true');
     next();
   });
@@ -45,7 +51,7 @@ async function bootstrap() {
 
   await app.listen(configService.get('PORT') ?? 3000);
   console.log(
-    `Server is running on Port: ${configService.get('PORT') ?? 3000}`,
+    `Server is running on Port: ${configService.get('PORT') ?? 3000}`
   );
 }
 bootstrap();

@@ -24,9 +24,7 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 @Controller('articles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ArticleController {
-  constructor(
-    private readonly articleService: ArticleService,
-  ) {}
+  constructor(private readonly articleService: ArticleService) {}
 
   @Post()
   @RequirePermissions('create_articles')
@@ -41,9 +39,13 @@ export class ArticleController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ) {
-    const { data, total } = await this.articleService.findAll(page, limit, search);
+    const { data, total } = await this.articleService.findAll(
+      page,
+      limit,
+      search
+    );
     return { data, total, page, limit };
   }
 
@@ -94,8 +96,10 @@ export class ArticleController {
   @Post('brands')
   @UseInterceptors(FileInterceptor('file'))
   @AuditDescription('Creación de nueva marca')
-  createBrand(@Body() createBrandDto: CreateBrandDto, @UploadedFile() file: Express.Multer.File) {
+  createBrand(
+    @Body() createBrandDto: CreateBrandDto,
+    @UploadedFile() file: Express.Multer.File
+  ) {
     return this.articleService.createBrand(createBrandDto, file);
   }
-  
 }

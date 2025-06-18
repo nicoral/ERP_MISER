@@ -7,9 +7,12 @@ import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { EmployeeModule } from './employee.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Requirement, RequirementArticle]), EmployeeModule],
+  imports: [
+    TypeOrmModule.forFeature([Requirement, RequirementArticle]),
+    EmployeeModule,
+  ],
   controllers: [RequirementController],
   providers: [RequirementService],
   exports: [RequirementService],
 })
-export class RequirementModule { }
+export class RequirementModule {}

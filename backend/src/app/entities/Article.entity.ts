@@ -55,17 +55,17 @@ export class Article {
 
   @OneToMany(
     () => WarehouseArticle,
-    (warehouseArticle) => warehouseArticle.article,
+    warehouseArticle => warehouseArticle.article
   )
   warehouseArticles: WarehouseArticle[];
 
   @OneToMany(
     () => RequirementArticle,
-    (requirementArticle) => requirementArticle.article,
+    requirementArticle => requirementArticle.article
   )
   requirementArticles: RequirementArticle[];
 
-  @ManyToOne(() => Brand, (brand) => brand.article)
+  @ManyToOne(() => Brand, brand => brand.article)
   brand: Brand;
 
   @CreateDateColumn({

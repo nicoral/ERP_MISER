@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  UpdateDateColumn,
+  CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { RequirementPriority, RequirementStatus } from '../common/enum';
 import { Employee } from './Employee.entity';
 import { CostCenter } from './CostCenter.entity';
@@ -21,15 +29,15 @@ export class Requirement {
   @Column()
   status: RequirementStatus;
 
-  @ManyToOne(() => Employee, (employee) => employee.requirements)
+  @ManyToOne(() => Employee, employee => employee.requirements)
   employee: Employee;
 
-  @ManyToOne(() => CostCenter, (costCenter) => costCenter.requirements)
+  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements)
   costCenter: CostCenter;
 
   @OneToMany(
     () => RequirementArticle,
-    (requirementArticle) => requirementArticle.requirement,
+    requirementArticle => requirementArticle.requirement
   )
   requirementArticles: RequirementArticle[];
 

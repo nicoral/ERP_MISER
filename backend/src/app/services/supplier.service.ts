@@ -9,7 +9,7 @@ import { UpdateSupplierDto } from '../dto/supplier/update-supplier.dto';
 export class SupplierService {
   constructor(
     @InjectRepository(Supplier)
-    private readonly supplierRepository: Repository<Supplier>,
+    private readonly supplierRepository: Repository<Supplier>
   ) {}
 
   async create(createSupplierDto: CreateSupplierDto): Promise<Supplier> {
@@ -20,7 +20,7 @@ export class SupplierService {
   async findAll(
     page: number,
     limit: number,
-    search?: string,
+    search?: string
   ): Promise<{ data: Supplier[]; total: number }> {
     const query = this.supplierRepository.createQueryBuilder('supplier');
     if (search) {
@@ -29,7 +29,7 @@ export class SupplierService {
       });
     }
     const [data, total] = await query
-      .orderBy('supplier.createdAt', 'DESC')
+      .orderBy('supplier.id', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -46,7 +46,7 @@ export class SupplierService {
 
   async update(
     id: number,
-    updateSupplierDto: UpdateSupplierDto,
+    updateSupplierDto: UpdateSupplierDto
   ): Promise<Supplier> {
     const supplier = await this.supplierRepository.findOne({ where: { id } });
     if (!supplier) {

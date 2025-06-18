@@ -29,7 +29,7 @@ export function getCurrentDateTimeMinus5(): string {
   const now = new Date();
 
   // Ajusta a UTC-5
-  const utcMinus5 = new Date(now.getTime() - (5 * 60 * 60 * 1000));
+  const utcMinus5 = new Date(now.getTime() - 5 * 60 * 60 * 1000);
 
   // Formatea a 'YYYY-MM-DD HH:mm:ss'
   const year = utcMinus5.getFullYear();

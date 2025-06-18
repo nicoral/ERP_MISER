@@ -28,7 +28,7 @@ export class ValidationPipe implements PipeTransform {
           warning: responseErrors,
           error: [],
         },
-        'Error de validación',
+        'Error de validación'
       );
     }
 
@@ -36,7 +36,7 @@ export class ValidationPipe implements PipeTransform {
   }
 
   private transformError(errors: ValidationError[]) {
-    return errors.map((error) => ({
+    return errors.map(error => ({
       field: error.property,
       code: null,
       value: this.transformItemError(error.constraints),

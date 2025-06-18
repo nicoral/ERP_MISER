@@ -28,18 +28,18 @@ const dataSource = new DataSource({
     Supplier,
     WarehouseArticle,
     AuditLog,
-    Brand
+    Brand,
   ],
   synchronize: false,
   connectTimeoutMS: 5000,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
   },
   extra: {
     max: 2,
     connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 5000
-  }
+    idleTimeoutMillis: 5000,
+  },
 });
 
 async function testConnection() {

@@ -18,8 +18,8 @@ export class ArticleService {
     private readonly warehouseArticleRepository: Repository<WarehouseArticle>,
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
-    private readonly cloudinaryService: CloudinaryService,
-  ) { }
+    private readonly cloudinaryService: CloudinaryService
+  ) {}
 
   async create(createArticleDto: CreateArticleDto): Promise<Article> {
     const { brandId, ...rest } = createArticleDto;
@@ -37,12 +37,12 @@ export class ArticleService {
 
     const savedArticle = await this.articleRepository.save(article);
     const warehousesArticles = createArticleDto.warehouseArticles.map(
-      (warehouseArticle) =>
+      warehouseArticle =>
         this.warehouseArticleRepository.create({
           warehouse: { id: warehouseArticle.warehouseId },
           stock: warehouseArticle.stock,
           article: { id: savedArticle.id },
-        }),
+        })
     );
     await this.warehouseArticleRepository.insert(warehousesArticles);
     return this.findOne(savedArticle.id);
@@ -51,7 +51,7 @@ export class ArticleService {
   async findAll(
     page: number,
     limit: number,
-    search?: string,
+    search?: string
   ): Promise<{ data: Article[]; total: number }> {
     const query = this.articleRepository.createQueryBuilder('article');
     if (search) {
@@ -59,16 +59,14 @@ export class ArticleService {
     }
     const [data, total] = await query
       .leftJoinAndSelect('article.brand', 'brand')
-      .orderBy('article.createdAt', 'DESC')
+      .orderBy('article.id', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
     return { data, total };
   }
 
-  async listSimple(
-    search?: string,
-  ): Promise<Article[]> {
+  async listSimple(search?: string): Promise<Article[]> {
     const query = this.articleRepository.find({
       select: {
         id: true,
@@ -117,7 +115,7 @@ export class ArticleService {
 
   async update(
     id: number,
-    updateArticleDto: UpdateArticleDto,
+    updateArticleDto: UpdateArticleDto
   ): Promise<Article> {
     const article = await this.articleRepository.findOne({
       where: { id },
@@ -143,13 +141,12 @@ export class ArticleService {
       await this.warehouseArticleRepository.delete({ article: { id } });
     }
     if (warehouseArticlesUpdate && warehouseArticlesUpdate.length > 0) {
-      const warehouseArticles = warehouseArticlesUpdate.map(
-        (warehouseArticle) =>
-          this.warehouseArticleRepository.create({
-            warehouse: { id: warehouseArticle.warehouseId },
-            stock: warehouseArticle.stock,
-            article: { id: article.id },
-          }),
+      const warehouseArticles = warehouseArticlesUpdate.map(warehouseArticle =>
+        this.warehouseArticleRepository.create({
+          warehouse: { id: warehouseArticle.warehouseId },
+          stock: warehouseArticle.stock,
+          article: { id: article.id },
+        })
       );
       await this.warehouseArticleRepository.save(warehouseArticles);
     }
@@ -164,7 +161,10 @@ export class ArticleService {
       throw new NotFoundException('Article not found');
     }
 
-    const uploadResult = await this.cloudinaryService.uploadFile(file, 'articles');
+    const uploadResult = await this.cloudinaryService.uploadFile(
+      file,
+      'articles'
+    );
     article.imageUrl = uploadResult.secure_url;
     return this.articleRepository.save(article);
   }
@@ -177,10 +177,16 @@ export class ArticleService {
     return this.brandRepository.find();
   }
 
-  async createBrand(createBrandDto: CreateBrandDto, file: Express.Multer.File): Promise<Brand> {
+  async createBrand(
+    createBrandDto: CreateBrandDto,
+    file: Express.Multer.File
+  ): Promise<Brand> {
     const brand = this.brandRepository.create(createBrandDto);
     if (file) {
-      const uploadResult = await this.cloudinaryService.uploadFile(file, 'brands');
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        'brands'
+      );
       brand.imageUrl = uploadResult.secure_url;
     }
     return this.brandRepository.save(brand);

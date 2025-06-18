@@ -21,11 +21,15 @@ export class CreateWarehouseDto {
   employeeId: number;
 
   @IsNotEmpty()
-  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
+  @Transform(({ value }) =>
+    value ? new Date(value).toISOString().slice(0, 10) : value
+  )
   hireDate: Date;
 
   @IsOptional()
-  @Transform(({ value }) => value ? new Date(value).toISOString().slice(0, 10) : value)
+  @Transform(({ value }) =>
+    value ? new Date(value).toISOString().slice(0, 10) : value
+  )
   dismissalDate?: Date;
 
   @IsNotEmpty()

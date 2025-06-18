@@ -8,7 +8,7 @@ import { CreatePermissionDto } from '../dto/permissions/create-permission.dto';
 export class PermissionService {
   constructor(
     @InjectRepository(Permission)
-    private readonly permissionRepository: Repository<Permission>,
+    private readonly permissionRepository: Repository<Permission>
   ) {}
 
   async create(createPermissionDto: CreatePermissionDto): Promise<Permission> {

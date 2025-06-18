@@ -11,7 +11,7 @@ export class RoleService {
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
-    private readonly permissionService: PermissionService,
+    private readonly permissionService: PermissionService
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
@@ -46,14 +46,14 @@ export class RoleService {
 
   async updatePermissions(
     id: number,
-    updatePermissionsDto: UpdatePermissionsDto,
+    updatePermissionsDto: UpdatePermissionsDto
   ): Promise<Role> {
     const role = await this.roleRepository.findOne({ where: { id } });
     if (!role) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
     const permissions = await this.permissionService.findByIds(
-      updatePermissionsDto.permissions,
+      updatePermissionsDto.permissions
     );
     role.permissions = permissions;
     return this.roleRepository.save(role);

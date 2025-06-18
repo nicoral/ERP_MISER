@@ -14,7 +14,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   handleRequest<TUser = Employee>(
     err: Error | null,
-    user: TUser | null,
+    user: TUser | null
   ): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException('No estás autorizado');
