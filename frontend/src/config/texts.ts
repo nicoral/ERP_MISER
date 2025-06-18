@@ -127,7 +127,7 @@ export const HEADER_TEXTS = {
 };
 
 export const LOGIN_TEXTS = {
-  title: 'Bienvenido a Emixio',
+  title: 'Bienvenido',
   subtitle: 'Ingresa tus credenciales para continuar',
   emailPlaceholder: 'Correo electrónico',
   passwordPlaceholder: 'Contraseña',

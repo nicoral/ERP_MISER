@@ -4,6 +4,7 @@ import { ROUTES } from '../config/constants';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { COMMON_TEXTS, LOGIN_TEXTS } from '../config/texts';
 import { useAuth } from '../contexts/AuthContext';
+import logo from '../assets/logo-transparent.png';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ export const Login = () => {
 
   useEffect(() => {
     if (user) {
-      navigate(ROUTES.DASHBOARD, { replace: true });
+      navigate(ROUTES.WELCOME, { replace: true });
     }
   }, [user, navigate]);
 
@@ -25,7 +26,7 @@ export const Login = () => {
     setError(null);
     try {
       await login(email, password);
-      navigate('/');
+      navigate(ROUTES.WELCOME);
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes('inválidas')) {
         setError(LOGIN_TEXTS.errors.invalidCredentials);
@@ -42,9 +43,12 @@ export const Login = () => {
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+        <div className="flex justify-center">
+          <img src={logo} alt="Emixio" className="w-48" />
+        </div>
+        <div className="mt-0">
+          <h2 className="mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             {LOGIN_TEXTS.title}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">

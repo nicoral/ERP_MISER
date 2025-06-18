@@ -28,6 +28,7 @@ import { CostCenterForm } from './features/costCenter/components/costCenterForm'
 import { RequirementForm } from './features/requirement/components/RequirementForm';
 import { RequirementList } from './features/requirement/components/RequirementList';
 import { RequirementDetails } from './features/requirement/components/RequirementDetails';
+import { WelcomePage } from './pages/WelcomePage';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route path={ROUTES.LOGIN} element={<Login />} />
             <Route element={<PrivateRoute />}>
               <Route element={<MainLayout />}>
+                <Route path={ROUTES.WELCOME} element={<WelcomePage />} />
                 <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
                 <Route
                   path={ROUTES.ADMINISTRATION}

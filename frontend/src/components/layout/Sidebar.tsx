@@ -84,9 +84,10 @@ const menuItems: MenuItem[] = [
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onCollapse: (collapsed: boolean) => void;
 }
 
-export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [menuItemsAllowed, setMenuItemsAllowed] = useState<MenuItem[]>([]);
@@ -110,6 +111,12 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     );
   };
 
+  const handleCollapse = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    onCollapse(newCollapsedState);
+  };
+
   return (
     <>
       {/* Overlay para móvil */}
@@ -125,7 +132,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           ${isCollapsed ? 'w-16' : 'w-64'}`}
       >
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={handleCollapse}
           className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 z-10 hidden lg:block"
         >
           <ChevronLeftIcon
@@ -232,9 +239,9 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </nav>
       </aside>
       <div
-        className={`transition-all duration-300 ${
-          isOpen ? 'lg:pl-64' : 'lg:pl-16'
-        } ${isCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}
+        className={`fixed top-16 left-0 right-0 bottom-0 transition-all duration-300 lg:pl-0
+          ${isOpen ? 'lg:pl-64' : 'lg:pl-0'}
+          ${isCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}
       />
     </>
   );

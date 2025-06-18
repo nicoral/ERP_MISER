@@ -5,6 +5,7 @@ import { ROUTES } from '../../config/constants';
 import { HEADER_TEXTS } from '../../config/texts';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCurrentUser } from '../../services/auth/authService';
+import logo from '../../assets/logo-transparent-without-text.png';
 
 // Componente separado para el menú de usuario
 const UserMenu = ({
@@ -160,8 +161,9 @@ export const Header = ({ onToggleSidebar, isSidebarOpen }: HeaderProps) => {
               />
             </svg>
           </button>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {HEADER_TEXTS.systemName}
+          <h1 className="text-xl font-bungee text-gray-900 dark:text-white flex items-center space-x-2">
+            <img src={logo} alt="Emixio" className="w-14" />
+            <span className="text-2xl pt-2">{HEADER_TEXTS.systemName}</span>
           </h1>
         </div>
         <div className="flex items-center space-x-4">

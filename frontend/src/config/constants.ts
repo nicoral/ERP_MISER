@@ -12,6 +12,7 @@ export const APP_CONFIG = {
 
 export const ROUTES = {
   HOME: '/',
+  WELCOME: '/welcome',
   LOGIN: '/login',
   DASHBOARD: '/dashboard',
   ADMINISTRATION: '/administration',

@@ -16,7 +16,11 @@ export const MainLayout = () => {
         isSidebarOpen={isSidebarOpen}
       />
       <div className="flex">
-        <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={handleCloseSidebar}
+          onCollapse={handleToggleSidebar}
+        />
         <main className="flex-1 p-4">
           <Outlet />
         </main>

@@ -9,6 +9,9 @@ import { Permission } from '../../app/entities/Permission.entity';
 import { Article } from '../../app/entities/Article.entity';
 import { WarehouseArticle } from '../../app/entities/WarehouseArticle.entity';
 import { Brand } from '../../app/entities/Brand.entity';
+import { RequirementArticle } from '../../app/entities/RequirementArticle.entity';
+import { Requirement } from '../../app/entities/Requirement.entity';
+import { CostCenter } from '../../app/entities/CostCenter.entity';
 
 config();
 
@@ -29,6 +32,9 @@ const dataSource = new DataSource({
     WarehouseArticle,
     AuditLog,
     Brand,
+    CostCenter,
+    Requirement,
+    RequirementArticle,
   ],
   synchronize: false,
   connectTimeoutMS: 5000,
