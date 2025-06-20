@@ -14,6 +14,9 @@ import {
   ProcessIcon,
   DocumentIcon,
   CostCenterIcon,
+  LogisticsIcon,
+  RolesIcon,
+  AuditIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
 
@@ -26,9 +29,22 @@ const menuItems: MenuItem[] = [
   },
   {
     label: SIDEBAR_TEXTS.administration,
-    path: ROUTES.ADMINISTRATION,
     permission: 'view_administration',
     icon: <SettingsIcon className="w-5 h-5" />,
+    subItems: [
+      {
+        label: SIDEBAR_TEXTS.roles,
+        path: ROUTES.ROLES,
+        permission: 'view_roles',
+        icon: <RolesIcon className="w-5 h-5" />,
+      },
+      {
+        label: SIDEBAR_TEXTS.auditLogs,
+        path: ROUTES.AUDIT_LOGS,
+        permission: 'view_audit_logs',
+        icon: <AuditIcon className="w-5 h-5" />,
+      },
+    ],
   },
   {
     label: SIDEBAR_TEXTS.employees,
@@ -43,26 +59,30 @@ const menuItems: MenuItem[] = [
     icon: <CostCenterIcon className="w-5 h-5" />,
   },
   {
-    label: SIDEBAR_TEXTS.warehouse,
-    path: ROUTES.WAREHOUSE,
-    permission: 'view_warehouses',
-    icon: <WarehouseIcon className="w-5 h-5" />,
+    label: SIDEBAR_TEXTS.logistics,
+    icon: <LogisticsIcon className="w-5 h-5" />,
     subItems: [
       {
+        label: SIDEBAR_TEXTS.warehouse,
+        path: ROUTES.WAREHOUSE,
+        permission: 'view_warehouses',
+        icon: <WarehouseIcon className="w-5 h-5" />,
+      },
+      {
         label: SIDEBAR_TEXTS.warehouseArticles,
-        path: ROUTES.WAREHOUSE_ARTICLES,
+        path: ROUTES.ARTICLES,
         permission: 'view_articles',
         icon: <WarehouseIcon className="w-4 h-4" />,
       },
       /* {
         label: SIDEBAR_TEXTS.warehouseServices,
-        path: ROUTES.WAREHOUSE_SERVICES,
+        path: ROUTES.SERVICES,
         permission: 'view_services',
         icon: <ServicesIcon className="w-4 h-4" />,
       }, */
       {
         label: SIDEBAR_TEXTS.warehouseSuppliers,
-        path: ROUTES.WAREHOUSE_SUPPLIERS,
+        path: ROUTES.SUPPLIERS,
         permission: 'view_suppliers',
         icon: <SuppliersIcon className="w-4 h-4" />,
       },

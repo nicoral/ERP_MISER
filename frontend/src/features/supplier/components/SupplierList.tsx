@@ -163,7 +163,7 @@ export const SupplierList = () => {
       label: WAREHOUSE_TEXTS.suppliers.table.actions.edit,
       onClick: (supplier: Supplier) => {
         navigate(
-          ROUTES.WAREHOUSE_SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
+          ROUTES.SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
         );
       },
     },
@@ -181,7 +181,7 @@ export const SupplierList = () => {
           {WAREHOUSE_TEXTS.suppliers.title}
         </h2>
         <button
-          onClick={() => navigate(ROUTES.WAREHOUSE_SUPPLIERS_CREATE)}
+          onClick={() => navigate(ROUTES.SUPPLIERS_CREATE)}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
         >
           {WAREHOUSE_TEXTS.suppliers.buttons.create}

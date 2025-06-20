@@ -1,6 +1,6 @@
 import { IsArray, IsNotEmpty, IsOptional } from 'class-validator';
 
-export class CreateRoleDto {
+export class UpdateRoleDto {
   @IsNotEmpty()
   name: string;
 

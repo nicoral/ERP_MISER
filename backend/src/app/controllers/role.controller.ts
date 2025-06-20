@@ -12,8 +12,8 @@ import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleService } from '../services/role.service';
 import { CreateRoleDto } from '../dto/role/create-role.dto';
-import { UpdatePermissionsDto } from '../dto/permissions/update-permissions.dto';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
+import { UpdateRoleDto } from '../dto/role/update-role.dto';
 
 @Controller('roles')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -40,13 +40,10 @@ export class RoleController {
     return this.roleService.findById(id);
   }
 
-  @Put(':id/permissions')
+  @Put(':id')
   @Roles(1)
-  @AuditDescription('Actualización de permisos de rol')
-  async updatePermissions(
-    @Param('id') id: number,
-    @Body() updatePermissionsDto: UpdatePermissionsDto
-  ) {
-    return this.roleService.updatePermissions(id, updatePermissionsDto);
+  @AuditDescription('Actualización de rol')
+  async update(@Param('id') id: number, @Body() updateRoleDto: UpdateRoleDto) {
+    return this.roleService.update(id, updateRoleDto);
   }
 }

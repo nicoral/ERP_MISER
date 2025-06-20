@@ -12,6 +12,14 @@ export interface Role {
   permissions: Permission[];
 }
 
+export interface CreateRole {
+  name: string;
+  description: string;
+  permissions: number[];
+}
+
+export type UpdateRole = Partial<CreateRole>;
+
 export interface User {
   id: number;
   firstName: string;

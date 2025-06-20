@@ -41,9 +41,9 @@ export const ArticleList = () => {
     setPage(newPage);
   };
 
-  const handleCreate = () => navigate(ROUTES.WAREHOUSE_ARTICLE_CREATE);
+  const handleCreate = () => navigate(ROUTES.ARTICLE_CREATE);
   const handleEdit = (id: number) =>
-    navigate(ROUTES.WAREHOUSE_ARTICLE_EDIT.replace(':id', id.toString()));
+    navigate(ROUTES.ARTICLE_EDIT.replace(':id', id.toString()));
 
   const columns: TableColumn<Article>[] = [
     { header: WAREHOUSE_TEXTS.articles.table.columns.id, accessor: 'id' },

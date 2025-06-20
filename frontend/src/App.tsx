@@ -29,6 +29,8 @@ import { RequirementForm } from './features/requirement/components/RequirementFo
 import { RequirementList } from './features/requirement/components/RequirementList';
 import { RequirementDetails } from './features/requirement/components/RequirementDetails';
 import { WelcomePage } from './pages/WelcomePage';
+import { UserRolesForm } from './features/administration/components/UserRolesForm';
+import { AuditLogForm } from './features/administration/components/AuditLogForm';
 
 function App() {
   return (
@@ -45,8 +47,10 @@ function App() {
                   path={ROUTES.ADMINISTRATION}
                   element={<Administration />}
                 />
-                <Route path={ROUTES.ROLES} element={<RoleForm />} />
-                <Route path={ROUTES.ROLES_EDIT} element={<RoleForm />} />
+                <Route path={ROUTES.ROLES} element={<UserRolesForm />} />
+                <Route path={ROUTES.ROLE_CREATE} element={<RoleForm />} />
+                <Route path={ROUTES.ROLE_EDIT} element={<RoleForm />} />
+                <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogForm />} />
                 <Route path={ROUTES.EMPLOYEES} element={<Employees />} />
                 <Route
                   path={ROUTES.EMPLOYEE_CREATE}
@@ -62,32 +66,17 @@ function App() {
                   path={ROUTES.WAREHOUSE_EDIT}
                   element={<WarehouseForm />}
                 />
+                <Route path={ROUTES.ARTICLES} element={<ArticleList />} />
+                <Route path={ROUTES.ARTICLE_CREATE} element={<ArticleForm />} />
+                <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
+                <Route path={ROUTES.SERVICES} element={<ServiceList />} />
+                <Route path={ROUTES.SUPPLIERS} element={<SupplierList />} />
                 <Route
-                  path={ROUTES.WAREHOUSE_ARTICLES}
-                  element={<ArticleList />}
-                />
-                <Route
-                  path={ROUTES.WAREHOUSE_ARTICLE_CREATE}
-                  element={<ArticleForm />}
-                />
-                <Route
-                  path={ROUTES.WAREHOUSE_ARTICLE_EDIT}
-                  element={<ArticleForm />}
-                />
-                <Route
-                  path={ROUTES.WAREHOUSE_SERVICES}
-                  element={<ServiceList />}
-                />
-                <Route
-                  path={ROUTES.WAREHOUSE_SUPPLIERS}
-                  element={<SupplierList />}
-                />
-                <Route
-                  path={ROUTES.WAREHOUSE_SUPPLIERS_CREATE}
+                  path={ROUTES.SUPPLIERS_CREATE}
                   element={<SupplierForm />}
                 />
                 <Route
-                  path={ROUTES.WAREHOUSE_SUPPLIERS_EDIT}
+                  path={ROUTES.SUPPLIERS_EDIT}
                   element={<SupplierForm />}
                 />
                 <Route path={ROUTES.PROFILE} element={<Profile />} />

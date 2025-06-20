@@ -103,13 +103,16 @@ export const SIDEBAR_TEXTS = {
   employees: 'Empleados',
   process: 'Procesos',
   processRequirement: 'Requerimiento',
-  warehouse: 'Almacén',
+  warehouse: 'Almacenes',
   warehouseArticles: 'Artículos',
   warehouseServices: 'Servicios',
   warehouseSuppliers: 'Proveedores',
   collapse: 'Colapsar menú',
   expand: 'Expandir menú',
   costCenter: 'Centro de costos',
+  logistics: 'Logística',
+  roles: 'Roles',
+  auditLogs: 'Auditorías',
 };
 
 export const HEADER_TEXTS = {
@@ -204,6 +207,7 @@ export const ADMINISTRATION_TEXTS = {
     error: 'Error al guardar el rol',
   },
   audit: {
+    title: 'Auditorías',
     user: 'Usuario',
     date: 'Fecha',
     action: 'Tipo de acción',

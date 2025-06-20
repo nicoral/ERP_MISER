@@ -2,8 +2,6 @@ import { EditIcon, EyeIcon } from '../../../components/common/Icons';
 import { ADMINISTRATION_TEXTS } from '../../../config/texts';
 import type { Role } from '../../../types/user';
 import { useRoles } from '../../employees/hooks/userRoles';
-import type { TableAction, TableColumn } from '../../../types/table';
-import { Table } from '../../../components/common/Table';
 import { useEffect, useState } from 'react';
 import { Modal } from '../../../components/common/Modal';
 import RoleDetails from './RoleDetails';
@@ -42,57 +40,73 @@ export const UserRolesForm = () => {
     );
   }
 
-  const columns: TableColumn<Role>[] = [
-    { header: ADMINISTRATION_TEXTS.rolesForm.name, accessor: 'name' },
-    {
-      header: ADMINISTRATION_TEXTS.rolesForm.description,
-      accessor: 'description',
-    },
-  ];
-
-  const handleEdit = (role: Role) => {
-    navigate(`${ROUTES.ROLES}/${role.id}`);
-  };
-
   const handleView = (role: Role) => {
     setSelectedRole(role);
     setSelectedRoleId(role.id);
   };
 
-  const actions: TableAction<Role>[] = [
-    {
-      icon: <EyeIcon className="w-5 h-5 text-green-600" />,
-      label: ADMINISTRATION_TEXTS.rolesForm.view,
-      onClick: (role: Role) => handleView(role),
-    },
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: ADMINISTRATION_TEXTS.rolesForm.edit,
-      onClick: (role: Role) => handleEdit(role),
-    },
-  ];
+  const handleEdit = (e: React.MouseEvent, role: Role) => {
+    e.stopPropagation();
+    navigate(`${ROUTES.ROLE_EDIT.replace(':id', role.id.toString())}`);
+  };
 
   return (
     <div className="mt-6">
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-6 flex justify-between items-center">
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
           {ADMINISTRATION_TEXTS.panels.roles.title}
         </h3>
         <button
-          onClick={() => navigate(`${ROUTES.ROLES}`)}
+          onClick={() => navigate(`${ROUTES.ROLE_CREATE}`)}
           className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
           {ADMINISTRATION_TEXTS.rolesForm.add}
         </button>
       </div>
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <Table<Role>
-          columns={columns}
-          data={roles}
-          keyField="id"
-          actions={actions}
-        />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {roles.map(role => (
+          <div
+            key={role.id}
+            onClick={() => handleView(role)}
+            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer border border-gray-200 dark:border-gray-700"
+          >
+            {/* Edit button in top right corner */}
+            <button
+              onClick={e => handleEdit(e, role)}
+              className="bg-transparent absolute top-3 right-3 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 z-10"
+              title={ADMINISTRATION_TEXTS.rolesForm.edit}
+            >
+              <EditIcon className="w-4 h-4" />
+            </button>
+
+            {/* Card content */}
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                  {role.name[0].toUpperCase() + role.name.slice(1)}
+                </h4>
+              </div>
+
+              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3 mb-4">
+                {role.description || 'Sin descripción'}
+              </p>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  ID: {role.id}
+                </span>
+                <div className="flex items-center text-blue-600 dark:text-blue-400 text-sm">
+                  <EyeIcon className="w-4 h-4 mr-1" />
+                  Ver detalles
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Modal for role details */}
       <Modal
         title={
           selectedRole

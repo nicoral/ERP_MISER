@@ -50,11 +50,6 @@ export const AuditLogForm = () => {
     }));
   };
 
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export functionality to be implemented');
-  };
-
   const handlePageChange = async (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
 
@@ -139,7 +134,12 @@ export const AuditLogForm = () => {
 
   return (
     <div className="mt-6">
-      <form className="flex flex-wrap gap-4 mb-4">
+      <div className="mb-4 flex justify-between items-center">
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {ADMINISTRATION_TEXTS.audit.title}
+        </h3>
+      </div>
+      <form className="flex flex-wrap gap-4 mb-4 ">
         <FormSelect
           label={ADMINISTRATION_TEXTS.audit.user}
           onChange={e => handleFilterChange('userId', e.target.value)}
@@ -168,13 +168,13 @@ export const AuditLogForm = () => {
         >
           {isLoading ? 'Cargando...' : ADMINISTRATION_TEXTS.audit.filter}
         </button>
-        <button
+        {/* <button
           type="button"
           onClick={handleExport}
           className="self-end px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
         >
           {ADMINISTRATION_TEXTS.audit.export}
-        </button>
+        </button> */}
       </form>
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<AuditLog>

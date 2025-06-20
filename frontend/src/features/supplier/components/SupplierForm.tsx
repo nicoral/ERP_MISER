@@ -70,7 +70,7 @@ export const SupplierForm = () => {
           lines: formData.lines.join('-'),
         } as Supplier);
       }
-      navigate(ROUTES.WAREHOUSE_SUPPLIERS);
+      navigate(ROUTES.SUPPLIERS);
     } catch {
       setError(WAREHOUSE_TEXTS.suppliers.form.errors.save);
     } finally {
@@ -279,7 +279,7 @@ export const SupplierForm = () => {
         <div className="flex justify-end space-x-4">
           <button
             type="button"
-            onClick={() => navigate(ROUTES.WAREHOUSE_SUPPLIERS)}
+            onClick={() => navigate(ROUTES.SUPPLIERS)}
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             {COMMON_TEXTS.cancel}

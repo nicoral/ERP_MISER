@@ -1,12 +1,14 @@
 import React from 'react';
+import { Disclosure } from '@headlessui/react';
 import type { Role, Permission } from '../../../types/user';
 import {
   EyeIcon,
   PlusIcon,
   EditIcon,
   TrashIcon,
-  CheckIcon,
-  CrossIcon,
+  CheckBadgeIcon,
+  XCircleIcon,
+  ChevronDownIcon,
 } from '../../../components/common/Icons';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { MODULES } from '../../../config/constants';
@@ -43,52 +45,65 @@ const RoleDetails: React.FC<{ role: Role; loading?: boolean }> = ({
   }
 
   return (
-    <div>
-      <section>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 dark:border-gray-700 rounded-lg">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-800">
-                <th className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
-                  Módulo
-                </th>
-                {ACTIONS.map(action => (
-                  <th
-                    key={action.key}
-                    className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 text-center"
-                  >
-                    <div className="flex flex-col items-center">
-                      {action.icon}
-                      <span className="text-xs mt-1">{action.label}</span>
+    <div className="w-full max-w-lg mx-auto">
+      <div className="space-y-2">
+        {MODULES.map(module => {
+          const enabledCount = ACTIONS.filter(action =>
+            hasPermission(role, module.key, action.key)
+          ).length;
+
+          return (
+            <Disclosure key={module.key} as="div">
+              {({ open }) => (
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                  <Disclosure.Button className="bg-white dark:bg-gray-900 flex justify-between items-center w-full px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75 rounded-lg">
+                    <span>{module.label}</span>
+                    <div className="flex items-center">
+                      <span
+                        className={`text-xs font-semibold mr-3 px-2 py-1 rounded-full ${
+                          enabledCount === ACTIONS.length
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : enabledCount > 0
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        }`}
+                      >
+                        {enabledCount} / {ACTIONS.length}
+                      </span>
+                      <ChevronDownIcon
+                        className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
+                          open ? 'rotate-180' : ''
+                        }`}
+                      />
                     </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {MODULES.map(module => (
-                <tr
-                  key={module.key}
-                  className="border-t border-gray-200 dark:border-gray-700"
-                >
-                  <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
-                    {module.label}
-                  </td>
-                  {ACTIONS.map(action => (
-                    <td key={action.key} className="px-4 py-2 text-center">
-                      {hasPermission(role, module.key, action.key) ? (
-                        <CheckIcon className="w-6 h-6 mx-auto" />
-                      ) : (
-                        <CrossIcon className="w-6 h-6 mx-auto" />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                  </Disclosure.Button>
+                  <Disclosure.Panel className="px-4 pt-2 pb-4 text-sm text-gray-500 border-t border-gray-200 dark:border-gray-700/50">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                      {ACTIONS.map(action => (
+                        <div
+                          key={action.key}
+                          className={`flex items-center p-2 rounded-md ${
+                            hasPermission(role, module.key, action.key)
+                              ? 'bg-green-100 dark:bg-green-800/60 text-green-800 dark:text-green-200'
+                              : 'bg-red-100 dark:bg-red-800/60 text-red-800 dark:text-red-200'
+                          }`}
+                        >
+                          {hasPermission(role, module.key, action.key) ? (
+                            <CheckBadgeIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                          ) : (
+                            <XCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                          )}
+                          <span className="truncate">{action.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Disclosure.Panel>
+                </div>
+              )}
+            </Disclosure>
+          );
+        })}
+      </div>
     </div>
   );
 };
