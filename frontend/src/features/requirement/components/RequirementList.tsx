@@ -7,13 +7,17 @@ import { useRequirements } from '../hooks/useRequirements';
 import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
 import { useNavigate } from 'react-router-dom';
-import { EyeIcon } from '../../../components/common/Icons';
+import { EyeIcon, PublishIcon } from '../../../components/common/Icons';
 import { DownloadIcon } from 'lucide-react';
-import { generateRequirementPdf } from '../../../services/api/requirementService';
+import {
+  generateRequirementPdf,
+  publishRequirement,
+} from '../../../services/api/requirementService';
+import { toast, Toaster } from 'sonner';
 
 export const RequirementList = () => {
   const navigate = useNavigate();
-  const { requirements, loading, pagination, handlePageChange } =
+  const { requirements, loading, pagination, handlePageChange, refetch } =
     useRequirements(1, 10);
 
   const handleViewDetails = (requirement: Requirement) => {
@@ -30,6 +34,20 @@ export const RequirementList = () => {
       a.download = `${requirement.code}.pdf`;
       a.click();
     });
+    toast.success('Requerimiento descargado correctamente');
+  };
+
+  const handlePublish = (requirement: Requirement) => {
+    publishRequirement(requirement.id)
+      .then(() => {
+        toast.success('Requerimiento publicado correctamente');
+      })
+      .catch(error => {
+        toast.error(error.message);
+      })
+      .finally(() => {
+        refetch();
+      });
   };
 
   const columns: TableColumn<Requirement>[] = [
@@ -81,9 +99,12 @@ export const RequirementList = () => {
         const statusClasses = {
           PENDING:
             'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+          PUBLISHED:
+            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
           APPROVED:
             'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-          REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+          CANCELLED:
+            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
         };
 
         return (
@@ -104,6 +125,12 @@ export const RequirementList = () => {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: 'Ver detalles',
       onClick: handleViewDetails,
+    },
+    {
+      icon: <PublishIcon className="w-5 h-5 text-green-600" />,
+      label: 'Publicar',
+      onClick: handlePublish,
+      isHidden: (requirement: Requirement) => requirement.status !== 'PENDING',
     },
     {
       icon: <DownloadIcon className="w-5 h-5 text-blue-600" />,
@@ -141,6 +168,20 @@ export const RequirementList = () => {
           actions={actions}
         />
       </div>
+      <Toaster
+        toastOptions={{
+          classNames: {
+            toast:
+              'group toast group-[.toaster]:bg-white group-[.toaster]:text-gray-900 dark:group-[.toaster]:bg-gray-900 dark:group-[.toaster]:text-gray-100',
+            description:
+              'group-[.toast]:text-gray-500 dark:group-[.toast]:text-gray-400',
+            actionButton:
+              'group-[.toast]:bg-gray-900 group-[.toast]:text-gray-50 dark:group-[.toast]:bg-gray-50 dark:group-[.toast]:text-gray-900',
+            cancelButton:
+              'group-[.toast]:bg-gray-100 group-[.toast]:text-gray-500 dark:group-[.toast]:bg-gray-800 dark:group-[.toast]:text-gray-400',
+          },
+        }}
+      />
     </div>
   );
 };

@@ -40,6 +40,13 @@ export class RoleController {
     return this.roleService.findById(id);
   }
 
+  @Get('graph/distribution')
+  @Roles(1)
+  @AuditDescription('Consulta de distribución de roles')
+  async findDistribution() {
+    return this.roleService.findDistribution();
+  }
+
   @Put(':id')
   @Roles(1)
   @AuditDescription('Actualización de rol')

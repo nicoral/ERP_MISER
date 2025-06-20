@@ -74,4 +74,17 @@ export class RequirementController {
     });
     res.end(pdfBuffer);
   }
+
+  @Post('publish/:id')
+  //@RequirePermissions('approve_requirement')
+  @AuditDescription('Publicación de requerimiento')
+  async publish(@Req() req, @Param('id') id: number): Promise<Requirement> {
+    return this.requirementService.publish(id, req.user.id);
+  }
+
+  @Get('graph/distribution')
+  @AuditDescription('Consulta de distribución de requerimientos')
+  async findDistribution(): Promise<{ name: string; value: number }[]> {
+    return this.requirementService.findDistribution();
+  }
 }

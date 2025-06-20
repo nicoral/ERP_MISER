@@ -74,3 +74,20 @@ export async function generateRequirementPdf(id: number) {
   }
   throw new Error('Error al generar el PDF');
 }
+
+export async function publishRequirement(id: number) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/requirements/publish/${id}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}

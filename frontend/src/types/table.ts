@@ -13,6 +13,7 @@ export type TableAction<T> = {
   icon: ReactNode;
   label: string;
   onClick: (row: T) => void;
+  isHidden?: (row: T) => boolean;
 };
 
 export type TablePaginationProps = {

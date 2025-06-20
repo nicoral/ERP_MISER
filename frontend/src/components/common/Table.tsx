@@ -154,17 +154,19 @@ export function Table<T>({
               ))}
               {actions && actions.length > 0 && (
                 <div className="flex justify-center gap-4 mt-4">
-                  {actions.map((action, aIdx) => (
-                    <button
-                      key={aIdx}
-                      onClick={() => action.onClick(row)}
-                      title={action.label}
-                      className="p-2 rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
-                      disabled={loading}
-                    >
-                      {action.icon}
-                    </button>
-                  ))}
+                  {actions
+                    .filter(action => !action.isHidden?.(row))
+                    .map((action, aIdx) => (
+                      <button
+                        key={aIdx}
+                        onClick={() => action.onClick(row)}
+                        title={action.label}
+                        className="p-2 rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
+                        disabled={loading}
+                      >
+                        {action.icon}
+                      </button>
+                    ))}
                 </div>
               )}
             </div>
@@ -248,18 +250,22 @@ export function Table<T>({
                     </td>
                   ))}
                   {actions && actions.length > 0 && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                      {actions.map((action, aIdx) => (
-                        <button
-                          key={aIdx}
-                          onClick={() => action.onClick(row)}
-                          title={action.label}
-                          className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
-                          disabled={loading}
-                        >
-                          {action.icon}
-                        </button>
-                      ))}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                      <div className="flex items-center space-x-2">
+                        {actions
+                          .filter(action => !action.isHidden?.(row))
+                          .map((action, aIdx) => (
+                            <button
+                              key={aIdx}
+                              onClick={() => action.onClick(row)}
+                              title={action.label}
+                              className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
+                              disabled={loading}
+                            >
+                              {action.icon}
+                            </button>
+                          ))}
+                      </div>
                     </td>
                   )}
                 </tr>

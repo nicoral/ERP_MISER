@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Requirement } from '../entities/Requirement.entity';
@@ -60,7 +60,7 @@ export class RequirementService {
   ): Promise<{ requirements: Requirement[]; total: number }> {
     const [requirements, total] = await this.requirementRepository.findAndCount(
       {
-        where: { employee: { id: userId } },
+        where: [{ employee: { id: userId } }, { status: RequirementStatus.PUBLISHED }],
         relations: ['employee', 'costCenter'],
         order: {
           id: 'DESC',
@@ -202,5 +202,33 @@ export class RequirementService {
     await browser.close();
 
     return Buffer.from(pdfBuffer);
+  }
+
+  async publish(id: number, userId: number): Promise<Requirement> {
+    const requirement = await this.findOne(id);
+    if (requirement.employee.id !== userId) {
+      throw new ForbiddenException('No tienes permisos para aprobar este requerimiento');
+    }
+    requirement.status = RequirementStatus.PUBLISHED;
+    return this.requirementRepository.save(requirement);
+  }
+
+  async findDistribution(): Promise<{ name: string; value: number }[]> {
+    const requirements = await this.requirementRepository.find({
+      where: { status: RequirementStatus.PUBLISHED },
+      relations: ['requirementArticles'],
+    });
+    const groupedByMonth = requirements.reduce((acc, requirement) => {
+      const month = requirement.createdAt.getMonth();
+      const value = requirement.requirementArticles.reduce((acc, article) => {
+        return acc + article.unitPrice * article.quantity;
+      }, 0);
+      acc[month] = (acc[month] || 0) + value;
+      return acc;
+    }, {});
+    return Object.entries(groupedByMonth).map(([month, value]) => ({
+      name: new Date(0, Number(month)).toLocaleString('es-ES', { month: 'long' }),
+      value: Number(value),
+    }));
   }
 }

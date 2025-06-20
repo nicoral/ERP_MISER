@@ -121,7 +121,6 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto py-8">
-      <Toaster position="top-right" />
       <h1 className="text-3xl font-bold mb-8">{PROFILE_TEXTS.title}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -258,6 +257,20 @@ export default function Profile() {
           </CardContent>
         </Card>
       </div>
+      <Toaster
+        toastOptions={{
+          classNames: {
+            toast:
+              'group toast group-[.toaster]:bg-white group-[.toaster]:text-gray-900 dark:group-[.toaster]:bg-gray-900 dark:group-[.toaster]:text-gray-100',
+            description:
+              'group-[.toast]:text-gray-500 dark:group-[.toast]:text-gray-400',
+            actionButton:
+              'group-[.toast]:bg-gray-900 group-[.toast]:text-gray-50 dark:group-[.toast]:bg-gray-50 dark:group-[.toast]:text-gray-900',
+            cancelButton:
+              'group-[.toast]:bg-gray-100 group-[.toast]:text-gray-500 dark:group-[.toast]:bg-gray-800 dark:group-[.toast]:text-gray-400',
+          },
+        }}
+      />
     </div>
   );
 }

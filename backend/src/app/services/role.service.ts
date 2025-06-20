@@ -57,4 +57,15 @@ export class RoleService {
     Object.assign(role, roleData);
     return this.roleRepository.save(role);
   }
+
+  async findDistribution(): Promise<{ name: string; value: number }[]> {
+    const roles = await this.roleRepository.find({
+      relations: ['employees'],
+    });
+    const distribution = roles.map((role) => ({
+      name: role.name,
+      value: role.employees.length,
+    }));
+    return distribution;
+  }
 }

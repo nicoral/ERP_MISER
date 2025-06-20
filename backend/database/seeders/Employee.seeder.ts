@@ -5,14 +5,14 @@ import { faker } from '@faker-js/faker';
 import { Seeder } from 'typeorm-extension';
 import { Role } from '../../src/app/entities/Role.entity';
 
-const EMPLOYEE_COUNT = 0;
+const EMPLOYEE_COUNT = 100;
 
 export default class EmployeeSeed implements Seeder {
   public async run(dataSource: DataSource) {
     const repository = dataSource.getRepository(Employee);
     const roleRepository = dataSource.getRepository(Role);
     const roles = await roleRepository.find();
-    const admin = {
+    /* const admin = {
       email: 'admin@example.com',
       password: await bcrypt.hash('123456789', 10),
       firstName: 'Admin',
@@ -44,9 +44,9 @@ export default class EmployeeSeed implements Seeder {
       hireDate: new Date(),
       dischargeDate: null,
       active: true,
-    }
+    } */
 
-    await repository.insert([admin, user]);
+    //await repository.insert([admin, user]);
     const rolesWithoutAdmin = roles.filter(role => role.name !== 'admin');
     for (let i = 0; i < EMPLOYEE_COUNT; i++) {
       const employee = {

@@ -35,13 +35,13 @@ const menuItems: MenuItem[] = [
       {
         label: SIDEBAR_TEXTS.roles,
         path: ROUTES.ROLES,
-        permission: 'view_roles',
+        permission: 'view_administration',
         icon: <RolesIcon className="w-5 h-5" />,
       },
       {
         label: SIDEBAR_TEXTS.auditLogs,
         path: ROUTES.AUDIT_LOGS,
-        permission: 'view_audit_logs',
+        permission: 'view_administration',
         icon: <AuditIcon className="w-5 h-5" />,
       },
     ],
@@ -118,9 +118,21 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
       permission => permission.name
     );
 
-    const filteredItems = menuItems.filter(item =>
-      item.permission ? permissions?.includes(item.permission) : true
-    );
+    const filteredItems = menuItems
+      .filter(item =>
+        item.permission ? permissions?.includes(item.permission) : true
+      )
+      .map(item => {
+        if (item.subItems) {
+          const filteredSubItems = item.subItems.filter(subItem =>
+            subItem.permission
+              ? permissions?.includes(subItem.permission)
+              : true
+          );
+          return { ...item, subItems: filteredSubItems };
+        }
+        return item;
+      });
 
     setMenuItemsAllowed(filteredItems);
   }, []);
