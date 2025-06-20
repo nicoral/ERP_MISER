@@ -82,6 +82,7 @@ export class RequirementService {
         'costCenter',
         'requirementArticles.article.brand',
       ],
+      withDeleted: true,
     });
     if (!requirement) {
       throw new NotFoundException('Requirement not found');
@@ -213,22 +214,52 @@ export class RequirementService {
     return this.requirementRepository.save(requirement);
   }
 
-  async findDistribution(): Promise<{ name: string; value: number }[]> {
+  async findDistribution(): Promise<{ month: string; PEN: number; USD: number }[]> {
     const requirements = await this.requirementRepository.find({
       where: { status: RequirementStatus.PUBLISHED },
       relations: ['requirementArticles'],
     });
-    const groupedByMonth = requirements.reduce((acc, requirement) => {
+
+    // Agrupar por mes y moneda
+    const groupedByMonthAndCurrency = requirements.reduce((acc, requirement) => {
       const month = requirement.createdAt.getMonth();
-      const value = requirement.requirementArticles.reduce((acc, article) => {
-        return acc + article.unitPrice * article.quantity;
-      }, 0);
-      acc[month] = (acc[month] || 0) + value;
+      const monthName = new Date(0, month).toLocaleString('es-ES', { month: 'short' });
+      
+      if (!acc[monthName]) {
+        acc[monthName] = { month: monthName, PEN: 0, USD: 0 };
+      }
+
+      requirement.requirementArticles.forEach(article => {
+        const total = article.unitPrice * article.quantity;
+        if (article.currency === Currency.PEN) {
+          acc[monthName].PEN += total;
+        } else if (article.currency === Currency.USD) {
+          acc[monthName].USD += total;
+        }
+      });
+
       return acc;
-    }, {});
-    return Object.entries(groupedByMonth).map(([month, value]) => ({
-      name: new Date(0, Number(month)).toLocaleString('es-ES', { month: 'long' }),
-      value: Number(value),
-    }));
+    }, {} as Record<string, { month: string; PEN: number; USD: number }>);
+
+    // Convertir a array y ordenar por mes
+    const result = Object.values(groupedByMonthAndCurrency);
+    
+    // Ordenar por mes (enero, febrero, marzo, etc.)
+    const monthOrder = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    result.sort((a, b) => {
+      const aIndex = monthOrder.indexOf(a.month.toLowerCase());
+      const bIndex = monthOrder.indexOf(b.month.toLowerCase());
+      return aIndex - bIndex;
+    });
+
+    return result;
+  }
+
+  async remove(id: number): Promise<void> {
+    const requirement = await this.findOne(id);
+    if (requirement.status !== RequirementStatus.PENDING) {
+      throw new ForbiddenException('No se puede eliminar un requerimiento publicado');
+    }
+    await this.requirementRepository.softRemove(requirement);
   }
 }

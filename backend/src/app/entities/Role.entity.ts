@@ -5,6 +5,9 @@ import {
   ManyToMany,
   OneToMany,
   JoinTable,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Employee } from './Employee.entity';
 import { Permission } from './Permission.entity';
@@ -26,4 +29,24 @@ export class Role {
 
   @OneToMany(() => Employee, employee => employee.role)
   employees: Employee[];
+
+  @CreateDateColumn({
+    name: 'created_at',
+    nullable: false,
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  createdAt: Date;
+
+  @UpdateDateColumn({
+    name: 'updated_at',
+    nullable: false,
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Date;
+
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    nullable: true,
+  })
+  deletedAt: Date;
 }

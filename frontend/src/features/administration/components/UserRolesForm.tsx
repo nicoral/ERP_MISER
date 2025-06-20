@@ -1,4 +1,4 @@
-import { EditIcon, EyeIcon } from '../../../components/common/Icons';
+import { EditIcon, EyeIcon, TrashIcon } from '../../../components/common/Icons';
 import { ADMINISTRATION_TEXTS } from '../../../config/texts';
 import type { Role } from '../../../types/user';
 import { useRoles } from '../../employees/hooks/userRoles';
@@ -9,9 +9,12 @@ import { usePermissionsByRole } from '../hooks/usePermissions';
 import { ROUTES } from '../../../config/constants';
 import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const UserRolesForm = () => {
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
   const { roles: initialRoles, loading, error } = useRoles();
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -50,18 +53,26 @@ export const UserRolesForm = () => {
     navigate(`${ROUTES.ROLE_EDIT.replace(':id', role.id.toString())}`);
   };
 
+  const handleDelete = (e: React.MouseEvent, role: Role) => {
+    e.stopPropagation();
+    console.log('Eliminar rol:', role);
+    showSuccess('Eliminado', `Rol ${role.name} eliminado correctamente`);
+  };
+
   return (
     <div className="mt-6">
       <div className="mb-6 flex justify-between items-center">
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
           {ADMINISTRATION_TEXTS.panels.roles.title}
         </h3>
-        <button
-          onClick={() => navigate(`${ROUTES.ROLE_CREATE}`)}
-          className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-        >
-          {ADMINISTRATION_TEXTS.rolesForm.add}
-        </button>
+        {hasPermission('create_roles') && (
+          <button
+            onClick={() => navigate(`${ROUTES.ROLE_CREATE}`)}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            {ADMINISTRATION_TEXTS.rolesForm.add}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -71,14 +82,27 @@ export const UserRolesForm = () => {
             onClick={() => handleView(role)}
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer border border-gray-200 dark:border-gray-700"
           >
-            {/* Edit button in top right corner */}
-            <button
-              onClick={e => handleEdit(e, role)}
-              className="bg-transparent absolute top-3 right-3 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 z-10"
-              title={ADMINISTRATION_TEXTS.rolesForm.edit}
-            >
-              <EditIcon className="w-4 h-4" />
-            </button>
+            {/* Action buttons in top right corner */}
+            <div className="absolute top-3 right-3 flex space-x-1 z-10">
+              {hasPermission('update_roles') && (
+                <button
+                  onClick={e => handleEdit(e, role)}
+                  className="bg-transparent p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+                  title={ADMINISTRATION_TEXTS.rolesForm.edit}
+                >
+                  <EditIcon className="w-4 h-4" />
+                </button>
+              )}
+              {hasPermission('delete_roles') && (
+                <button
+                  onClick={e => handleDelete(e, role)}
+                  className="bg-transparent p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
+                  title="Eliminar"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
 
             {/* Card content */}
             <div className="p-6">

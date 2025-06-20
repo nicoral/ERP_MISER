@@ -37,7 +37,10 @@ export class SupplierService {
   }
 
   async findOne(id: number): Promise<Supplier> {
-    const supplier = await this.supplierRepository.findOne({ where: { id } });
+    const supplier = await this.supplierRepository.findOne({ 
+      where: { id },
+      withDeleted: true,
+    });
     if (!supplier) {
       throw new NotFoundException('Supplier not found');
     }
@@ -57,6 +60,7 @@ export class SupplierService {
   }
 
   async remove(id: number): Promise<void> {
-    await this.supplierRepository.delete(id);
+    const supplier = await this.findOne(id);
+    await this.supplierRepository.softRemove(supplier);
   }
 }

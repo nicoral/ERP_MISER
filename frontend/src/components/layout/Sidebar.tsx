@@ -24,24 +24,24 @@ const menuItems: MenuItem[] = [
   {
     label: 'Dashboard',
     path: ROUTES.DASHBOARD,
-    permission: 'view_administration',
+    permission: ['view_administration'],
     icon: <DashboardIcon className="w-5 h-5" />,
   },
   {
     label: SIDEBAR_TEXTS.administration,
-    permission: 'view_administration',
+    permission: ['view_administration', 'view_roles'],
     icon: <SettingsIcon className="w-5 h-5" />,
     subItems: [
       {
         label: SIDEBAR_TEXTS.roles,
         path: ROUTES.ROLES,
-        permission: 'view_administration',
+        permission: ['view_roles'],
         icon: <RolesIcon className="w-5 h-5" />,
       },
       {
         label: SIDEBAR_TEXTS.auditLogs,
         path: ROUTES.AUDIT_LOGS,
-        permission: 'view_administration',
+        permission: ['view_administration'],
         icon: <AuditIcon className="w-5 h-5" />,
       },
     ],
@@ -49,52 +49,55 @@ const menuItems: MenuItem[] = [
   {
     label: SIDEBAR_TEXTS.employees,
     path: ROUTES.EMPLOYEES,
-    permission: 'view_employees',
+    permission: ['view_employees'],
     icon: <EmployeesIcon className="w-5 h-5" />,
   },
   {
     label: SIDEBAR_TEXTS.costCenter,
     path: ROUTES.COST_CENTER,
-    permission: 'view_cost_centers',
+    permission: ['view_cost_centers'],
     icon: <CostCenterIcon className="w-5 h-5" />,
   },
   {
     label: SIDEBAR_TEXTS.logistics,
+    permission: ['view_warehouses', 'view_articles', 'view_suppliers'],
     icon: <LogisticsIcon className="w-5 h-5" />,
     subItems: [
       {
         label: SIDEBAR_TEXTS.warehouse,
         path: ROUTES.WAREHOUSE,
-        permission: 'view_warehouses',
+        permission: ['view_warehouses'],
         icon: <WarehouseIcon className="w-5 h-5" />,
       },
       {
         label: SIDEBAR_TEXTS.warehouseArticles,
         path: ROUTES.ARTICLES,
-        permission: 'view_articles',
+        permission: ['view_articles'],
         icon: <WarehouseIcon className="w-4 h-4" />,
       },
       /* {
         label: SIDEBAR_TEXTS.warehouseServices,
         path: ROUTES.SERVICES,
-        permission: 'view_services',
+        permission: ['view_services'],
         icon: <ServicesIcon className="w-4 h-4" />,
       }, */
       {
         label: SIDEBAR_TEXTS.warehouseSuppliers,
         path: ROUTES.SUPPLIERS,
-        permission: 'view_suppliers',
+        permission: ['view_suppliers'],
         icon: <SuppliersIcon className="w-4 h-4" />,
       },
     ],
   },
   {
     label: SIDEBAR_TEXTS.process,
+    permission: ['view_requirements'],
     icon: <ProcessIcon className="w-5 h-5" />,
     subItems: [
       {
         label: SIDEBAR_TEXTS.processRequirement,
         path: ROUTES.REQUIREMENTS,
+        permission: ['view_requirements'],
         icon: <DocumentIcon className="w-4 h-4" />,
       },
     ],
@@ -118,16 +121,20 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
       permission => permission.name
     );
 
+    // Función para verificar si el usuario tiene al menos uno de los permisos requeridos
+    const hasAnyPermission = (requiredPermissions: string[] | undefined) => {
+      if (!requiredPermissions || requiredPermissions.length === 0) return true;
+      return requiredPermissions.some(permission =>
+        permissions?.includes(permission)
+      );
+    };
+
     const filteredItems = menuItems
-      .filter(item =>
-        item.permission ? permissions?.includes(item.permission) : true
-      )
+      .filter(item => hasAnyPermission(item.permission))
       .map(item => {
         if (item.subItems) {
           const filteredSubItems = item.subItems.filter(subItem =>
-            subItem.permission
-              ? permissions?.includes(subItem.permission)
-              : true
+            hasAnyPermission(subItem.permission)
           );
           return { ...item, subItems: filteredSubItems };
         }

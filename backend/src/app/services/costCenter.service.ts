@@ -26,6 +26,7 @@ export class CostCenterService {
   async findOneCostCenter(id: number) {
     const costCenter = await this.costCenterRepository.findOne({
       where: { id },
+      withDeleted: true,
     });
     if (!costCenter) {
       throw new NotFoundException('Cost center not found');
@@ -58,6 +59,6 @@ export class CostCenterService {
     if (!costCenter) {
       throw new NotFoundException('Cost center not found');
     }
-    return this.costCenterRepository.delete(id);
+    await this.costCenterRepository.softRemove(costCenter);
   }
 }

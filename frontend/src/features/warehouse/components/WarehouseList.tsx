@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon } from '../../../components/common/Icons';
+import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
@@ -12,10 +12,14 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { Modal } from '../../../components/common/Modal';
 import { WarehouseDetails } from './WarehouseDetails';
-import { useWarehouses } from '../hooks/useWarehouse';
+import { useWarehouses, useWarehouseDelete } from '../hooks/useWarehouse';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const WarehouseList = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+  const deleteWarehouseMutation = useWarehouseDelete();
 
   const [filters, setFilters] = useState({ search: '' });
   const [page, setPage] = useState(1);
@@ -48,6 +52,24 @@ export const WarehouseList = () => {
   const handleCreate = () => navigate(ROUTES.WAREHOUSE_CREATE);
   const handleEdit = (id: number) =>
     navigate(ROUTES.WAREHOUSE_EDIT.replace(':id', id.toString()));
+
+  const handleDelete = async (warehouse: Warehouse) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar el almacén ${warehouse.name}?`
+      )
+    ) {
+      try {
+        await deleteWarehouseMutation.mutateAsync(warehouse.id);
+        showSuccess(
+          'Eliminado',
+          `Almacén ${warehouse.name} eliminado correctamente`
+        );
+      } catch {
+        showError('Error', 'No se pudo eliminar el almacén');
+      }
+    }
+  };
 
   const columns: TableColumn<Warehouse>[] = [
     { header: WAREHOUSE_TEXTS.warehouses.table.columns.id, accessor: 'id' },
@@ -96,11 +118,24 @@ export const WarehouseList = () => {
         setShowDetailsModal(true);
       },
     },
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: WAREHOUSE_TEXTS.warehouses.table.actions.edit,
-      onClick: (warehouse: Warehouse) => handleEdit(warehouse.id),
-    },
+    ...(hasPermission('update_warehouse')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: WAREHOUSE_TEXTS.warehouses.table.actions.edit,
+            onClick: (warehouse: Warehouse) => handleEdit(warehouse.id),
+          },
+        ]
+      : []),
+    ...(hasPermission('delete_warehouse')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: 'Eliminar',
+            onClick: (warehouse: Warehouse) => handleDelete(warehouse),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -109,12 +144,14 @@ export const WarehouseList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.warehouses.title}
         </h2>
-        <button
-          onClick={handleCreate}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
-        >
-          {WAREHOUSE_TEXTS.warehouses.buttons.create}
-        </button>
+        {hasPermission('create_warehouse') && (
+          <button
+            onClick={handleCreate}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
+          >
+            {WAREHOUSE_TEXTS.warehouses.buttons.create}
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -171,7 +208,7 @@ export const WarehouseList = () => {
           columns={columns}
           data={data?.data ?? []}
           keyField="id"
-          loading={isLoading || isFetching}
+          loading={isLoading || isFetching || deleteWarehouseMutation.isPending}
           pagination={{
             page: page,
             totalPages: data?.totalPages ?? 1,

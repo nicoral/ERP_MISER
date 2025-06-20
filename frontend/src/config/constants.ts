@@ -45,6 +45,41 @@ export const ROUTES = {
   REQUIREMENT_EDIT: '/requirements/:id/edit',
 } as const;
 
+export const MODULES = [
+  {
+    key: 'administration',
+    label: 'Administración',
+  },
+  {
+    key: 'roles',
+    label: 'Roles',
+  },
+  {
+    key: 'employee',
+    label: 'Empleados',
+  },
+  {
+    key: 'warehouses',
+    label: 'Almacenes',
+  },
+  {
+    key: 'articles',
+    label: 'Artículos',
+  },
+  {
+    key: 'cost_centers',
+    label: 'Centros de costo',
+  },
+  {
+    key: 'suppliers',
+    label: 'Proveedores',
+  },
+  {
+    key: 'requirements',
+    label: 'Requerimientos',
+  },
+];
+
 export const ALPHABET = [
   'A',
   'B',
@@ -148,33 +183,6 @@ export const EMPLOYEES_POSITIONS = [
 ] as const;
 
 export const EMPLOYEES_AREAS = ['MANTTO', 'RUMA'] as const;
-
-export const MODULES = [
-  {
-    key: 'employee',
-    label: 'Empleados',
-  },
-  {
-    key: 'warehouses',
-    label: 'Almacenes',
-  },
-  {
-    key: 'articles',
-    label: 'Artículos',
-  },
-  {
-    key: 'cost_centers',
-    label: 'Centros de costo',
-  },
-  {
-    key: 'suppliers',
-    label: 'Proveedores',
-  },
-  {
-    key: 'requirements',
-    label: 'Requerimientos',
-  },
-];
 
 export const PRIORITIES = [
   { value: 'LOW', label: 'Baja' },

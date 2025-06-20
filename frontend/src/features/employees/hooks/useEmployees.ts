@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getEmployees } from '../../../services/api/employeeService';
+import {
+  getEmployees,
+  deleteEmployee,
+} from '../../../services/api/employeeService';
 import type { Employee } from '../../../types/employee';
 import type { PaginatedResponse } from '../../../types/generic';
 
@@ -27,5 +30,18 @@ export const useEmployees = (page: number = 1, pageSize: number = 10) => {
     fetchEmployees();
   }, [page, pageSize]);
 
-  return { employees, loading, error };
+  const handleDeleteEmployee = async (id: number) => {
+    try {
+      await deleteEmployee(id);
+      // Recargar la lista después de eliminar
+      const data = await getEmployees(page, pageSize);
+      setEmployees(data);
+      return true;
+    } catch (err) {
+      console.error('Error deleting employee:', err);
+      return false;
+    }
+  };
+
+  return { employees, loading, error, deleteEmployee: handleDeleteEmployee };
 };

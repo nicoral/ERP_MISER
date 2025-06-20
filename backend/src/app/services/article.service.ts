@@ -106,6 +106,7 @@ export class ArticleService {
     const article = await this.articleRepository.findOne({
       where: { id },
       relations: ['brand', 'warehouseArticles', 'warehouseArticles.warehouse'],
+      withDeleted: true,
     });
     if (!article) {
       throw new NotFoundException('Article not found');
@@ -170,7 +171,8 @@ export class ArticleService {
   }
 
   async remove(id: number): Promise<void> {
-    await this.articleRepository.delete(id);
+    const article = await this.findOne(id);
+    await this.articleRepository.softRemove(article);
   }
 
   async findAllBrands(): Promise<Brand[]> {

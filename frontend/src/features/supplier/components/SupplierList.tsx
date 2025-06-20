@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon } from '../../../components/common/Icons';
-import { getSuppliers } from '../../../services/api/supplierService';
+import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
+import {
+  getSuppliers,
+  deleteSupplier,
+} from '../../../services/api/supplierService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
@@ -13,9 +16,12 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { Modal } from '../../../components/common/Modal';
 import { SupplierDetails } from './SupplierDetails';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const SupplierList = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -34,19 +40,26 @@ export const SupplierList = () => {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
     null
   );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     (async () => {
       setIsFiltering(true);
-      const response = await getSuppliers(1, pagination.pageSize);
-      setSuppliers(response.data);
-      setPagination({
-        page: response.page,
-        pageSize: response.pageSize,
-        total: response.total,
-        totalPages: response.totalPages,
-      });
-      setIsFiltering(false);
+      try {
+        const response = await getSuppliers(1, pagination.pageSize);
+        setSuppliers(response.data);
+        setPagination({
+          page: response.page,
+          pageSize: response.pageSize,
+          total: response.total,
+          totalPages: response.totalPages,
+        });
+      } catch (error) {
+        console.error('Error al cargar proveedores:', error);
+        showError('Error', 'No se pudieron cargar los proveedores');
+      } finally {
+        setIsFiltering(false);
+      }
     })();
     // eslint-disable-next-line
   }, []);
@@ -61,44 +74,99 @@ export const SupplierList = () => {
 
   const applyFilters = async () => {
     setIsFiltering(true);
-    setPagination(prev => ({ ...prev, page: 1 }));
-    const response = await getSuppliers(1, pagination.pageSize, filters);
-    setSuppliers(response.data);
-    setPagination(prev => ({
-      ...prev,
-      total: response.total,
-      totalPages: response.totalPages,
-    }));
-    setIsFiltering(false);
+    try {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      const response = await getSuppliers(1, pagination.pageSize, filters);
+      setSuppliers(response.data);
+      setPagination(prev => ({
+        ...prev,
+        total: response.total,
+        totalPages: response.totalPages,
+      }));
+    } catch (error) {
+      console.error('Error al filtrar proveedores:', error);
+      showError('Error', 'No se pudieron aplicar los filtros');
+    } finally {
+      setIsFiltering(false);
+    }
   };
 
   const clearFilters = async () => {
     setFilters({ code: '', name: '', contact: '' });
     setIsFiltering(true);
-    const response = await getSuppliers(1, pagination.pageSize);
-    setSuppliers(response.data);
-    setPagination({
-      page: response.page,
-      pageSize: response.pageSize,
-      total: response.total,
-      totalPages: response.totalPages,
-    });
-    setIsFiltering(false);
+    try {
+      const response = await getSuppliers(1, pagination.pageSize);
+      setSuppliers(response.data);
+      setPagination({
+        page: response.page,
+        pageSize: response.pageSize,
+        total: response.total,
+        totalPages: response.totalPages,
+      });
+    } catch (error) {
+      console.error('Error al limpiar filtros:', error);
+      showError('Error', 'No se pudieron limpiar los filtros');
+    } finally {
+      setIsFiltering(false);
+    }
   };
 
   const handlePageChange = async (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
     setIsFiltering(true);
-    if (filters.code || filters.name || filters.contact) {
-      newPage = 1;
+    try {
+      if (filters.code || filters.name || filters.contact) {
+        newPage = 1;
+      }
+      const response = await getSuppliers(
+        newPage,
+        pagination.pageSize,
+        filters
+      );
+      setSuppliers(response.data);
+      setPagination(prev => ({
+        ...prev,
+        page: newPage,
+      }));
+    } catch (error) {
+      console.error('Error al cambiar de página:', error);
+      showError('Error', 'No se pudo cargar la página');
+    } finally {
+      setIsFiltering(false);
     }
-    const response = await getSuppliers(newPage, pagination.pageSize, filters);
-    setSuppliers(response.data);
-    setPagination(prev => ({
-      ...prev,
-      page: newPage,
-    }));
-    setIsFiltering(false);
+  };
+
+  const handleDelete = async (supplier: Supplier) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar el proveedor ${supplier.businessName}?`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        await deleteSupplier(supplier.id);
+        showSuccess(
+          'Eliminado',
+          `Proveedor ${supplier.businessName} eliminado correctamente`
+        );
+        // Recargar la lista
+        const response = await getSuppliers(
+          pagination.page,
+          pagination.pageSize,
+          filters
+        );
+        setSuppliers(response.data);
+        setPagination(prev => ({
+          ...prev,
+          total: response.total,
+          totalPages: response.totalPages,
+        }));
+      } catch {
+        showError('Error', 'No se pudo eliminar el proveedor');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   const getStatusDisplay = (status: SupplierStatus) => {
@@ -158,20 +226,28 @@ export const SupplierList = () => {
         setShowDetailsModal(true);
       },
     },
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: WAREHOUSE_TEXTS.suppliers.table.actions.edit,
-      onClick: (supplier: Supplier) => {
-        navigate(
-          ROUTES.SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
-        );
-      },
-    },
-    /* {
-      icon: <TrashIcon className="w-5 h-5 text-red-600" />,
-      label: WAREHOUSE_TEXTS.suppliers.table.actions.delete,
-      onClick: () => {},
-    }, */
+    ...(hasPermission('update_suppliers')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: WAREHOUSE_TEXTS.suppliers.table.actions.edit,
+            onClick: (supplier: Supplier) => {
+              navigate(
+                ROUTES.SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
+              );
+            },
+          },
+        ]
+      : []),
+    ...(hasPermission('delete_suppliers')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: 'Eliminar',
+            onClick: (supplier: Supplier) => handleDelete(supplier),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -180,12 +256,14 @@ export const SupplierList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.suppliers.title}
         </h2>
-        <button
-          onClick={() => navigate(ROUTES.SUPPLIERS_CREATE)}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
-        >
-          {WAREHOUSE_TEXTS.suppliers.buttons.create}
-        </button>
+        {hasPermission('create_suppliers') && (
+          <button
+            onClick={() => navigate(ROUTES.SUPPLIERS_CREATE)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
+          >
+            {WAREHOUSE_TEXTS.suppliers.buttons.create}
+          </button>
+        )}
       </div>
       {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
@@ -266,7 +344,7 @@ export const SupplierList = () => {
           columns={columns}
           data={suppliers}
           keyField="id"
-          loading={isFiltering}
+          loading={isFiltering || isDeleting}
           pagination={{
             page: pagination.page,
             totalPages: pagination.totalPages,

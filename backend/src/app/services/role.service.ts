@@ -30,6 +30,7 @@ export class RoleService {
     const role = await this.roleRepository.findOne({
       where: { id },
       relations: ['permissions'],
+      withDeleted: true,
     });
     if (!role) {
       throw new NotFoundException(`Role with ID ${id} not found`);
@@ -67,5 +68,27 @@ export class RoleService {
       value: role.employees.length,
     }));
     return distribution;
+  }
+
+  async remove(id: number): Promise<void> {
+    const role = await this.findById(id);
+    if (!role) {
+      throw new NotFoundException(`Role with ID ${id} not found`);
+    }
+    
+    // Verificar si hay empleados usando este rol
+    const employeesWithRole = await this.roleRepository
+      .createQueryBuilder('role')
+      .leftJoinAndSelect('role.employees', 'employees')
+      .where('role.id = :id', { id })
+      .getOne();
+
+    if (employeesWithRole && employeesWithRole.employees.length > 0) {
+      throw new NotFoundException(
+        `Cannot delete role. There are ${employeesWithRole.employees.length} employees using this role.`
+      );
+    }
+
+    await this.roleRepository.softRemove(role);
   }
 }

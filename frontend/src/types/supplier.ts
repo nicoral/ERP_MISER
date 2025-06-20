@@ -17,6 +17,9 @@ export interface Supplier {
   rating: number;
   status: SupplierStatus;
   lines: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface SupplierFilters {

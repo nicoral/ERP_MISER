@@ -4,6 +4,7 @@ import {
   getArticles,
   createArticle,
   updateArticle,
+  deleteArticle,
 } from '../../../services/api/articleService';
 import type {
   Article,
@@ -63,6 +64,19 @@ export const useUpdateArticle = () => {
       updateArticle(id, data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['article', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+    },
+  });
+};
+
+/**
+ * Eliminar artículo.
+ */
+export const useDeleteArticle = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteArticle(id),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
     },
   });

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon } from '../../../components/common/Icons';
+import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
@@ -12,10 +12,14 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { Modal } from '../../../components/common/Modal';
 import { ArticleDetails } from './ArticleDetails';
-import { useArticles } from '../hooks/useArticle';
+import { useArticles, useDeleteArticle } from '../hooks/useArticle';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const ArticleList = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+  const deleteArticleMutation = useDeleteArticle();
 
   const [filters, setFilters] = useState<ArticleFilters>({ code: '' });
   const [page, setPage] = useState(1);
@@ -44,6 +48,24 @@ export const ArticleList = () => {
   const handleCreate = () => navigate(ROUTES.ARTICLE_CREATE);
   const handleEdit = (id: number) =>
     navigate(ROUTES.ARTICLE_EDIT.replace(':id', id.toString()));
+
+  const handleDelete = async (article: Article) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar el artículo ${article.name}?`
+      )
+    ) {
+      try {
+        await deleteArticleMutation.mutateAsync(article.id);
+        showSuccess(
+          'Eliminado',
+          `Artículo ${article.name} eliminado correctamente`
+        );
+      } catch {
+        showError('Error', 'No se pudo eliminar el artículo');
+      }
+    }
+  };
 
   const columns: TableColumn<Article>[] = [
     { header: WAREHOUSE_TEXTS.articles.table.columns.id, accessor: 'id' },
@@ -82,11 +104,24 @@ export const ArticleList = () => {
         setShowDetailsModal(true);
       },
     },
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: WAREHOUSE_TEXTS.articles.table.actions.edit,
-      onClick: (article: Article) => handleEdit(article.id),
-    },
+    ...(hasPermission('update_articles')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: WAREHOUSE_TEXTS.articles.table.actions.edit,
+            onClick: (article: Article) => handleEdit(article.id),
+          },
+        ]
+      : []),
+    ...(hasPermission('delete_articles')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: 'Eliminar',
+            onClick: (article: Article) => handleDelete(article),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -95,12 +130,14 @@ export const ArticleList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.articles.title}
         </h2>
-        <button
-          onClick={handleCreate}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
-        >
-          {WAREHOUSE_TEXTS.articles.buttons.create}
-        </button>
+        {hasPermission('create_articles') && (
+          <button
+            onClick={handleCreate}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
+          >
+            {WAREHOUSE_TEXTS.articles.buttons.create}
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -155,7 +192,7 @@ export const ArticleList = () => {
           columns={columns}
           data={data?.data ?? []}
           keyField="id"
-          loading={isLoading || isFetching}
+          loading={isLoading || isFetching || deleteArticleMutation.isPending}
           pagination={{
             page: page,
             totalPages: data?.totalPages ?? 1,

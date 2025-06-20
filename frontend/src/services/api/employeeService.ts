@@ -120,3 +120,21 @@ export const uploadEmployeeImage = async (
   }
   throw new Error(data.message);
 };
+
+export const deleteEmployee = async (id: number): Promise<void> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/employees/${id}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    const data = await response.json();
+    throw new Error(data.message || 'Error al eliminar el empleado');
+  }
+};

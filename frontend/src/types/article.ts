@@ -15,12 +15,18 @@ export interface Article {
   imageUrl?: string;
   warehouseArticles: WarehouseStock[];
   brand: Brand;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface Brand {
   id: number;
   name: string;
   imageUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export type ArticleCreate = Omit<Article, 'id'>;

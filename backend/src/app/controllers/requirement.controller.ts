@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -84,7 +85,14 @@ export class RequirementController {
 
   @Get('graph/distribution')
   @AuditDescription('Consulta de distribución de requerimientos')
-  async findDistribution(): Promise<{ name: string; value: number }[]> {
+  async findDistribution() {
     return this.requirementService.findDistribution();
+  }
+
+  @Delete(':id')
+  @RequirePermissions('delete_requirement')
+  @AuditDescription('Eliminación de requerimiento')
+  async remove(@Param('id') id: number): Promise<void> {
+    return this.requirementService.remove(id);
   }
 }

@@ -3,54 +3,63 @@ import {
   Post,
   Get,
   Put,
+  Delete,
   Body,
   Param,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
 import { RoleService } from '../services/role.service';
 import { CreateRoleDto } from '../dto/role/create-role.dto';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
 import { UpdateRoleDto } from '../dto/role/update-role.dto';
+import { RequirePermissions } from '../decorators/permissions.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
 
 @Controller('roles')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Post()
-  @Roles(1) // Solo admin puede crear roles
+  @RequirePermissions('create_roles')
   @AuditDescription('Creación de nuevo rol')
   async create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
   @Get()
+  @RequirePermissions('view_roles')
   @AuditDescription('Consulta de lista de roles')
   async findAll() {
     return this.roleService.findAll();
   }
 
   @Get(':id')
-  @Roles(1)
+  @RequirePermissions('view_roles')
   @AuditDescription('Consulta de detalle de rol')
   async findById(@Param('id') id: number) {
     return this.roleService.findById(id);
   }
 
   @Get('graph/distribution')
-  @Roles(1)
+  @RequirePermissions('view_roles')
   @AuditDescription('Consulta de distribución de roles')
   async findDistribution() {
     return this.roleService.findDistribution();
   }
 
   @Put(':id')
-  @Roles(1)
+  @RequirePermissions('update_roles')
   @AuditDescription('Actualización de rol')
   async update(@Param('id') id: number, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(id, updateRoleDto);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('delete_roles')
+  @AuditDescription('Eliminación de rol')
+  async remove(@Param('id') id: number) {
+    return this.roleService.remove(id);
   }
 }

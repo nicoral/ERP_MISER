@@ -11,10 +11,15 @@ import {
 import { useArticleService } from '../../../hooks/useArticleService';
 import { useCostCenters } from '../../costCenter/hooks/useCostCenter';
 import { PRIORITIES, ROUTES } from '../../../config/constants';
-import { createRequirement } from '../../../services/api/requirementService';
-import { useNavigate } from 'react-router-dom';
+import {
+  createRequirement,
+  updateRequirement,
+  getRequirement,
+} from '../../../services/api/requirementService';
+import { useNavigate, useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../../components/common/ErrorBanner';
+import type { RequirementArticle } from '../../../types/requirement';
 
 interface ArticlesSelected {
   id: number;
@@ -38,6 +43,8 @@ interface Products {
 
 export const RequirementForm = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditing = !!id;
   const user = getCurrentUser();
   // Cost Centers
   const { costCenters, loading: loadingCostCenters } = useCostCenters(1, 1000);
@@ -62,8 +69,49 @@ export const RequirementForm = () => {
   });
   const [articlesSelected, setArticlesSelected] = useState<Products[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(isEditing);
   const [error, setError] = useState<string | null>(null);
+
+  // Cargar datos del requerimiento si se está editando
+  useEffect(() => {
+    if (isEditing && id) {
+      const loadRequirement = async () => {
+        try {
+          setLoadingData(true);
+          const requirement = await getRequirement(Number(id));
+
+          setForm({
+            priority: requirement.priority,
+            costCenter: requirement.costCenter.id.toString(),
+            observations: requirement.observation || '',
+          });
+
+          // Convertir los artículos del requerimiento al formato del formulario
+          const requirementProducts: Products[] =
+            requirement.requirementArticles.map((ra: RequirementArticle) => ({
+              id: ra.article.id,
+              code: ra.article.code,
+              name: ra.article.name,
+              brand: ra.article.brand.name,
+              unit: ra.article.unitOfMeasure,
+              quantity: ra.quantity.toString(),
+              unitPrice: ra.unitPrice.toString(),
+              currency: ra.currency,
+              justification: ra.justification,
+            }));
+
+          setArticlesSelected(requirementProducts);
+        } catch (error) {
+          console.error('Error loading requirement:', error);
+          setError('Error al cargar el requerimiento');
+        } finally {
+          setLoadingData(false);
+        }
+      };
+
+      loadRequirement();
+    }
+  }, [isEditing, id]);
 
   // Manejo de inputs generales
   const handleChange = (
@@ -109,11 +157,11 @@ export const RequirementForm = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setLoadingData(true);
     setError(null);
     if (articlesSelected.length === 0) {
       setError('Debe seleccionar al menos un artículo');
-      setLoading(false);
+      setLoadingData(false);
       return;
     }
     const data = {
@@ -129,17 +177,23 @@ export const RequirementForm = () => {
       })),
     };
     try {
-      await createRequirement(data);
+      if (isEditing && id) {
+        await updateRequirement(Number(id), data);
+      } else {
+        await createRequirement(data);
+      }
       navigate(ROUTES.REQUIREMENTS);
     } catch (error) {
       console.log(error);
-      setError('Error al crear el requerimiento');
+      setError(
+        `Error al ${isEditing ? 'actualizar' : 'crear'} el requerimiento`
+      );
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loadingData) return <LoadingSpinner />;
 
   return (
     <form
@@ -505,7 +559,7 @@ export const RequirementForm = () => {
           type="submit"
           className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Guardar requerimiento
+          {isEditing ? 'Actualizar requerimiento' : 'Guardar requerimiento'}
         </button>
       </div>
     </form>

@@ -7,18 +7,28 @@ import { useRequirements } from '../hooks/useRequirements';
 import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
 import { useNavigate } from 'react-router-dom';
-import { EyeIcon, PublishIcon } from '../../../components/common/Icons';
+import {
+  EyeIcon,
+  PublishIcon,
+  TrashIcon,
+  EditIcon,
+} from '../../../components/common/Icons';
 import { DownloadIcon } from 'lucide-react';
 import {
   generateRequirementPdf,
   publishRequirement,
+  deleteRequirement,
 } from '../../../services/api/requirementService';
-import { toast, Toaster } from 'sonner';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
+import { useState } from 'react';
 
 export const RequirementList = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const { requirements, loading, pagination, handlePageChange, refetch } =
     useRequirements(1, 10);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewDetails = (requirement: Requirement) => {
     navigate(
@@ -34,20 +44,46 @@ export const RequirementList = () => {
       a.download = `${requirement.code}.pdf`;
       a.click();
     });
-    toast.success('Requerimiento descargado correctamente');
+    showSuccess('Descargado', 'Requerimiento descargado correctamente');
   };
 
   const handlePublish = (requirement: Requirement) => {
     publishRequirement(requirement.id)
       .then(() => {
-        toast.success('Requerimiento publicado correctamente');
+        showSuccess('Publicado', 'Requerimiento publicado correctamente');
       })
       .catch(error => {
-        toast.error(error.message);
+        showError('Error', error.message);
       })
       .finally(() => {
         refetch();
       });
+  };
+
+  const handleDelete = async (requirement: Requirement) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar el requerimiento ${requirement.code}?`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        await deleteRequirement(requirement.id);
+        showSuccess(
+          'Eliminado',
+          `Requerimiento ${requirement.code} eliminado correctamente`
+        );
+        refetch();
+      } catch {
+        showError('Error', 'No se pudo eliminar el requerimiento');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  const handleEdit = (requirement: Requirement) => {
+    navigate(ROUTES.REQUIREMENT_EDIT.replace(':id', requirement.id.toString()));
   };
 
   const columns: TableColumn<Requirement>[] = [
@@ -126,6 +162,17 @@ export const RequirementList = () => {
       label: 'Ver detalles',
       onClick: handleViewDetails,
     },
+    ...(hasPermission('update_requirement')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: 'Editar',
+            onClick: handleEdit,
+            isHidden: (requirement: Requirement) =>
+              requirement.status !== 'PENDING',
+          },
+        ]
+      : []),
     {
       icon: <PublishIcon className="w-5 h-5 text-green-600" />,
       label: 'Publicar',
@@ -137,6 +184,15 @@ export const RequirementList = () => {
       label: 'Descargar PDF',
       onClick: handleDownloadPdf,
     },
+    ...(hasPermission('delete_requirement')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: 'Eliminar',
+            onClick: (requirement: Requirement) => handleDelete(requirement),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -145,12 +201,14 @@ export const RequirementList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Lista de Requerimientos
         </h2>
-        <button
-          onClick={() => navigate(ROUTES.REQUIREMENTS_CREATE)}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Crear requerimiento
-        </button>
+        {hasPermission('create_requirement') && (
+          <button
+            onClick={() => navigate(ROUTES.REQUIREMENTS_CREATE)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Crear requerimiento
+          </button>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
@@ -158,7 +216,7 @@ export const RequirementList = () => {
           columns={columns}
           data={requirements}
           keyField="id"
-          loading={loading}
+          loading={loading || isDeleting}
           pagination={{
             page: pagination.page,
             totalPages: pagination.totalPages,
@@ -168,20 +226,6 @@ export const RequirementList = () => {
           actions={actions}
         />
       </div>
-      <Toaster
-        toastOptions={{
-          classNames: {
-            toast:
-              'group toast group-[.toaster]:bg-white group-[.toaster]:text-gray-900 dark:group-[.toaster]:bg-gray-900 dark:group-[.toaster]:text-gray-100',
-            description:
-              'group-[.toast]:text-gray-500 dark:group-[.toast]:text-gray-400',
-            actionButton:
-              'group-[.toast]:bg-gray-900 group-[.toast]:text-gray-50 dark:group-[.toast]:bg-gray-50 dark:group-[.toast]:text-gray-900',
-            cancelButton:
-              'group-[.toast]:bg-gray-100 group-[.toast]:text-gray-500 dark:group-[.toast]:bg-gray-800 dark:group-[.toast]:text-gray-400',
-          },
-        }}
-      />
     </div>
   );
 };

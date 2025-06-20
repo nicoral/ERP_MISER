@@ -12,6 +12,8 @@ export interface Requirement {
   employee: Employee;
   requirementArticles: RequirementArticle[];
   createdAt: string;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface RequirementArticle {

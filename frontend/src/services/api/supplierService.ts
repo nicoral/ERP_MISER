@@ -90,3 +90,21 @@ export async function updateSupplier(
   }
   throw new Error(data.message);
 }
+
+export async function deleteSupplier(id: number): Promise<void> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/suppliers/${id}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    const data = await response.json();
+    throw new Error(data.message || 'Error al eliminar el proveedor');
+  }
+}

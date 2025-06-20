@@ -9,6 +9,9 @@ export interface Warehouse {
   active: boolean;
   valued: number;
   manager: Employee;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface WarehouseCreate {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Employee } from '../entities/Employee.entity';
@@ -14,6 +14,7 @@ export class EmployeeService {
   constructor(
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    @Inject(forwardRef(() => RoleService))
     private readonly roleService: RoleService,
     private readonly cloudinaryService: CloudinaryService
   ) {}
@@ -74,6 +75,7 @@ export class EmployeeService {
     const employee = await this.employeeRepository.findOne({
       where: { id },
       relations: ['role', 'warehousesAssigned'],
+      withDeleted: true,
     });
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
@@ -113,7 +115,9 @@ export class EmployeeService {
 
   async remove(id: number): Promise<void> {
     const employee = await this.findOne(id);
-    await this.employeeRepository.remove(employee);
+    employee.active = false;
+    await this.employeeRepository.save(employee);
+    await this.employeeRepository.softRemove(employee);
   }
 
   async updateImage(id: number, file: Express.Multer.File) {

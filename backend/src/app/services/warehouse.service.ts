@@ -41,6 +41,7 @@ export class WarehouseService {
     const warehouse = await this.warehouseRepository.findOne({
       where: { id },
       relations: ['manager'],
+      withDeleted: true,
     });
     if (!warehouse) {
       throw new NotFoundException('Warehouse not found');
@@ -68,9 +69,7 @@ export class WarehouseService {
   }
 
   async deleteWarehouse(id: number): Promise<void> {
-    const result = await this.warehouseRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException('Warehouse not found');
-    }
+    const warehouse = await this.getWarehouseById(id);
+    await this.warehouseRepository.softRemove(warehouse);
   }
 }

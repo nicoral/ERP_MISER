@@ -7,6 +7,7 @@ import {
   ChevronDownIcon,
   EditIcon,
   EyeIcon,
+  TrashIcon,
 } from '../../../components/common/Icons';
 import { getEmployees } from '../../../services/api/employeeService';
 import { FormInput } from '../../../components/common/FormInput';
@@ -17,10 +18,18 @@ import {
 } from '../../../components/common/Table';
 import { Modal } from '../../../components/common/Modal';
 import { EmployeeDetails } from './EmployeeDetails';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const EmployeeList = () => {
   const navigate = useNavigate();
-  const { employees: initialEmployees, loading, error } = useEmployees();
+  const {
+    employees: initialEmployees,
+    loading,
+    error,
+    deleteEmployee,
+  } = useEmployees();
+  const { showSuccess, showError } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
@@ -36,6 +45,7 @@ export const EmployeeList = () => {
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sincronizar empleados cuando cambie el hook (por ejemplo, al cargar)
   useEffect(() => {
@@ -78,6 +88,7 @@ export const EmployeeList = () => {
       }));
     } catch (error) {
       console.error('Error al filtrar empleados:', error);
+      showError('Error', 'No se pudieron aplicar los filtros');
     } finally {
       setIsFiltering(false);
     }
@@ -120,6 +131,7 @@ export const EmployeeList = () => {
       }));
     } catch (error) {
       console.error('Error al cambiar de página:', error);
+      showError('Error', 'No se pudo cargar la página');
     } finally {
       setIsFiltering(false);
     }
@@ -127,6 +139,31 @@ export const EmployeeList = () => {
 
   const handleEdit = (id: number) => {
     navigate(`/employees/${id}/edit`);
+  };
+
+  const handleDelete = async (employee: Employee) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar al empleado ${employee.firstName} ${employee.lastName}?`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        const success = await deleteEmployee(employee.id);
+        if (success) {
+          showSuccess(
+            'Eliminado',
+            `Empleado ${employee.firstName} ${employee.lastName} eliminado correctamente`
+          );
+        } else {
+          showError('Error', 'No se pudo eliminar el empleado');
+        }
+      } catch (error) {
+        showError('Error', 'No se pudo eliminar el empleado');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   // Columnas para la tabla de empleados
@@ -185,11 +222,24 @@ export const EmployeeList = () => {
       label: EMPLOYEES_TEXTS.table.actions.view,
       onClick: (emp: Employee) => setSelectedEmployee(emp),
     },
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: EMPLOYEES_TEXTS.table.actions.edit,
-      onClick: (emp: Employee) => handleEdit(emp.id),
-    },
+    ...(hasPermission('update_employee')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: EMPLOYEES_TEXTS.table.actions.edit,
+            onClick: (emp: Employee) => handleEdit(emp.id),
+          },
+        ]
+      : []),
+    ...(hasPermission('delete_employee')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: 'Eliminar',
+            onClick: (emp: Employee) => handleDelete(emp),
+          },
+        ]
+      : []),
   ];
 
   if (error) {
@@ -206,12 +256,14 @@ export const EmployeeList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {EMPLOYEES_TEXTS.title}
         </h2>
-        <button
-          onClick={() => navigate('/employees/create')}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          {EMPLOYEES_TEXTS.buttons.create}
-        </button>
+        {hasPermission('create_employee') && (
+          <button
+            onClick={() => navigate('/employees/create')}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            {EMPLOYEES_TEXTS.buttons.create}
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -267,7 +319,7 @@ export const EmployeeList = () => {
           columns={columns}
           data={employees}
           keyField="id"
-          loading={loading || isFiltering}
+          loading={loading || isFiltering || isDeleting}
           pagination={{
             page: pagination.page,
             totalPages: pagination.totalPages,

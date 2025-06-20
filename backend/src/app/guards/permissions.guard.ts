@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Inject, forwardRef } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { EmployeeService } from '../services/employee.service';
 
@@ -6,6 +6,7 @@ import { EmployeeService } from '../services/employee.service';
 export class PermissionsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
+    @Inject(forwardRef(() => EmployeeService))
     private readonly employeeService: EmployeeService
   ) {}
 
@@ -21,7 +22,7 @@ export class PermissionsGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-
+    console.log(user);
     if (!user) {
       return false;
     }
@@ -30,6 +31,7 @@ export class PermissionsGuard implements CanActivate {
     const role = await this.employeeService.getRoleWithPermissions(
       employee.role.id
     );
+    console.log(role);
 
     return requiredPermissions.every(permission =>
       role.permissions.some(p => p.name === permission)

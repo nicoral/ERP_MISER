@@ -20,6 +20,9 @@ export interface Employee {
   role: Role;
   active: boolean;
   warehousesAssigned: Warehouse[];
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface CreateEmployee

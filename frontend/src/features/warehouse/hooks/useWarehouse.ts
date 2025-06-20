@@ -3,6 +3,7 @@ import {
   getWarehouseById,
   getWarehouses,
   updateWarehouse,
+  deleteWarehouse,
 } from '../../../services/api/warehouseService';
 
 import type {
@@ -65,6 +66,18 @@ export const useWarehouseUpdate = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       queryClient.invalidateQueries({ queryKey: ['warehouse', id] });
+    },
+  });
+};
+
+// 🔴 DELETE Warehouse
+export const useWarehouseDelete = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => deleteWarehouse(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
     },
   });
 };

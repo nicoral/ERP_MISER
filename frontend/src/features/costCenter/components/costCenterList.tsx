@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
-import { getCostCenters } from '../../../services/api/costCenterService';
+import {
+  getCostCenters,
+  deleteCostCenter,
+} from '../../../services/api/costCenterService';
 import type { CostCenter } from '../../../types/costCenter';
 import type { TableAction, TableColumn } from '../../../types/table';
 import { COST_CENTER_TEXTS } from '../../../config/texts';
-import { EditIcon } from '../../../components/common/Icons';
+import { EditIcon, TrashIcon } from '../../../components/common/Icons';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { FormInput } from '../../../components/common/FormInput';
 import { Table } from '../../../components/common/Table';
+import { hasPermission } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const CostCenterList = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -25,18 +31,25 @@ export const CostCenterList = () => {
   const [isFiltering, setIsFiltering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchCostCenters = async () => {
       setIsLoading(true);
-      const response = await getCostCenters(
-        pagination.page,
-        pagination.pageSize,
-        filters.name
-      );
-      setCostCenters(response.data);
-      setPagination(response);
-      setIsLoading(false);
+      try {
+        const response = await getCostCenters(
+          pagination.page,
+          pagination.pageSize,
+          filters.name
+        );
+        setCostCenters(response.data);
+        setPagination(response);
+      } catch (error) {
+        console.error('Error al cargar centros de costo:', error);
+        showError('Error', 'No se pudieron cargar los centros de costo');
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchCostCenters();
   }, []);
@@ -67,26 +80,74 @@ export const CostCenterList = () => {
 
   const applyFilters = async () => {
     setIsFiltering(true);
-    const response = await getCostCenters(
-      pagination.page,
-      pagination.pageSize,
-      filters.name
-    );
-    setCostCenters(response.data);
-    setPagination(response);
-    setIsFiltering(false);
+    try {
+      const response = await getCostCenters(
+        pagination.page,
+        pagination.pageSize,
+        filters.name
+      );
+      setCostCenters(response.data);
+      setPagination(response);
+    } catch (error) {
+      console.error('Error al filtrar centros de costo:', error);
+      showError('Error', 'No se pudieron aplicar los filtros');
+    } finally {
+      setIsFiltering(false);
+    }
+  };
+
+  const handleDelete = async (costCenter: CostCenter) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar el centro de costo ${costCenter.name}?`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        await deleteCostCenter(costCenter.id);
+        showSuccess(
+          'Eliminado',
+          `Centro de costo ${costCenter.name} eliminado correctamente`
+        );
+        // Recargar la lista
+        const response = await getCostCenters(
+          pagination.page,
+          pagination.pageSize,
+          filters.name
+        );
+        setCostCenters(response.data);
+        setPagination(response);
+      } catch {
+        showError('Error', 'No se pudo eliminar el centro de costo');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   const actions: TableAction<CostCenter>[] = [
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: COST_CENTER_TEXTS.table.actions.edit,
-      onClick: (costCenter: CostCenter) => {
-        navigate(
-          ROUTES.COST_CENTER_EDIT.replace(':id', costCenter.id.toString())
-        );
-      },
-    },
+    ...(hasPermission('update_cost_centers')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: COST_CENTER_TEXTS.table.actions.edit,
+            onClick: (costCenter: CostCenter) => {
+              navigate(
+                ROUTES.COST_CENTER_EDIT.replace(':id', costCenter.id.toString())
+              );
+            },
+          },
+        ]
+      : []),
+    ...(hasPermission('delete_cost_centers')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: 'Eliminar',
+            onClick: (costCenter: CostCenter) => handleDelete(costCenter),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -95,12 +156,14 @@ export const CostCenterList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {COST_CENTER_TEXTS.title}
         </h2>
-        <button
-          onClick={() => navigate(ROUTES.COST_CENTER_CREATE)}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
-        >
-          {COST_CENTER_TEXTS.buttons.create}
-        </button>
+        {hasPermission('create_cost_centers') && (
+          <button
+            onClick={() => navigate(ROUTES.COST_CENTER_CREATE)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
+          >
+            {COST_CENTER_TEXTS.buttons.create}
+          </button>
+        )}
       </div>
       {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
@@ -163,7 +226,7 @@ export const CostCenterList = () => {
           columns={columns}
           data={costCenters}
           keyField="id"
-          loading={isLoading}
+          loading={isLoading || isDeleting}
           pagination={{
             page: pagination.page,
             totalPages: pagination.totalPages,

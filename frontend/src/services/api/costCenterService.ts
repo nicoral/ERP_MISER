@@ -104,3 +104,21 @@ export async function updateCostCenter(
   }
   throw new Error('Failed to update cost center');
 }
+
+export async function deleteCostCenter(id: number): Promise<void> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/cost-centers/${id}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    const data = await response.json();
+    throw new Error(data.message || 'Error al eliminar el centro de costo');
+  }
+}

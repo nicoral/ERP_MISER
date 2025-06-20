@@ -36,15 +36,17 @@ export const Dashboard = () => {
     { name: string; value: number }[]
   >([]);
   const [graphDistributionRequirements, setGraphDistributionRequirements] =
-    useState<{ name: string; value: number }[]>([]);
+    useState<{ month: string; PEN: number; USD: number }[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [loadingRequirements, setLoadingRequirements] = useState(true);
 
   useEffect(() => {
     getGraphDistributionRequirements().then(data => {
+      console.log(data);
       setGraphDistributionRequirements(data);
       setLoadingRequirements(false);
     });
+
     getGraphDistribution().then(data => {
       setGraphDistribution(data);
       setLoadingEmployees(false);
@@ -73,10 +75,11 @@ export const Dashboard = () => {
                 margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="PEN" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="USD" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

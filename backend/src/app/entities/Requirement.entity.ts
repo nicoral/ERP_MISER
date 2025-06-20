@@ -4,6 +4,7 @@ import {
   Column,
   UpdateDateColumn,
   CreateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
 } from 'typeorm';
@@ -54,4 +55,10 @@ export class Requirement {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
+
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    nullable: true,
+  })
+  deletedAt: Date;
 }

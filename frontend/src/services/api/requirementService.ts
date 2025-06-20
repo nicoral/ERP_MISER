@@ -60,6 +60,28 @@ export async function createRequirement(requirement: CreateRequirementDto) {
   throw new Error(data.message);
 }
 
+export async function updateRequirement(
+  id: number,
+  requirement: CreateRequirementDto
+) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/requirements/${id}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: JSON.stringify(requirement),
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
 export async function generateRequirementPdf(id: number) {
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/requirements/generate/pdf/${id}`,
@@ -90,4 +112,22 @@ export async function publishRequirement(id: number) {
     return data;
   }
   throw new Error(data.message);
+}
+
+export async function deleteRequirement(id: number): Promise<void> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/requirements/${id}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    const data = await response.json();
+    throw new Error(data.message || 'Error al eliminar el requerimiento');
+  }
 }
