@@ -24,7 +24,8 @@
     "migrations:create": "npm run typeorm -- migration:create ./database/migrations/migrations",
     "migrations:revert": "npm run typeorm -- -d ./database/dataSource.ts migration:revert",
     "migrations:generate": "npm run typeorm -- -d ./database/dataSource.ts migration:generate ./database/migrations/migrations",
-    "seed:all": "ts-node ./database/typeorm.seed.ts"
+    "seed:all": "ts-node ./database/typeorm.seed.ts",
+    "seed:employee": "ts-node ./database/seeders/Employee.seeder.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^9.8.0",

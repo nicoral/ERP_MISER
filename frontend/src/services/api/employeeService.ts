@@ -3,6 +3,7 @@ import type {
   CreateEmployee,
   Employee,
   EmployeeFilters,
+  UpdateEmployee,
 } from '../../types/employee';
 import type { PaginatedResponse } from '../../types/generic';
 
@@ -77,7 +78,7 @@ export const createEmployee = async (
 
 export const updateEmployee = async (
   id: number,
-  employee: CreateEmployee
+  employee: UpdateEmployee
 ): Promise<Employee> => {
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/employees/${id}`,

@@ -27,3 +27,25 @@ export function getCurrentUser(): User | null {
   const data = sessionStorage.getItem(STORAGE_KEY_USER);
   return data ? JSON.parse(data) : null;
 }
+
+export async function updatePassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/auth/update-password`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 200) {
+    return data;
+  }
+  throw new Error(data.message);
+}

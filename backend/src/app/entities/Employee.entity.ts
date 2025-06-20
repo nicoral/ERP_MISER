@@ -28,7 +28,7 @@ export class Employee {
   email: string;
 
   @Exclude()
-  @Column('varchar', { length: 100, name: 'password', nullable: false })
+  @Column('varchar', { length: 255, name: 'password', nullable: false })
   password: string;
 
   @Column('varchar', {

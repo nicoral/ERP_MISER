@@ -28,6 +28,12 @@ export interface CreateEmployee
   role: number;
 }
 
+export type UpdateEmployee = Partial<
+  Omit<Employee, 'id' | 'role' | 'password' | 'warehousesAssigned'>
+> & {
+  warehousesAssigned?: number[];
+};
+
 export interface EmployeeFilters extends BaseFilters {
   search?: string;
 }

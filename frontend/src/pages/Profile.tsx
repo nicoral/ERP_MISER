@@ -17,9 +17,13 @@ import {
 import { toast, Toaster } from 'sonner';
 import { useEmployee } from '../features/employees/hooks/useEmployee';
 import { FormInput } from '../components/common/FormInput';
-import { uploadEmployeeImage } from '../services/api/employeeService';
+import {
+  updateEmployee,
+  uploadEmployeeImage,
+} from '../services/api/employeeService';
 import type { Employee } from '../types/employee';
 import { PROFILE_TEXTS } from '../config/texts';
+import { updatePassword } from '../services/auth/authService';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -38,12 +42,16 @@ export default function Profile() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      toast.success(PROFILE_TEXTS.messages.profileUpdated);
+      await updateEmployee(user?.id ?? 0, {
+        email: formData.email,
+        phone: formData.phone,
+      });
     } catch (error) {
       console.error(error);
       toast.error(PROFILE_TEXTS.messages.errorUpdateProfile);
     } finally {
       setIsLoading(false);
+      toast.success(PROFILE_TEXTS.messages.profileUpdated);
     }
   };
 
@@ -56,17 +64,19 @@ export default function Profile() {
 
     setIsLoading(true);
     try {
-      setFormData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      }));
+      await updatePassword(formData.currentPassword, formData.newPassword);
       toast.success(PROFILE_TEXTS.messages.passwordUpdated);
     } catch (error) {
       console.error(error);
       toast.error(PROFILE_TEXTS.messages.errorUpdatePassword);
     } finally {
+      setFormData({
+        email: employee?.email || '',
+        phone: employee?.phone || '',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
       setIsLoading(false);
     }
   };
@@ -212,6 +222,7 @@ export default function Profile() {
                       value={formData.currentPassword}
                       disabled={isLoading}
                       onChange={handleInputChange}
+                      type="password"
                     />
                   </div>
                   <div className="space-y-2">
@@ -222,6 +233,7 @@ export default function Profile() {
                       value={formData.newPassword}
                       disabled={isLoading}
                       onChange={handleInputChange}
+                      type="password"
                     />
                   </div>
                   <div className="space-y-2">
@@ -232,6 +244,7 @@ export default function Profile() {
                       value={formData.confirmPassword}
                       disabled={isLoading}
                       onChange={handleInputChange}
+                      type="password"
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>

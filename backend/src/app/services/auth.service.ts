@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EmployeeService } from './employee.service';
 import * as bcrypt from 'bcrypt';
 import { Employee } from '../entities/Employee.entity';
+import { UpdatePasswordDto } from '../dto/auth/update-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -56,5 +57,26 @@ export class AuthService {
         ),
       },
     };
+  }
+
+  async updatePassword(
+    employeeId: number,
+    updatePasswordDto: UpdatePasswordDto
+  ) {
+    const employee = await this.employeeService.findOne(employeeId);
+    const isPasswordValid = await bcrypt.compare(
+      updatePasswordDto.currentPassword,
+      employee.password
+    );
+    console.log(updatePasswordDto.currentPassword);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Contraseña actual incorrecta');
+    }
+    await this.employeeService.update(employeeId, {
+      password: updatePasswordDto.newPassword,
+    });
+
+    return { message: 'Contraseña actualizada correctamente' };
   }
 }
