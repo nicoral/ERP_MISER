@@ -80,9 +80,6 @@ export class ArticleService {
       },
       where: [
         {
-          id: Number(search),
-        },
-        {
           name: ILike(`%${search}%`),
         },
         {

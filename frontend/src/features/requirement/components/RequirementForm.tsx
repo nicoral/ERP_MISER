@@ -186,6 +186,7 @@ export const RequirementForm = () => {
           name: product.name,
           brand: product.brand.name,
           unit: product.unitOfMeasure,
+          code: product.code,
           quantity: '',
           unitPrice: '',
           currency: 'PEN',
@@ -285,7 +286,6 @@ export const RequirementForm = () => {
     loadingRequirement ||
     loadingWarehouse ||
     loadingCostCenters ||
-    loadingArticles ||
     createRequirementMutation.isPending ||
     updateRequirementMutation.isPending;
 
