@@ -203,18 +203,18 @@ export const CostCenterForm = () => {
             />
           </div>
 
-          {/* Sección de hijos */}
+          {/* Sección de centros de costo secundarios */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                Centros de Costo Hijos
+                Centros de Costos Secundarios
               </h3>
               <button
                 type="button"
                 onClick={addChild}
                 className="px-3 py-1 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
-                Agregar Hijo
+                Agregar Centro de Costo Secundario
               </button>
             </div>
 
@@ -225,12 +225,12 @@ export const CostCenterForm = () => {
               >
                 <div className="flex justify-between items-center">
                   <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                    Hijo {index + 1}
+                    Centro de costo secundario {index + 1}
                   </h4>
                   <button
                     type="button"
                     onClick={() => removeChild(index)}
-                    className="px-2 py-1 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    className="bg-transparent px-2 py-1 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
                     Eliminar
                   </button>
