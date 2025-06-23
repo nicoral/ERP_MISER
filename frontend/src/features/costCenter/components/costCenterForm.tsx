@@ -4,15 +4,15 @@ import { FormInput } from '../../../components/common/FormInput';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { COMMON_TEXTS, COST_CENTER_TEXTS } from '../../../config/texts';
 import { ROUTES } from '../../../config/constants';
-import {
-  createCostCenter,
-  updateCostCenter,
-} from '../../../services/api/costCenterService';
 import type {
   CreateCostCenter,
   UpdateCostCenter,
 } from '../../../types/costCenter';
-import { useCostCenter } from '../hooks/useCostCenter';
+import {
+  useCostCenter,
+  useCreateCostCenter,
+  useUpdateCostCenter,
+} from '../hooks/useCostCenter';
 
 interface FormData {
   description: string;
@@ -28,9 +28,10 @@ export const CostCenterForm = () => {
   const isEditing = Boolean(params.id);
   const costCenterId = params.id ? Number(params.id) : undefined;
 
-  const { costCenter, loading: loadingCostCenter } = useCostCenter(
-    costCenterId ?? 0
-  );
+  const { data: costCenter, isLoading: loadingCostCenter } =
+    useCostCenter(costCenterId);
+  const createCostCenterMutation = useCreateCostCenter();
+  const updateCostCenterMutation = useUpdateCostCenter();
 
   const [formData, setFormData] = useState<FormData>({
     description: '',
@@ -40,32 +41,31 @@ export const CostCenterForm = () => {
     children: [],
   });
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
     try {
       const submitData = {
         ...formData,
         children: formData.children.length > 0 ? formData.children : [],
       };
 
-      if (isEditing) {
-        await updateCostCenter(
-          costCenterId ?? 0,
-          submitData as UpdateCostCenter
-        );
+      if (isEditing && costCenterId) {
+        await updateCostCenterMutation.mutateAsync({
+          id: costCenterId,
+          data: submitData as UpdateCostCenter,
+        });
       } else {
-        await createCostCenter(submitData as CreateCostCenter);
+        await createCostCenterMutation.mutateAsync(
+          submitData as CreateCostCenter
+        );
       }
       navigate(ROUTES.COST_CENTER);
     } catch {
       setError(COST_CENTER_TEXTS.form.errors.save);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -134,7 +134,12 @@ export const CostCenterForm = () => {
     }
   }, [isEditing, costCenter]);
 
-  if (loading || loadingCostCenter) {
+  const isLoading =
+    loadingCostCenter ||
+    createCostCenterMutation.isPending ||
+    updateCostCenterMutation.isPending;
+
+  if (isLoading) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />
@@ -198,41 +203,41 @@ export const CostCenterForm = () => {
             />
           </div>
 
-          {/* Children Section */}
+          {/* Sección de hijos */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                Centros de Costo Secundarios
+                Centros de Costo Hijos
               </h3>
               <button
                 type="button"
                 onClick={addChild}
                 className="px-3 py-1 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
-                Agregar Centro de Costo Secundario
+                Agregar Hijo
               </button>
             </div>
 
             {formData.children.map((child, index) => (
               <div
                 key={index}
-                className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg space-y-4"
+                className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4"
               >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-md font-medium text-gray-700 dark:text-gray-300">
-                    Centro de Costo Secundario {index + 1}
+                <div className="flex justify-between items-center">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white">
+                    Hijo {index + 1}
                   </h4>
                   <button
                     type="button"
                     onClick={() => removeChild(index)}
-                    className="bg-transparent px-2 py-1 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    className="px-2 py-1 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
                     Eliminar
                   </button>
                 </div>
 
                 <FormInput
-                  id={`child-description-${index}`}
+                  id={`child-${index}-description`}
                   name="description"
                   label="Descripción"
                   value={child.description}
@@ -244,7 +249,7 @@ export const CostCenterForm = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormInput
-                    id={`child-code-${index}`}
+                    id={`child-${index}-code`}
                     name="code"
                     label="Código"
                     value={child.code}
@@ -252,7 +257,7 @@ export const CostCenterForm = () => {
                   />
 
                   <FormInput
-                    id={`child-serial-${index}`}
+                    id={`child-${index}-serial`}
                     name="serial"
                     label="Serial"
                     value={child.serial}
@@ -260,7 +265,7 @@ export const CostCenterForm = () => {
                   />
 
                   <FormInput
-                    id={`child-codeMine-${index}`}
+                    id={`child-${index}-codeMine`}
                     name="codeMine"
                     label="Código Mina"
                     value={child.codeMine}
@@ -284,10 +289,10 @@ export const CostCenterForm = () => {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? COMMON_TEXTS.loading : COMMON_TEXTS.save}
+            {isLoading ? 'Guardando...' : COMMON_TEXTS.save}
           </button>
         </div>
       </form>

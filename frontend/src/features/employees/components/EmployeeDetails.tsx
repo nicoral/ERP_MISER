@@ -2,16 +2,17 @@ import React from 'react';
 import type { Employee } from '../../../types/employee';
 import { EMPLOYEES_TEXTS } from '../../../config/texts';
 import defaultAvatar from '../../../assets/default-avatar.png';
-import { useEmployee } from '../hooks/useEmployee';
+import { useEmployee } from '../hooks/useEmployees';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
+import type { Warehouse } from '../../../types/warehouse';
 
 type Props = {
   employee: Employee;
 };
 
 export const EmployeeDetails: React.FC<Props> = ({ employee }) => {
-  const { employee: employeeDetails, loading } = useEmployee(employee.id);
-  if (loading) return <LoadingSpinner />;
+  const { data: employeeDetails, isLoading } = useEmployee(employee.id);
+  if (isLoading) return <LoadingSpinner />;
   if (!employeeDetails) return <div>Empleado no encontrado</div>;
   return (
     <div className="space-y-4">
@@ -120,7 +121,7 @@ export const EmployeeDetails: React.FC<Props> = ({ employee }) => {
       <div>
         <h3 className="text-lg font-semibold mb-2">Almacenes Asignados</h3>
         <div className="grid grid-cols-3 gap-2">
-          {employeeDetails.warehousesAssigned.map(warehouse => (
+          {employeeDetails.warehousesAssigned.map((warehouse: Warehouse) => (
             <div
               key={warehouse.id}
               className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md text-center"

@@ -1,18 +1,21 @@
-import { useRequirementService } from '../hooks/useRequirements';
+import { useRequirement } from '../hooks/useRequirements';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
+import type { RequirementArticle } from '../../../types/requirement';
 
 export const RequirementDetails = () => {
   const params = useParams();
   const navigate = useNavigate();
-  const { requirement, loading, error } = useRequirementService(
-    params.id ? Number(params.id) : 0
-  );
+  const {
+    data: requirement,
+    isLoading: loading,
+    error,
+  } = useRequirement(params.id ? Number(params.id) : 0);
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (error) return <div className="text-red-500">{error.message}</div>;
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
       {/* Header */}
@@ -31,7 +34,7 @@ export const RequirementDetails = () => {
           </div>
           <div className="text-right">
             <p className="text-sm font-medium">CÓDIGO</p>
-            <p className="text-lg font-bold">{requirement?.code}</p>
+            <p className="text-lg font-bold">MYS-LG-FT-01</p>
           </div>
         </div>
       </div>
@@ -104,35 +107,41 @@ export const RequirementDetails = () => {
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {requirement?.requirementArticles.map((reqArticle, index) => (
-              <tr key={reqArticle.article.id}>
-                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                  {String(index + 1).padStart(3, '0')}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                  {reqArticle.quantity}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                  {reqArticle.article.unitOfMeasure}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                  {reqArticle.article.code}
-                </td>
-                <td className="px-3 py-2 text-sm">{reqArticle.article.name}</td>
-                <td className="px-3 py-2 text-sm">
-                  {reqArticle.justification}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
-                  {reqArticle.currency}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-right">
-                  {(reqArticle.quantity * reqArticle.unitPrice).toFixed(2)}{' '}
-                </td>
-              </tr>
-            ))}
+            {requirement?.requirementArticles.map(
+              (reqArticle: RequirementArticle, index: number) => (
+                <tr key={reqArticle.article.id}>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                    {String(index + 1).padStart(3, '0')}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                    {reqArticle.quantity}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                    {reqArticle.article.unitOfMeasure}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                    {reqArticle.article.code}
+                  </td>
+                  <td className="px-3 py-2 text-sm">
+                    {reqArticle.article.name}
+                  </td>
+                  <td className="px-3 py-2 text-sm">
+                    {reqArticle.justification}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
+                    {reqArticle.currency}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-right">
+                    {(reqArticle.quantity * reqArticle.unitPrice).toFixed(
+                      2
+                    )}{' '}
+                  </td>
+                </tr>
+              )
+            )}
             {/* Subtotal PEN */}
             {requirement?.requirementArticles.some(
-              article => article.currency === 'PEN'
+              (article: RequirementArticle) => article.currency === 'PEN'
             ) && (
               <tr className="bg-gray-50 dark:bg-gray-700">
                 <td colSpan={7} className="px-3 py-2 text-right font-medium">
@@ -140,9 +149,12 @@ export const RequirementDetails = () => {
                 </td>
                 <td className="px-3 py-2 text-right font-medium">
                   {requirement?.requirementArticles
-                    .filter(article => article.currency === 'PEN')
+                    .filter(
+                      (article: RequirementArticle) =>
+                        article.currency === 'PEN'
+                    )
                     .reduce(
-                      (sum, article) =>
+                      (sum: number, article: RequirementArticle) =>
                         sum + article.quantity * article.unitPrice,
                       0
                     )
@@ -152,7 +164,7 @@ export const RequirementDetails = () => {
             )}
             {/* Subtotal USD */}
             {requirement?.requirementArticles.some(
-              article => article.currency === 'USD'
+              (article: RequirementArticle) => article.currency === 'USD'
             ) && (
               <tr className="bg-gray-50 dark:bg-gray-700">
                 <td colSpan={7} className="px-3 py-2 text-right font-medium">
@@ -160,9 +172,12 @@ export const RequirementDetails = () => {
                 </td>
                 <td className="px-3 py-2 text-right font-medium">
                   {requirement?.requirementArticles
-                    .filter(article => article.currency === 'USD')
+                    .filter(
+                      (article: RequirementArticle) =>
+                        article.currency === 'USD'
+                    )
                     .reduce(
-                      (sum, article) =>
+                      (sum: number, article: RequirementArticle) =>
                         sum + article.quantity * article.unitPrice,
                       0
                     )

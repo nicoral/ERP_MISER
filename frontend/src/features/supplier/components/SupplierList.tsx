@@ -1,140 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
 import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
-import {
-  getSuppliers,
-  deleteSupplier,
-} from '../../../services/api/supplierService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
   type TableAction,
   type TableColumn,
 } from '../../../components/common/Table';
-import { SupplierStatus, type Supplier } from '../../../types/supplier';
+import {
+  SupplierStatus,
+  type Supplier,
+  type SupplierFilters,
+} from '../../../types/supplier';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { Modal } from '../../../components/common/Modal';
 import { SupplierDetails } from './SupplierDetails';
+import { useSuppliers, useDeleteSupplier } from '../hooks/useSupplier';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 
 export const SupplierList = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 10,
-    total: 0,
-    totalPages: 0,
-  });
-  const [filters, setFilters] = useState({
+  const deleteSupplierMutation = useDeleteSupplier();
+
+  const [filters, setFilters] = useState<SupplierFilters>({
     code: '',
     name: '',
     contact: '',
   });
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
     null
   );
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      setIsFiltering(true);
-      try {
-        const response = await getSuppliers(1, pagination.pageSize);
-        setSuppliers(response.data);
-        setPagination({
-          page: response.page,
-          pageSize: response.pageSize,
-          total: response.total,
-          totalPages: response.totalPages,
-        });
-      } catch (error) {
-        console.error('Error al cargar proveedores:', error);
-        showError('Error', 'No se pudieron cargar los proveedores');
-      } finally {
-        setIsFiltering(false);
-      }
-    })();
-    // eslint-disable-next-line
-  }, []);
+  // Hook con datos y estados automáticos de React Query
+  const { data, isLoading, isFetching } = useSuppliers(page, 10, filters);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const applyFilters = async () => {
-    setIsFiltering(true);
-    try {
-      setPagination(prev => ({ ...prev, page: 1 }));
-      const response = await getSuppliers(1, pagination.pageSize, filters);
-      setSuppliers(response.data);
-      setPagination(prev => ({
-        ...prev,
-        total: response.total,
-        totalPages: response.totalPages,
-      }));
-    } catch (error) {
-      console.error('Error al filtrar proveedores:', error);
-      showError('Error', 'No se pudieron aplicar los filtros');
-    } finally {
-      setIsFiltering(false);
-    }
-  };
-
-  const clearFilters = async () => {
+  const clearFilters = () => {
     setFilters({ code: '', name: '', contact: '' });
-    setIsFiltering(true);
-    try {
-      const response = await getSuppliers(1, pagination.pageSize);
-      setSuppliers(response.data);
-      setPagination({
-        page: response.page,
-        pageSize: response.pageSize,
-        total: response.total,
-        totalPages: response.totalPages,
-      });
-    } catch (error) {
-      console.error('Error al limpiar filtros:', error);
-      showError('Error', 'No se pudieron limpiar los filtros');
-    } finally {
-      setIsFiltering(false);
-    }
+    setPage(1);
   };
 
-  const handlePageChange = async (newPage: number) => {
-    if (newPage < 1 || newPage > pagination.totalPages) return;
-    setIsFiltering(true);
-    try {
-      if (filters.code || filters.name || filters.contact) {
-        newPage = 1;
-      }
-      const response = await getSuppliers(
-        newPage,
-        pagination.pageSize,
-        filters
-      );
-      setSuppliers(response.data);
-      setPagination(prev => ({
-        ...prev,
-        page: newPage,
-      }));
-    } catch (error) {
-      console.error('Error al cambiar de página:', error);
-      showError('Error', 'No se pudo cargar la página');
-    } finally {
-      setIsFiltering(false);
-    }
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > (data?.totalPages ?? 1)) return;
+    setPage(newPage);
   };
+
+  const handleCreate = () => navigate(ROUTES.SUPPLIERS_CREATE);
+  const handleEdit = (id: number) =>
+    navigate(ROUTES.SUPPLIERS_EDIT.replace(':id', id.toString()));
 
   const handleDelete = async (supplier: Supplier) => {
     if (
@@ -143,28 +66,13 @@ export const SupplierList = () => {
       )
     ) {
       try {
-        setIsDeleting(true);
-        await deleteSupplier(supplier.id);
+        await deleteSupplierMutation.mutateAsync(supplier.id);
         showSuccess(
           'Eliminado',
           `Proveedor ${supplier.businessName} eliminado correctamente`
         );
-        // Recargar la lista
-        const response = await getSuppliers(
-          pagination.page,
-          pagination.pageSize,
-          filters
-        );
-        setSuppliers(response.data);
-        setPagination(prev => ({
-          ...prev,
-          total: response.total,
-          totalPages: response.totalPages,
-        }));
       } catch {
         showError('Error', 'No se pudo eliminar el proveedor');
-      } finally {
-        setIsDeleting(false);
       }
     }
   };
@@ -198,29 +106,27 @@ export const SupplierList = () => {
   };
 
   const columns: TableColumn<Supplier>[] = [
-    { header: WAREHOUSE_TEXTS.suppliers.table.columns.id, accessor: 'id' },
+    { header: 'ID', accessor: 'id' },
+    { header: 'RUC', accessor: 'ruc' },
+    { header: 'Razón Social', accessor: 'businessName' },
+    { header: 'Persona de Contacto', accessor: 'contactPerson' },
+    { header: 'Teléfono', accessor: 'mobile' },
     {
-      header: WAREHOUSE_TEXTS.suppliers.table.columns.ruc,
-      accessor: 'ruc',
+      header: 'Email',
+      accessor: 'email',
+      render: supplier => supplier.email || '-',
     },
     {
-      header: WAREHOUSE_TEXTS.suppliers.table.columns.business_name,
-      accessor: 'businessName',
-    },
-    {
-      header: WAREHOUSE_TEXTS.suppliers.table.columns.contact_person,
-      accessor: 'contactPerson',
-    },
-    {
-      header: WAREHOUSE_TEXTS.suppliers.table.columns.status,
-      render: (sup: Supplier) => getStatusDisplay(sup.status),
+      header: 'Estado',
+      accessor: 'status',
+      render: supplier => getStatusDisplay(supplier.status),
     },
   ];
 
   const actions: TableAction<Supplier>[] = [
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
-      label: WAREHOUSE_TEXTS.suppliers.table.actions.view,
+      label: 'Ver Detalles',
       onClick: (supplier: Supplier) => {
         setSelectedSupplier(supplier);
         setShowDetailsModal(true);
@@ -230,12 +136,8 @@ export const SupplierList = () => {
       ? [
           {
             icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-            label: WAREHOUSE_TEXTS.suppliers.table.actions.edit,
-            onClick: (supplier: Supplier) => {
-              navigate(
-                ROUTES.SUPPLIERS_EDIT.replace(':id', supplier.id.toString())
-              );
-            },
+            label: 'Editar',
+            onClick: (supplier: Supplier) => handleEdit(supplier.id),
           },
         ]
       : []),
@@ -258,27 +160,28 @@ export const SupplierList = () => {
         </h2>
         {hasPermission('create_suppliers') && (
           <button
-            onClick={() => navigate(ROUTES.SUPPLIERS_CREATE)}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
+            onClick={handleCreate}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
           >
             {WAREHOUSE_TEXTS.suppliers.buttons.create}
           </button>
         )}
       </div>
-      {/* Filtros colapsables */}
+
+      {/* Filtros */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center justify-between w-full text-left text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 px-4 py-2 rounded-md"
+          className="flex justify-between w-full text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-md"
         >
-          <span className="font-medium text-base">
-            {WAREHOUSE_TEXTS.suppliers.filters.title}
-          </span>
+          <span>{WAREHOUSE_TEXTS.suppliers.filters.title}</span>
           <svg
-            className={`w-5 h-5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
+            className={`w-5 h-5 transition-transform ${
+              showFilters ? 'rotate-180' : ''
+            }`}
             viewBox="0 0 24 24"
+            stroke="currentColor"
+            fill="none"
           >
             <path
               strokeLinecap="round"
@@ -325,39 +228,31 @@ export const SupplierList = () => {
               >
                 {WAREHOUSE_TEXTS.suppliers.filters.clear}
               </button>
-              <button
-                onClick={applyFilters}
-                disabled={isFiltering}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                {isFiltering
-                  ? WAREHOUSE_TEXTS.suppliers.filters.filtering
-                  : WAREHOUSE_TEXTS.suppliers.filters.apply}
-              </button>
             </div>
           </div>
         )}
       </div>
-      {/* Tabla reutilizable */}
+
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<Supplier>
           columns={columns}
-          data={suppliers}
+          data={data?.data ?? []}
           keyField="id"
-          loading={isFiltering || isDeleting}
+          loading={isLoading || isFetching || deleteSupplierMutation.isPending}
           pagination={{
-            page: pagination.page,
-            totalPages: pagination.totalPages,
-            onPageChange: (newPage: number) => handlePageChange(newPage),
+            page: page,
+            totalPages: data?.totalPages ?? 1,
+            onPageChange: handlePageChange,
           }}
           actions={actions}
-          pageSize={pagination.pageSize}
+          pageSize={10}
         />
       </div>
+
       <Modal
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
-        title={WAREHOUSE_TEXTS.suppliers.details.title}
+        title={`🏢 ${selectedSupplier?.businessName ?? ''}`}
       >
         {selectedSupplier && <SupplierDetails supplier={selectedSupplier} />}
       </Modal>

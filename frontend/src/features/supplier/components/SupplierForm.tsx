@@ -5,11 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { FormInput } from '../../../components/common/FormInput';
 import { ROUTES, UNIQUE_CATEGORIES } from '../../../config/constants';
-import { useSupplier } from '../hooks/useSupplier';
 import {
-  createSupplier,
-  updateSupplier,
-} from '../../../services/api/supplierService';
+  useSupplier,
+  useCreateSupplier,
+  useUpdateSupplier,
+} from '../hooks/useSupplier';
 import { SupplierStatus, type Supplier } from '../../../types/supplier';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { MultiSelect } from '../../../components/common/MultiSelect';
@@ -34,7 +34,11 @@ export const SupplierForm = () => {
   const isEditing = Boolean(params.id);
   const supplierId = params.id ? Number(params.id) : undefined;
 
-  const { supplier, loading: loadingSupplier } = useSupplier(supplierId ?? 0);
+  const { data: supplier, isLoading: loadingSupplier } = useSupplier(
+    supplierId
+  );
+  const createSupplierMutation = useCreateSupplier();
+  const updateSupplierMutation = useUpdateSupplier();
 
   const [formData, setFormData] = useState<FormData>({
     ruc: '',
@@ -50,31 +54,29 @@ export const SupplierForm = () => {
     lines: [],
   });
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
-      if (isEditing) {
-        await updateSupplier(supplierId ?? 0, {
-          ...formData,
-          lines: formData.lines.join('-'),
-        } as Supplier);
+      const submitData = {
+        ...formData,
+        lines: formData.lines.join('-'),
+      } as Omit<Supplier, 'id'>;
+
+      if (isEditing && supplierId) {
+        await updateSupplierMutation.mutateAsync({
+          id: supplierId,
+          data: submitData,
+        });
       } else {
-        await createSupplier({
-          ...formData,
-          lines: formData.lines.join('-'),
-        } as Supplier);
+        await createSupplierMutation.mutateAsync(submitData);
       }
       navigate(ROUTES.SUPPLIERS);
     } catch {
       setError(WAREHOUSE_TEXTS.suppliers.form.errors.save);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -107,7 +109,12 @@ export const SupplierForm = () => {
     }
   }, [isEditing, supplier]);
 
-  if (loading || loadingSupplier) {
+  const isLoading =
+    loadingSupplier ||
+    createSupplierMutation.isPending ||
+    updateSupplierMutation.isPending;
+
+  if (isLoading) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />
@@ -212,43 +219,9 @@ export const SupplierForm = () => {
           </div>
 
           <div>
-            <FormInput
-              id="rating"
-              name="rating"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.rating}
-              value={formData.rating}
-              onChange={handleChange}
-              type="number"
-              min="0"
-              max="100"
-              step="10"
-            />
-          </div>
-
-          <div>
-            <MultiSelect
-              options={UNIQUE_CATEGORIES.map(category => ({
-                label: category,
-                value: category,
-              }))}
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.categories}
-              value={formData.lines}
-              onChange={value =>
-                setFormData(prev => ({ ...prev, lines: value }))
-              }
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="status"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              {WAREHOUSE_TEXTS.suppliers.form.fields.status}
-            </label>
             <FormSelect
-              id="status"
               name="status"
+              label={WAREHOUSE_TEXTS.suppliers.form.fields.status}
               value={formData.status}
               onChange={handleChange}
               required
@@ -265,7 +238,35 @@ export const SupplierForm = () => {
             </FormSelect>
           </div>
 
-          <div className="flex items-center">
+          <div>
+            <FormInput
+              id="rating"
+              name="rating"
+              label={WAREHOUSE_TEXTS.suppliers.form.fields.rating}
+              value={formData.rating}
+              onChange={handleChange}
+              type="number"
+              min="0"
+              max="5"
+              step="0.1"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <MultiSelect
+              label={WAREHOUSE_TEXTS.suppliers.form.fields.categories}
+              options={UNIQUE_CATEGORIES.map(category => ({
+                value: category,
+                label: category,
+              }))}
+              value={formData.lines}
+              onChange={selectedLines =>
+                setFormData(prev => ({ ...prev, lines: selectedLines }))
+              }
+            />
+          </div>
+
+          <div className="md:col-span-2">
             <FormCheckbox
               id="returnPolicy"
               name="returnPolicy"
@@ -286,10 +287,10 @@ export const SupplierForm = () => {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? COMMON_TEXTS.loading : COMMON_TEXTS.save}
+            {isLoading ? COMMON_TEXTS.loading : COMMON_TEXTS.save}
           </button>
         </div>
       </form>

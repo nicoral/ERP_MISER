@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EMPLOYEES_TEXTS } from '../../../config/texts';
 import type { CreateEmployee } from '../../../types/employee';
-import { useEmployee } from '../hooks/useEmployee';
+import {
+  useEmployee,
+  useCreateEmployee,
+  useUpdateEmployee,
+  useUploadEmployeeImage,
+} from '../hooks/useEmployees';
 import { FormInput } from '../../../components/common/FormInput';
 import { FormInputDate } from '../../../components/common/FormInputDate';
 import { useRoles } from '../hooks/userRoles';
@@ -17,11 +22,6 @@ import {
 } from '../../../config/constants';
 import { MultiSelect } from '../../../components/common/MultiSelect';
 import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
-import {
-  createEmployee,
-  updateEmployee,
-  uploadEmployeeImage,
-} from '../../../services/api/employeeService';
 import { FormSelect } from '../../../components/common/FormSelect';
 
 export const EmployeeForm = () => {
@@ -32,19 +32,17 @@ export const EmployeeForm = () => {
     useState<File | null>(null);
   const employeeId = params.id ? Number(params.id) : undefined;
 
-  const {
-    employee,
-    loading: loadingEmployee,
-    error: errorEmployee,
-  } = useEmployee(employeeId);
+  const { data: employee, isLoading: loadingEmployee } =
+    useEmployee(employeeId);
+  const createEmployeeMutation = useCreateEmployee();
+  const updateEmployeeMutation = useUpdateEmployee();
+  const uploadImageMutation = useUploadEmployeeImage();
 
   const { data: warehouses, isLoading: loadingWarehouses } = useWarehouses(
     1,
     1000
   );
   const { roles, loading: loadingRoles, error: errorRoles } = useRoles();
-
-  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState<CreateEmployee>({
     firstName: '',
@@ -65,7 +63,6 @@ export const EmployeeForm = () => {
     warehousesAssigned: [],
   });
 
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
 
@@ -86,26 +83,32 @@ export const EmployeeForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError(null);
-    setLoading(true);
 
     try {
-      if (isEditing) {
-        await updateEmployee(employeeId!, {
-          ...formData,
-          warehousesAssigned: selectedValues.map(Number),
+      const submitData = {
+        ...formData,
+        warehousesAssigned: selectedValues.map(Number),
+      };
+
+      if (isEditing && employeeId) {
+        await updateEmployeeMutation.mutateAsync({
+          id: employeeId,
+          data: submitData,
         });
       } else {
-        await createEmployee({
-          ...formData,
-          warehousesAssigned: selectedValues.map(Number),
-        });
+        const newEmployee =
+          await createEmployeeMutation.mutateAsync(submitData);
+
+        // Si hay imagen seleccionada, subirla después de crear el empleado
+        if (selectedEmployeeImage && newEmployee) {
+          await uploadImageMutation.mutateAsync({
+            id: newEmployee.id,
+            file: selectedEmployeeImage,
+          });
+        }
       }
 
-      if (selectedEmployeeImage) {
-        await uploadEmployeeImage(employeeId!, selectedEmployeeImage);
-      }
       navigate(ROUTES.EMPLOYEES);
     } catch (error) {
       console.error(error);
@@ -114,9 +117,6 @@ export const EmployeeForm = () => {
           ? EMPLOYEES_TEXTS.form.errors.update
           : EMPLOYEES_TEXTS.form.errors.save
       );
-    } finally {
-      setSaving(false);
-      setLoading(false);
     }
   };
 
@@ -131,7 +131,15 @@ export const EmployeeForm = () => {
     }));
   };
 
-  if (loading || loadingEmployee || loadingWarehouses || loadingRoles) {
+  const isLoading =
+    loadingEmployee ||
+    loadingWarehouses ||
+    loadingRoles ||
+    createEmployeeMutation.isPending ||
+    updateEmployeeMutation.isPending ||
+    uploadImageMutation.isPending;
+
+  if (isLoading) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />
@@ -139,10 +147,10 @@ export const EmployeeForm = () => {
     );
   }
 
-  if (isEditing && (errorEmployee || errorRoles)) {
+  if (isEditing && errorRoles) {
     return (
       <div className="p-8 text-center text-red-500 dark:text-red-400">
-        {errorEmployee ?? errorRoles}
+        {errorRoles}
       </div>
     );
   }
@@ -163,7 +171,7 @@ export const EmployeeForm = () => {
       >
         {error && (
           <div className="p-4 text-red-700 bg-red-100 dark:bg-red-900/50 dark:text-red-400 rounded-md">
-            {EMPLOYEES_TEXTS.form.errors.save}
+            {error}
           </div>
         )}
 
@@ -199,12 +207,10 @@ export const EmployeeForm = () => {
               onChange={handleChange}
               required
             >
-              <option value="">
-                {EMPLOYEES_TEXTS.form.select.documentType.placeholder}
-              </option>
-              {DOCUMENT_TYPES.map(documentType => (
-                <option key={documentType} value={documentType}>
-                  {documentType}
+              <option value="">Selecciona tipo de documento</option>
+              {DOCUMENT_TYPES.map(type => (
+                <option key={type} value={type}>
+                  {type}
                 </option>
               ))}
             </FormSelect>
@@ -228,8 +234,8 @@ export const EmployeeForm = () => {
               label={EMPLOYEES_TEXTS.form.fields.email}
               value={formData.email}
               onChange={handleChange}
-              required
               type="email"
+              required
             />
           </div>
 
@@ -241,28 +247,7 @@ export const EmployeeForm = () => {
               value={formData.phone}
               onChange={handleChange}
               required
-              type="tel"
             />
-          </div>
-
-          <div>
-            <FormSelect
-              id="area"
-              name="area"
-              label={EMPLOYEES_TEXTS.form.fields.area}
-              value={formData.area ?? ''}
-              onChange={handleChange}
-              required
-            >
-              <option value="">
-                {EMPLOYEES_TEXTS.form.select.area.placeholder}
-              </option>
-              {EMPLOYEES_AREAS.map(area => (
-                <option key={area} value={area}>
-                  {area}
-                </option>
-              ))}
-            </FormSelect>
           </div>
 
           <div>
@@ -274,9 +259,7 @@ export const EmployeeForm = () => {
               onChange={handleChange}
               required
             >
-              <option value="">
-                {EMPLOYEES_TEXTS.form.select.position.placeholder}
-              </option>
+              <option value="">Selecciona posición</option>
               {EMPLOYEES_POSITIONS.map(position => (
                 <option key={position} value={position}>
                   {position}
@@ -286,11 +269,51 @@ export const EmployeeForm = () => {
           </div>
 
           <div>
-            <FormInput
-              id="address"
-              name="address"
-              label={EMPLOYEES_TEXTS.form.fields.address}
-              value={formData.address}
+            <FormSelect
+              id="area"
+              name="area"
+              label={EMPLOYEES_TEXTS.form.fields.area}
+              value={formData.area || ''}
+              onChange={handleChange}
+            >
+              <option value="">Selecciona área</option>
+              {EMPLOYEES_AREAS.map(area => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </FormSelect>
+          </div>
+
+          <div>
+            <FormSelect
+              id="role"
+              name="role"
+              label={EMPLOYEES_TEXTS.form.fields.role}
+              value={formData.role}
+              onChange={handleChange}
+              required
+              disabled={loadingRoles}
+            >
+              <option value="">Selecciona rol</option>
+              {roles?.map(role => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </FormSelect>
+          </div>
+
+          <div>
+            <FormInputDate
+              id="hireDate"
+              name="hireDate"
+              label={EMPLOYEES_TEXTS.form.fields.hireDate}
+              value={
+                formData.hireDate instanceof Date
+                  ? formData.hireDate.toISOString().split('T')[0]
+                  : ''
+              }
               onChange={handleChange}
               required
             />
@@ -302,23 +325,11 @@ export const EmployeeForm = () => {
               name="birthDate"
               label={EMPLOYEES_TEXTS.form.fields.birthDate}
               value={
-                formData.birthDate
-                  ? new Date(formData.birthDate).toISOString().split('T')[0]
+                formData.birthDate instanceof Date
+                  ? formData.birthDate.toISOString().split('T')[0]
                   : ''
               }
               onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <FormInputDate
-              id="hireDate"
-              name="hireDate"
-              label={EMPLOYEES_TEXTS.form.fields.hireDate}
-              value={new Date(formData.hireDate).toISOString().split('T')[0]}
-              onChange={handleChange}
-              required
             />
           </div>
 
@@ -328,48 +339,39 @@ export const EmployeeForm = () => {
               name="dischargeDate"
               label={EMPLOYEES_TEXTS.form.fields.dischargeDate}
               value={
-                formData.dischargeDate
-                  ? new Date(formData.dischargeDate).toISOString().split('T')[0]
+                formData.dischargeDate instanceof Date
+                  ? formData.dischargeDate.toISOString().split('T')[0]
                   : ''
               }
               onChange={handleChange}
             />
           </div>
-          <div>
-            <FormSelect
-              id="role"
-              name="role"
-              label={EMPLOYEES_TEXTS.form.fields.role}
-              value={formData.role}
+
+          <div className="md:col-span-2">
+            <FormInput
+              id="address"
+              name="address"
+              label={EMPLOYEES_TEXTS.form.fields.address}
+              value={formData.address}
               onChange={handleChange}
-              required
-            >
-              <option value="">
-                {EMPLOYEES_TEXTS.form.select.role.placeholder}
-              </option>
-              {roles.map(role => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </FormSelect>
+            />
           </div>
 
-          <div>
+          <div className="md:col-span-2">
             <MultiSelect
               label={EMPLOYEES_TEXTS.form.fields.warehousesAssigned}
               options={
-                warehouses?.data.map(warehouse => ({
-                  label: warehouse.name,
+                warehouses?.data?.map(warehouse => ({
                   value: warehouse.id.toString(),
-                })) ?? []
+                  label: warehouse.name,
+                })) || []
               }
               value={selectedValues}
               onChange={setSelectedValues}
             />
           </div>
 
-          <div className="flex items-center">
+          <div className="md:col-span-2">
             <FormCheckbox
               id="active"
               name="active"
@@ -378,33 +380,31 @@ export const EmployeeForm = () => {
               onChange={handleChange}
             />
           </div>
-        </div>
 
-        <div className="flex justify-center mb-6">
-          <ImagePreview
-            imageUrl={formData.imageUrl}
-            onChange={file => {
-              setSelectedEmployeeImage(file);
-            }}
-          />
+          <div className="md:col-span-2">
+            <ImagePreview
+              imageUrl={employee?.imageUrl || ''}
+              onChange={file => {
+                setSelectedEmployeeImage(file);
+              }}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end space-x-4">
           <button
             type="button"
-            onClick={() => navigate('/employees')}
+            onClick={() => navigate(ROUTES.EMPLOYEES)}
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            {EMPLOYEES_TEXTS.form.buttons.cancel}
+            Cancelar
           </button>
           <button
             type="submit"
-            disabled={saving}
+            disabled={isLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving
-              ? EMPLOYEES_TEXTS.form.buttons.saving
-              : EMPLOYEES_TEXTS.form.buttons.save}
+            {isLoading ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
       </form>

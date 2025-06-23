@@ -17,7 +17,7 @@ export default class PermissionSeeder implements Seeder {
             },
             {
                 id: 2,
-                name: 'view_employees',
+                name: 'view_employee',
                 endpoint: '/employees',
                 method: 'GET',
                 description: 'Ver lista de empleados'

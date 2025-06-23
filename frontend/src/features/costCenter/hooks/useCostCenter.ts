@@ -1,62 +1,83 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getCostCenter,
   getCostCenters,
+  createCostCenter,
+  updateCostCenter,
+  deleteCostCenter,
 } from '../../../services/api/costCenterService';
-import type { CostCenter } from '../../../types/costCenter';
+import type {
+  CostCenter,
+  CreateCostCenter,
+  UpdateCostCenter,
+} from '../../../types/costCenter';
+import type { PaginatedResponse } from '../../../types/generic';
 
+/**
+ * Lista de centros de costo con paginación y búsqueda.
+ */
 export const useCostCenters = (
   page: number = 1,
   pageSize: number = 10,
   search?: string
 ) => {
-  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCostCenters = async () => {
-      try {
-        const response = await getCostCenters(page, pageSize, search);
-        setCostCenters(response.data);
-      } catch (error) {
-        setError('Error al cargar los centros de costo');
-        console.error('Error fetching cost centers:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCostCenters();
-  }, [page, pageSize, search]);
-
-  return { costCenters, loading, error };
+  return useQuery<PaginatedResponse<CostCenter>>({
+    queryKey: ['costCenters', { page, pageSize, search }],
+    queryFn: () => getCostCenters(page, pageSize, search),
+    placeholderData: prev => prev,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
 };
 
-export const useCostCenter = (id: number) => {
-  const [costCenter, setCostCenter] = useState<CostCenter | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Obtiene un centro de costo por ID.
+ */
+export const useCostCenter = (id: number | undefined) => {
+  return useQuery<CostCenter | null>({
+    queryKey: ['costCenter', id],
+    queryFn: () => getCostCenter(id!),
+    placeholderData: prev => prev,
+    enabled: !!id,
+  });
+};
 
-  useEffect(() => {
-    const fetchCostCenter = async () => {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
+/**
+ * Crear centro de costo.
+ */
+export const useCreateCostCenter = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateCostCenter) => createCostCenter(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['costCenters'] });
+    },
+  });
+};
 
-      try {
-        const data = await getCostCenter(id);
-        setCostCenter(data);
-      } catch (err) {
-        console.error(err);
-        setError('Error al cargar el centro de costo');
-      } finally {
-        setLoading(false);
-      }
-    };
+/**
+ * Actualizar centro de costo.
+ */
+export const useUpdateCostCenter = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateCostCenter }) =>
+      updateCostCenter(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['costCenter', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['costCenters'] });
+    },
+  });
+};
 
-    fetchCostCenter();
-  }, [id]);
-
-  return { costCenter, loading, error };
+/**
+ * Eliminar centro de costo.
+ */
+export const useDeleteCostCenter = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteCostCenter(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['costCenters'] });
+    },
+  });
 };

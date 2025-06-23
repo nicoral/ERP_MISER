@@ -15,7 +15,7 @@ import {
   TabsTrigger,
 } from '../components/ui/tabs';
 import { toast, Toaster } from 'sonner';
-import { useEmployee } from '../features/employees/hooks/useEmployee';
+import { useEmployee } from '../features/employees/hooks/useEmployees';
 import { FormInput } from '../components/common/FormInput';
 import {
   updateEmployee,
@@ -28,7 +28,7 @@ import { updatePassword } from '../services/auth/authService';
 export default function Profile() {
   const { user } = useAuth();
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const { employee: employeeData } = useEmployee(user?.id);
+  const { data: employeeData } = useEmployee(user?.id);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',

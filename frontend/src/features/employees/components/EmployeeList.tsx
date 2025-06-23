@@ -1,15 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { EMPLOYEES_TEXTS } from '../../../config/texts';
-import { useEmployees } from '../hooks/useEmployees';
-import type { Employee } from '../../../types/employee';
-import React, { useState, useEffect } from 'react';
+import { useEmployees, useDeleteEmployee } from '../hooks/useEmployees';
+import type { Employee, EmployeeFilters } from '../../../types/employee';
+import React, { useState } from 'react';
 import {
   ChevronDownIcon,
   EditIcon,
   EyeIcon,
   TrashIcon,
 } from '../../../components/common/Icons';
-import { getEmployees } from '../../../services/api/employeeService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
@@ -23,123 +22,40 @@ import { useToast } from '../../../contexts/ToastContext';
 
 export const EmployeeList = () => {
   const navigate = useNavigate();
-  const {
-    employees: initialEmployees,
-    loading,
-    error,
-    deleteEmployee,
-  } = useEmployees();
   const { showSuccess, showError } = useToast();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const deleteEmployeeMutation = useDeleteEmployee();
+
+  const [filters, setFilters] = useState<EmployeeFilters>({ search: '' });
+  const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 10,
-    total: 0,
-    totalPages: 0,
-  });
-  const [filters, setFilters] = useState({
-    search: '',
-  });
-  const [isFiltering, setIsFiltering] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Sincronizar empleados cuando cambie el hook (por ejemplo, al cargar)
-  useEffect(() => {
-    if (initialEmployees) {
-      setEmployees(initialEmployees.data);
-      setPagination({
-        page: initialEmployees.page,
-        pageSize: initialEmployees.pageSize,
-        total: initialEmployees.total,
-        totalPages: initialEmployees.totalPages,
-      });
-    }
-  }, [initialEmployees]);
+  // Hook con datos y estados automáticos de React Query
+  const { data, isLoading, isFetching } = useEmployees(page, 10, filters);
 
   // Manejar cambios en los filtros
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Aplicar filtros
-  const applyFilters = async () => {
-    setIsFiltering(true);
-    try {
-      // Primero actualizamos la página a 1
-      setPagination(prev => ({
-        ...prev,
-        page: 1,
-      }));
-
-      const response = await getEmployees(1, pagination.pageSize, filters);
-      setEmployees(response.data);
-      setPagination(prev => ({
-        ...prev,
-        total: response.total,
-        totalPages: response.totalPages,
-      }));
-    } catch (error) {
-      console.error('Error al filtrar empleados:', error);
-      showError('Error', 'No se pudieron aplicar los filtros');
-    } finally {
-      setIsFiltering(false);
-    }
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   // Limpiar filtros
   const clearFilters = () => {
     setFilters({ search: '' });
-    if (initialEmployees) {
-      setEmployees(initialEmployees.data);
-      setPagination({
-        page: initialEmployees.page,
-        pageSize: initialEmployees.pageSize,
-        total: initialEmployees.total,
-        totalPages: initialEmployees.totalPages,
-      });
-    }
+    setPage(1);
   };
 
   // Cambiar de página
-  const handlePageChange = async (newPage: number) => {
-    if (newPage < 1 || newPage > pagination.totalPages) return;
-
-    setIsFiltering(true);
-    try {
-      // Si hay filtros activos, forzar página 1
-      if (filters.search) {
-        newPage = 1;
-      }
-
-      const response = await getEmployees(
-        newPage,
-        pagination.pageSize,
-        filters
-      );
-      setEmployees(response.data);
-      setPagination(prev => ({
-        ...prev,
-        page: newPage,
-      }));
-    } catch (error) {
-      console.error('Error al cambiar de página:', error);
-      showError('Error', 'No se pudo cargar la página');
-    } finally {
-      setIsFiltering(false);
-    }
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > (data?.totalPages ?? 1)) return;
+    setPage(newPage);
   };
 
-  const handleEdit = (id: number) => {
-    navigate(`/employees/${id}/edit`);
-  };
+  const handleCreate = () => navigate('/employees/create');
+  const handleEdit = (id: number) => navigate(`/employees/${id}/edit`);
 
   const handleDelete = async (employee: Employee) => {
     if (
@@ -148,20 +64,13 @@ export const EmployeeList = () => {
       )
     ) {
       try {
-        setIsDeleting(true);
-        const success = await deleteEmployee(employee.id);
-        if (success) {
-          showSuccess(
-            'Eliminado',
-            `Empleado ${employee.firstName} ${employee.lastName} eliminado correctamente`
-          );
-        } else {
-          showError('Error', 'No se pudo eliminar el empleado');
-        }
-      } catch (error) {
+        await deleteEmployeeMutation.mutateAsync(employee.id);
+        showSuccess(
+          'Eliminado',
+          `Empleado ${employee.firstName} ${employee.lastName} eliminado correctamente`
+        );
+      } catch {
         showError('Error', 'No se pudo eliminar el empleado');
-      } finally {
-        setIsDeleting(false);
       }
     }
   };
@@ -199,15 +108,16 @@ export const EmployeeList = () => {
     },
     {
       header: EMPLOYEES_TEXTS.table.columns.status,
-      render: (emp: Employee) => (
+      accessor: 'active',
+      render: (employee: Employee) => (
         <span
           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            emp.active
+            employee.active
               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
           }`}
         >
-          {emp.active
+          {employee.active
             ? EMPLOYEES_TEXTS.table.status.active
             : EMPLOYEES_TEXTS.table.status.inactive}
         </span>
@@ -215,19 +125,21 @@ export const EmployeeList = () => {
     },
   ];
 
-  // Acciones para la tabla de empleados
   const actions: TableAction<Employee>[] = [
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: EMPLOYEES_TEXTS.table.actions.view,
-      onClick: (emp: Employee) => setSelectedEmployee(emp),
+      onClick: (employee: Employee) => {
+        setSelectedEmployee(employee);
+        setShowDetailsModal(true);
+      },
     },
     ...(hasPermission('update_employee')
       ? [
           {
             icon: <EditIcon className="w-5 h-5 text-blue-600" />,
             label: EMPLOYEES_TEXTS.table.actions.edit,
-            onClick: (emp: Employee) => handleEdit(emp.id),
+            onClick: (employee: Employee) => handleEdit(employee.id),
           },
         ]
       : []),
@@ -236,30 +148,22 @@ export const EmployeeList = () => {
           {
             icon: <TrashIcon className="w-5 h-5 text-red-600" />,
             label: 'Eliminar',
-            onClick: (emp: Employee) => handleDelete(emp),
+            onClick: (employee: Employee) => handleDelete(employee),
           },
         ]
       : []),
   ];
 
-  if (error) {
-    return (
-      <div className="h-full flex-1 flex justify-center items-center">
-        <div className="text-red-500">{error}</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="sm:p-8 p-4">
+    <div className="sm:p-8 p-2">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {EMPLOYEES_TEXTS.title}
         </h2>
         {hasPermission('create_employee') && (
           <button
-            onClick={() => navigate('/employees/create')}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            onClick={handleCreate}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
           >
             {EMPLOYEES_TEXTS.buttons.create}
           </button>
@@ -270,19 +174,18 @@ export const EmployeeList = () => {
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center justify-between w-full text-left text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 px-4 py-2 rounded-md"
+          className="flex justify-between w-full text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-md"
         >
-          <span className="font-medium text-base">
-            {EMPLOYEES_TEXTS.filters.title}
-          </span>
+          <span>{EMPLOYEES_TEXTS.filters.title}</span>
           <ChevronDownIcon
-            className={`w-5 h-5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 transition-transform ${
+              showFilters ? 'rotate-180' : ''
+            }`}
           />
         </button>
-
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormInput
                 id="search"
                 name="search"
@@ -299,44 +202,31 @@ export const EmployeeList = () => {
               >
                 {EMPLOYEES_TEXTS.filters.clear}
               </button>
-              <button
-                onClick={applyFilters}
-                disabled={isFiltering}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                {isFiltering
-                  ? EMPLOYEES_TEXTS.filters.filtering
-                  : EMPLOYEES_TEXTS.filters.apply}
-              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Tabla reutilizable */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<Employee>
           columns={columns}
-          data={employees}
+          data={data?.data ?? []}
           keyField="id"
-          loading={loading || isFiltering || isDeleting}
+          loading={isLoading || isFetching || deleteEmployeeMutation.isPending}
           pagination={{
-            page: pagination.page,
-            totalPages: pagination.totalPages,
-            onPageChange: (newPage: number) => handlePageChange(newPage),
+            page: page,
+            totalPages: data?.totalPages ?? 1,
+            onPageChange: handlePageChange,
           }}
           actions={actions}
-          pageSize={pagination.pageSize}
+          pageSize={10}
         />
       </div>
+
       <Modal
-        isOpen={!!selectedEmployee}
-        onClose={() => setSelectedEmployee(null)}
-        title={
-          selectedEmployee
-            ? `🧾 ${selectedEmployee.firstName} ${selectedEmployee.lastName}`
-            : ''
-        }
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title={`👤 ${selectedEmployee?.firstName ?? ''} ${selectedEmployee?.lastName ?? ''}`}
       >
         {selectedEmployee && <EmployeeDetails employee={selectedEmployee} />}
       </Modal>

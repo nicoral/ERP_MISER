@@ -3,7 +3,12 @@ import {
   type TableColumn,
   type TableAction,
 } from '../../../components/common/Table';
-import { useRequirements } from '../hooks/useRequirements';
+import {
+  useRequirements,
+  useDeleteRequirement,
+  usePublishRequirement,
+  useGenerateRequirementPdf,
+} from '../hooks/useRequirements';
 import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
 import { useNavigate } from 'react-router-dom';
@@ -14,11 +19,6 @@ import {
   EditIcon,
 } from '../../../components/common/Icons';
 import { DownloadIcon } from 'lucide-react';
-import {
-  generateRequirementPdf,
-  publishRequirement,
-  deleteRequirement,
-} from '../../../services/api/requirementService';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
@@ -26,9 +26,19 @@ import { useState } from 'react';
 export const RequirementList = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const { requirements, loading, pagination, handlePageChange, refetch } =
-    useRequirements(1, 10);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteRequirementMutation = useDeleteRequirement();
+  const publishRequirementMutation = usePublishRequirement();
+  const generatePdfMutation = useGenerateRequirementPdf();
+
+  const [page, setPage] = useState(1);
+
+  // Hook con datos y estados automáticos de React Query
+  const { data, isLoading, isFetching } = useRequirements(page, 10);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > Math.ceil((data?.total ?? 0) / 10)) return;
+    setPage(newPage);
+  };
 
   const handleViewDetails = (requirement: Requirement) => {
     navigate(
@@ -36,28 +46,27 @@ export const RequirementList = () => {
     );
   };
 
-  const handleDownloadPdf = (requirement: Requirement) => {
-    generateRequirementPdf(requirement.id).then(blob => {
+  const handleDownloadPdf = async (requirement: Requirement) => {
+    try {
+      const blob = await generatePdfMutation.mutateAsync(requirement.id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${requirement.code}.pdf`;
       a.click();
-    });
-    showSuccess('Descargado', 'Requerimiento descargado correctamente');
+      showSuccess('Descargado', 'Requerimiento descargado correctamente');
+    } catch {
+      showError('Error', 'No se pudo descargar el PDF');
+    }
   };
 
-  const handlePublish = (requirement: Requirement) => {
-    publishRequirement(requirement.id)
-      .then(() => {
-        showSuccess('Publicado', 'Requerimiento publicado correctamente');
-      })
-      .catch(error => {
-        showError('Error', error.message);
-      })
-      .finally(() => {
-        refetch();
-      });
+  const handlePublish = async (requirement: Requirement) => {
+    try {
+      await publishRequirementMutation.mutateAsync(requirement.id);
+      showSuccess('Publicado', 'Requerimiento publicado correctamente');
+    } catch {
+      showError('Error', 'No se pudo publicar el requerimiento');
+    }
   };
 
   const handleDelete = async (requirement: Requirement) => {
@@ -67,17 +76,13 @@ export const RequirementList = () => {
       )
     ) {
       try {
-        setIsDeleting(true);
-        await deleteRequirement(requirement.id);
+        await deleteRequirementMutation.mutateAsync(requirement.id);
         showSuccess(
           'Eliminado',
           `Requerimiento ${requirement.code} eliminado correctamente`
         );
-        refetch();
       } catch {
         showError('Error', 'No se pudo eliminar el requerimiento');
-      } finally {
-        setIsDeleting(false);
       }
     }
   };
@@ -198,17 +203,17 @@ export const RequirementList = () => {
   ];
 
   return (
-    <div className="sm:p-8 p-4">
+    <div className="sm:p-8 p-2">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Lista de Requerimientos
+          Requerimientos
         </h2>
         {hasPermission('create_requirement') && (
           <button
             onClick={() => navigate(ROUTES.REQUIREMENTS_CREATE)}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
           >
-            Crear requerimiento
+            Crear Requerimiento
           </button>
         )}
       </div>
@@ -216,16 +221,22 @@ export const RequirementList = () => {
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<Requirement>
           columns={columns}
-          data={requirements}
+          data={data?.requirements ?? []}
           keyField="id"
-          loading={loading || isDeleting}
+          loading={
+            isLoading ||
+            isFetching ||
+            deleteRequirementMutation.isPending ||
+            publishRequirementMutation.isPending ||
+            generatePdfMutation.isPending
+          }
           pagination={{
-            page: pagination.page,
-            totalPages: pagination.totalPages,
+            page: page,
+            totalPages: Math.ceil((data?.total ?? 0) / 10),
             onPageChange: handlePageChange,
           }}
-          pageSize={pagination.pageSize}
           actions={actions}
+          pageSize={10}
         />
       </div>
     </div>

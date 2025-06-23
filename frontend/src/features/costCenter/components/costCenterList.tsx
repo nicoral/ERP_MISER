@@ -1,8 +1,4 @@
-import { useEffect, useState } from 'react';
-import {
-  getCostCenters,
-  deleteCostCenter,
-} from '../../../services/api/costCenterService';
+import { useState } from 'react';
 import type { CostCenter } from '../../../types/costCenter';
 import type { TableAction, TableColumn } from '../../../types/table';
 import { EditIcon, TrashIcon, EyeIcon } from '../../../components/common/Icons';
@@ -12,45 +8,23 @@ import { FormInput } from '../../../components/common/FormInput';
 import { Table } from '../../../components/common/Table';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
+import { useCostCenters, useDeleteCostCenter } from '../hooks/useCostCenter';
 
 export const CostCenterList = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 10,
-    total: 0,
-    totalPages: 0,
-  });
-  const [filters, setFilters] = useState({
-    description: '',
-  });
-  const [isFiltering, setIsFiltering] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteCostCenterMutation = useDeleteCostCenter();
 
-  useEffect(() => {
-    const fetchCostCenters = async () => {
-      setIsLoading(true);
-      try {
-        const response = await getCostCenters(
-          pagination.page,
-          pagination.pageSize,
-          filters.description
-        );
-        setCostCenters(response.data);
-        setPagination(response);
-      } catch (error) {
-        console.error('Error al cargar centros de costo:', error);
-        showError('Error', 'No se pudieron cargar los centros de costo');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchCostCenters();
-  }, []);
+  const [filters, setFilters] = useState({ description: '' });
+  const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Hook con datos y estados automáticos de React Query
+  const { data, isLoading, isFetching } = useCostCenters(
+    page,
+    10,
+    filters.description
+  );
 
   const columns: TableColumn<CostCenter>[] = [
     { header: 'ID', accessor: 'id' },
@@ -76,34 +50,23 @@ export const CostCenterList = () => {
   ];
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   const clearFilters = () => {
     setFilters({ description: '' });
+    setPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
-    setPagination({ ...pagination, page: newPage });
+    if (newPage < 1 || newPage > (data?.totalPages ?? 1)) return;
+    setPage(newPage);
   };
 
-  const applyFilters = async () => {
-    setIsFiltering(true);
-    try {
-      const response = await getCostCenters(
-        pagination.page,
-        pagination.pageSize,
-        filters.description
-      );
-      setCostCenters(response.data);
-      setPagination(response);
-    } catch (error) {
-      console.error('Error al filtrar centros de costo:', error);
-      showError('Error', 'No se pudieron aplicar los filtros');
-    } finally {
-      setIsFiltering(false);
-    }
-  };
+  const handleCreate = () => navigate(ROUTES.COST_CENTER_CREATE);
+  const handleEdit = (id: number) =>
+    navigate(ROUTES.COST_CENTER_EDIT.replace(':id', id.toString()));
 
   const handleDelete = async (costCenter: CostCenter) => {
     if (
@@ -112,24 +75,13 @@ export const CostCenterList = () => {
       )
     ) {
       try {
-        setIsDeleting(true);
-        await deleteCostCenter(costCenter.id);
+        await deleteCostCenterMutation.mutateAsync(costCenter.id);
         showSuccess(
           'Eliminado',
           `Centro de costo "${costCenter.description}" eliminado correctamente`
         );
-        // Recargar la lista
-        const response = await getCostCenters(
-          pagination.page,
-          pagination.pageSize,
-          filters.description
-        );
-        setCostCenters(response.data);
-        setPagination(response);
       } catch {
         showError('Error', 'No se pudo eliminar el centro de costo');
-      } finally {
-        setIsDeleting(false);
       }
     }
   };
@@ -149,11 +101,7 @@ export const CostCenterList = () => {
           {
             icon: <EditIcon className="w-5 h-5 text-blue-600" />,
             label: 'Editar',
-            onClick: (costCenter: CostCenter) => {
-              navigate(
-                ROUTES.COST_CENTER_EDIT.replace(':id', costCenter.id.toString())
-              );
-            },
+            onClick: (costCenter: CostCenter) => handleEdit(costCenter.id),
           },
         ]
       : []),
@@ -176,13 +124,14 @@ export const CostCenterList = () => {
         </h2>
         {hasPermission('create_cost_centers') && (
           <button
-            onClick={() => navigate(ROUTES.COST_CENTER_CREATE)}
+            onClick={handleCreate}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
           >
             Crear Centro de Costo
           </button>
         )}
       </div>
+
       {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
         <button
@@ -191,7 +140,9 @@ export const CostCenterList = () => {
         >
           <span className="font-medium text-base">Filtros</span>
           <svg
-            className={`w-5 h-5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 transform transition-transform duration-200 ${
+              showFilters ? 'rotate-180' : ''
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -204,16 +155,17 @@ export const CostCenterList = () => {
             />
           </svg>
         </button>
+
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormInput
-                id="search"
+                id="description"
                 name="description"
-                label="Buscar por descripción"
+                label="Descripción"
                 value={filters.description}
                 onChange={handleFilterChange}
-                placeholder="Buscar centros de costo..."
+                placeholder="Buscar por descripción..."
               />
             </div>
             <div className="mt-4 flex justify-end space-x-3">
@@ -223,31 +175,26 @@ export const CostCenterList = () => {
               >
                 Limpiar
               </button>
-              <button
-                onClick={applyFilters}
-                disabled={isFiltering}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                {isFiltering ? 'Filtrando...' : 'Aplicar Filtros'}
-              </button>
             </div>
           </div>
         )}
       </div>
-      {/* Tabla reutilizable */}
+
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<CostCenter>
           columns={columns}
-          data={costCenters}
+          data={data?.data ?? []}
           keyField="id"
-          loading={isLoading || isDeleting}
+          loading={
+            isLoading || isFetching || deleteCostCenterMutation.isPending
+          }
           pagination={{
-            page: pagination.page,
-            totalPages: pagination.totalPages,
-            onPageChange: (newPage: number) => handlePageChange(newPage),
+            page: page,
+            totalPages: data?.totalPages ?? 1,
+            onPageChange: handlePageChange,
           }}
           actions={actions}
-          pageSize={pagination.pageSize}
+          pageSize={10}
         />
       </div>
     </div>

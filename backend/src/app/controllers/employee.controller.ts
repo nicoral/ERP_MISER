@@ -36,7 +36,7 @@ export class EmployeeController {
   }
 
   @Get()
-  @RequirePermissions('view_employees')
+  @RequirePermissions('view_employee')
   @AuditDescription('Consulta de lista de empleados')
   async findAll(
     @Query('page') page: number = 1,
@@ -52,7 +52,7 @@ export class EmployeeController {
   }
 
   @Get(':id')
-  @RequirePermissions('view_employees')
+  @RequirePermissions('view_employee')
   @AuditDescription('Consulta de detalle de empleado')
   async findOne(@Param('id') id: number): Promise<Employee> {
     return this.employeeService.findOne(id);

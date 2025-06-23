@@ -49,7 +49,7 @@ const menuItems: MenuItem[] = [
   {
     label: SIDEBAR_TEXTS.employees,
     path: ROUTES.EMPLOYEES,
-    permission: ['view_employees'],
+    permission: ['view_employee'],
     icon: <EmployeesIcon className="w-5 h-5" />,
   },
   {

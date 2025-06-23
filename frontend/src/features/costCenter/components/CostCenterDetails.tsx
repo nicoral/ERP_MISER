@@ -111,9 +111,9 @@ export const CostCenterDetails = () => {
   const params = useParams();
   const costCenterId = params.id ? Number(params.id) : 0;
 
-  const { costCenter, loading } = useCostCenter(costCenterId);
+  const { data: costCenter, isLoading } = useCostCenter(costCenterId);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-full flex-1 flex justify-center items-center">
         <LoadingSpinner size="lg" className="text-blue-600" />

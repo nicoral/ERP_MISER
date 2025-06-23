@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Modal } from '../../../components/common/Modal';
 import { FormInput } from '../../../components/common/FormInput';
 import { FormSelect } from '../../../components/common/FormSelect';
-import { getCurrentUser } from '../../../services/auth/authService';
 import {
   CheckIcon,
   TrashIcon,
@@ -11,16 +10,16 @@ import {
 import { useArticleService } from '../../../hooks/useArticleService';
 import { useCostCenters } from '../../costCenter/hooks/useCostCenter';
 import { PRIORITIES, ROUTES } from '../../../config/constants';
-import {
-  createRequirement,
-  updateRequirement,
-  getRequirement,
-} from '../../../services/api/requirementService';
 import { useNavigate, useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../../components/common/ErrorBanner';
 import type { RequirementArticle } from '../../../types/requirement';
 import { useAuthWarehouse } from '../../../hooks/useAuthService';
+import {
+  useRequirement,
+  useCreateRequirement,
+  useUpdateRequirement,
+} from '../hooks/useRequirements';
 
 interface ArticlesSelected {
   id: number;
@@ -46,11 +45,21 @@ export const RequirementForm = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
-  const user = getCurrentUser();
+
+  // React Query hooks
+  const { data: requirement, isLoading: loadingRequirement } = useRequirement(
+    isEditing ? Number(id) : undefined
+  );
+  const createRequirementMutation = useCreateRequirement();
+  const updateRequirementMutation = useUpdateRequirement();
+
   // Warehouses
   const { warehouses, loading: loadingWarehouse } = useAuthWarehouse();
   // Cost Centers
-  const { costCenters, loading: loadingCostCenters } = useCostCenters(1, 1000);
+  const { data: costCenters, isLoading: loadingCostCenters } = useCostCenters(
+    1,
+    1000
+  );
   // Articles (products)
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -74,51 +83,46 @@ export const RequirementForm = () => {
   });
   const [articlesSelected, setArticlesSelected] = useState<Products[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [loadingData, setLoadingData] = useState(isEditing);
   const [error, setError] = useState<string | null>(null);
 
   // Cargar datos del requerimiento si se está editando
   useEffect(() => {
-    if (isEditing && id) {
-      const loadRequirement = async () => {
-        try {
-          setLoadingData(true);
-          const requirement = await getRequirement(Number(id));
+    if (isEditing && requirement) {
+      setForm({
+        priority: requirement.priority,
+        costCenter: requirement.costCenter.id.toString(),
+        costCenterSecondary: requirement.costCenterSecondary.id.toString(),
+        warehouse: requirement.warehouse.id.toString(),
+        observations: requirement.observation || '',
+      });
 
-          setForm({
-            priority: requirement.priority,
-            costCenter: requirement.costCenter.id.toString(),
-            costCenterSecondary: requirement.costCenterSecondary.id.toString(),
-            warehouse: requirement.warehouse.id.toString(),
-            observations: requirement.observation || '',
-          });
+      // Convertir los artículos del requerimiento al formato del formulario
+      const requirementProducts: Products[] =
+        requirement.requirementArticles.map((ra: RequirementArticle) => ({
+          id: ra.article.id,
+          code: ra.article.code,
+          name: ra.article.name,
+          brand: ra.article.brand.name,
+          unit: ra.article.unitOfMeasure,
+          quantity: ra.quantity.toString(),
+          unitPrice: ra.unitPrice.toString(),
+          currency: ra.currency,
+          justification: ra.justification,
+        }));
 
-          // Convertir los artículos del requerimiento al formato del formulario
-          const requirementProducts: Products[] =
-            requirement.requirementArticles.map((ra: RequirementArticle) => ({
-              id: ra.article.id,
-              code: ra.article.code,
-              name: ra.article.name,
-              brand: ra.article.brand.name,
-              unit: ra.article.unitOfMeasure,
-              quantity: ra.quantity.toString(),
-              unitPrice: ra.unitPrice.toString(),
-              currency: ra.currency,
-              justification: ra.justification,
-            }));
-
-          setArticlesSelected(requirementProducts);
-        } catch (error) {
-          console.error('Error loading requirement:', error);
-          setError('Error al cargar el requerimiento');
-        } finally {
-          setLoadingData(false);
-        }
-      };
-
-      loadRequirement();
+      setArticlesSelected(requirementProducts);
     }
-  }, [isEditing, id]);
+  }, [isEditing, requirement]);
+
+  // Auto-seleccionar almacén si solo hay uno disponible
+  useEffect(() => {
+    if (warehouses && warehouses.length === 1 && !form.warehouse) {
+      setForm(prev => ({
+        ...prev,
+        warehouse: warehouses[0].id.toString(),
+      }));
+    }
+  }, [warehouses, form.warehouse]);
 
   // Manejo de inputs generales
   const handleChange = (
@@ -148,6 +152,30 @@ export const RequirementForm = () => {
     );
   };
 
+  // Manejo específico para campos que deben estar en mayúsculas
+  const handleTextInput = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    const upperValue = value.toUpperCase();
+
+    if (name === 'observations') {
+      setForm(prev => ({ ...prev, [name]: upperValue }));
+    } else {
+      // Para justificaciones en artículos
+      const articleId = parseInt(
+        e.target.getAttribute('data-article-id') || '0'
+      );
+      if (articleId) {
+        setArticlesSelected(prev =>
+          prev.map(a =>
+            a.id === articleId ? { ...a, justification: upperValue } : a
+          )
+        );
+      }
+    }
+  };
+
   // Añadir producto desde el modal
   const addProductToArticles = (product: ArticlesSelected) => {
     if (!articlesSelected.some(a => a.id === product.id)) {
@@ -172,15 +200,41 @@ export const RequirementForm = () => {
     setArticlesSelected(prev => prev.filter(a => a.id !== id));
   };
 
+  // Verificar si un artículo ya está seleccionado
+  const isArticleSelected = (articleId: number) => {
+    return articlesSelected.some(a => a.id === articleId);
+  };
+
+  // Calcular total por producto
+  const calculateProductTotal = (quantity: string, unitPrice: string) => {
+    const qty = parseFloat(quantity) || 0;
+    const price = parseFloat(unitPrice) || 0;
+    return qty * price;
+  };
+
+  // Calcular subtotales por moneda
+  const calculateSubtotals = () => {
+    const subtotals = { PEN: 0, USD: 0 };
+
+    articlesSelected.forEach(article => {
+      const total = calculateProductTotal(article.quantity, article.unitPrice);
+      subtotals[article.currency] += total;
+    });
+
+    return subtotals;
+  };
+
+  const subtotals = calculateSubtotals();
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoadingData(true);
     setError(null);
+
     if (articlesSelected.length === 0) {
       setError('Debe seleccionar al menos un artículo');
-      setLoadingData(false);
       return;
     }
+
     const data = {
       priority: form.priority,
       costCenterId: form.costCenter,
@@ -195,444 +249,408 @@ export const RequirementForm = () => {
         currency: article.currency,
       })),
     };
+
     try {
       if (isEditing && id) {
-        await updateRequirement(Number(id), data);
+        await updateRequirementMutation.mutateAsync({
+          id: Number(id),
+          data,
+        });
       } else {
-        await createRequirement(data);
+        await createRequirementMutation.mutateAsync(data);
       }
       navigate(ROUTES.REQUIREMENTS);
-    } catch (error) {
-      console.log(error);
+    } catch {
       setError(
-        `Error al ${isEditing ? 'actualizar' : 'crear'} el requerimiento`
+        isEditing
+          ? 'Error al actualizar el requerimiento'
+          : 'Error al crear el requerimiento'
       );
-    } finally {
-      setLoadingData(false);
     }
   };
 
-  // Obtener los centros de costos secundarios basados en el centro de costos principal seleccionado
   const getSecondaryCostCenters = () => {
-    if (!form.costCenter) return [];
+    if (!form.costCenter || !costCenters?.data) return [];
 
-    const selectedCostCenter = costCenters.find(
-      c => c.id.toString() === form.costCenter
+    const primaryCostCenter = costCenters.data.find(
+      cc => cc.id.toString() === form.costCenter
     );
-    return selectedCostCenter?.children || [];
+
+    if (!primaryCostCenter?.children) return [];
+
+    return primaryCostCenter.children;
   };
 
-  if (loadingData) return <LoadingSpinner />;
+  const isLoading =
+    loadingRequirement ||
+    loadingWarehouse ||
+    loadingCostCenters ||
+    loadingArticles ||
+    createRequirementMutation.isPending ||
+    updateRequirementMutation.isPending;
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex-1 flex justify-center items-center">
+        <LoadingSpinner size="lg" className="text-blue-600" />
+      </div>
+    );
+  }
 
   return (
-    <form
-      className="p-4 sm:p-8 mx-auto space-y-8 bg-white dark:bg-gray-800 sm:rounded-lg shadow"
-      onSubmit={handleSubmit}
-    >
-      {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
-      {/* 1. Información del requerimiento */}
-      <div>
-        <h2 className="text-xl font-bold mb-4">
-          Información del requerimiento
+    <div className="max-w-6xl mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {isEditing ? 'Editar Requerimiento' : 'Crear Requerimiento'}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-          <div>
-            <label className="block text-sm font-medium text-primary mb-1">
-              Solicitante
-            </label>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded px-3 py-2 text-gray-800 dark:text-gray-200">
-              {user?.firstName + ' ' + user?.lastName || ''}
+      </div>
+
+      {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Información básica */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Información Básica
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <FormSelect
+              id="priority"
+              name="priority"
+              label="Prioridad"
+              value={form.priority}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Seleccionar prioridad</option>
+              {PRIORITIES.map(priority => (
+                <option key={priority.value} value={priority.value}>
+                  {priority.label}
+                </option>
+              ))}
+            </FormSelect>
+
+            <FormSelect
+              id="costCenter"
+              name="costCenter"
+              label="Centro de Costos Principal"
+              value={form.costCenter}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Seleccionar centro de costos</option>
+              {costCenters?.data?.map(costCenter => (
+                <option key={costCenter.id} value={String(costCenter.id)}>
+                  {costCenter.description}
+                </option>
+              ))}
+            </FormSelect>
+
+            <FormSelect
+              id="costCenterSecondary"
+              name="costCenterSecondary"
+              label="Centro de Costos Secundario"
+              value={form.costCenterSecondary}
+              onChange={handleChange}
+              disabled={!form.costCenter}
+            >
+              <option value="">Seleccionar centro de costos secundario</option>
+              {getSecondaryCostCenters().map(costCenter => (
+                <option key={costCenter.id} value={String(costCenter.id)}>
+                  {costCenter.description}
+                </option>
+              ))}
+            </FormSelect>
+
+            <FormSelect
+              id="warehouse"
+              name="warehouse"
+              label="Almacén"
+              value={form.warehouse}
+              onChange={handleChange}
+              required
+              disabled={warehouses && warehouses.length === 1}
+            >
+              <option value="">Seleccionar almacén</option>
+              {warehouses?.map(warehouse => (
+                <option key={warehouse.id} value={String(warehouse.id)}>
+                  {warehouse.name}
+                </option>
+              ))}
+            </FormSelect>
+          </div>
+
+          <div className="mt-4">
+            <FormInput
+              id="observations"
+              name="observations"
+              label="Observaciones"
+              value={form.observations}
+              onChange={e => handleTextInput(e)}
+              type="textarea"
+            />
+          </div>
+        </div>
+
+        {/* Artículos */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              Artículos
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowProductModal(true)}
+              className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Agregar Artículo
+            </button>
+          </div>
+
+          {articlesSelected.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              No hay artículos seleccionados
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Artículo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Cantidad
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Precio Unit.
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Moneda
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Justificación
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {articlesSelected.map(article => (
+                    <tr key={article.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {article.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {article.code} - {article.brand}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="number"
+                          value={article.quantity}
+                          onChange={e =>
+                            handleArticleInput(
+                              article.id,
+                              'quantity',
+                              e.target.value
+                            )
+                          }
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          required
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={article.unitPrice}
+                          onChange={e =>
+                            handleArticleInput(
+                              article.id,
+                              'unitPrice',
+                              e.target.value
+                            )
+                          }
+                          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          required
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={article.currency}
+                          onChange={e =>
+                            handleArticleInput(
+                              article.id,
+                              'currency',
+                              e.target.value
+                            )
+                          }
+                          className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="PEN">PEN</option>
+                          <option value="USD">USD</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="text"
+                          value={article.justification}
+                          onChange={e => handleTextInput(e)}
+                          data-article-id={article.id}
+                          className="w-32 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          required
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {calculateProductTotal(
+                          article.quantity,
+                          article.unitPrice
+                        ).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => removeProductFromArticles(article.id)}
+                          className="bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Subtotales por moneda */}
+        {articlesSelected.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Subtotales por Moneda
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Total PEN
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  S/ {subtotals.PEN.toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Total USD
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  $ {subtotals.USD.toFixed(2)}
+                </div>
+              </div>
             </div>
           </div>
-          <FormSelect
-            name="warehouse"
-            label="Almacén"
-            value={
-              warehouses && warehouses.length === 1
-                ? warehouses[0].id
-                : form.warehouse
-            }
-            onChange={handleChange}
-            required
-            disabled={
-              loadingWarehouse || (warehouses && warehouses.length === 1)
-            }
-          >
-            <option value="">Selecciona almacén</option>
-            {warehouses?.map(w => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </FormSelect>
+        )}
 
-          <FormSelect
-            name="priority"
-            label="Prioridad"
-            value={form.priority}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Selecciona prioridad</option>
-            {PRIORITIES.map(p => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </FormSelect>
-
-          <FormSelect
-            name="costCenter"
-            label="Centro de costos"
-            value={form.costCenter}
-            onChange={handleChange}
-            required
-            disabled={loadingCostCenters}
-          >
-            <option value="">Selecciona centro de costos</option>
-            {costCenters?.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.description}
-              </option>
-            ))}
-          </FormSelect>
-          <FormSelect
-            name="costCenterSecondary"
-            label="Centro de costos secundario"
-            value={form.costCenterSecondary}
-            onChange={handleChange}
-            required
-            disabled={loadingCostCenters || !form.costCenter}
-          >
-            <option value="">
-              {!form.costCenter
-                ? 'Selecciona primero un centro de costos principal'
-                : 'Selecciona centro de costos secundario'}
-            </option>
-            {getSecondaryCostCenters().map(c => (
-              <option key={c.id} value={c.id}>
-                {c.description}
-              </option>
-            ))}
-          </FormSelect>
-        </div>
-      </div>
-
-      {/* 2. Artículos solicitados */}
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-          <h2 className="text-xl font-bold">Artículos solicitados</h2>
+        {/* Botones de acción */}
+        <div className="flex justify-end space-x-4">
           <button
             type="button"
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-            onClick={() => setShowProductModal(true)}
+            onClick={() => navigate(ROUTES.REQUIREMENTS)}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <PlusIcon className="w-5 h-5 mr-2" /> Añadir artículos
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 dark:border-gray-700 rounded-lg">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-800">
-                <th className="px-2 py-2 text-center">ID</th>
-                <th className="px-2 py-2 text-center">Nombre</th>
-                <th className="px-2 py-2 text-center">Marca</th>
-                <th className="px-2 py-2 text-center">Unidad</th>
-                <th className="px-2 py-2 text-center">Cantidad</th>
-                <th className="px-2 py-2 text-center">Costo Ref Unitario</th>
-                <th className="px-2 py-2 text-center">Moneda</th>
-                <th className="px-2 py-2 text-center">Total</th>
-                <th className="px-2 py-2 text-center">Justificación</th>
-                <th className="px-2 py-2 text-center">Quitar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {articlesSelected.map(article => {
-                const total =
-                  Number(article.quantity) > 0 && Number(article.unitPrice) > 0
-                    ? (
-                        Number(article.quantity) * Number(article.unitPrice)
-                      ).toFixed(2)
-                    : '';
-                return (
-                  <tr
-                    key={article.id}
-                    className="border-t border-gray-200 dark:border-gray-700"
-                  >
-                    <td className="px-2 py-2 text-center">{article.id}</td>
-                    <td className="px-2 py-2 text-center">{article.name}</td>
-                    <td className="px-2 py-2 text-center">{article.brand}</td>
-                    <td className="px-2 py-2 text-center">{article.unit}</td>
-                    <td className="w-20 px-2 py-2 text-center">
-                      <FormInput
-                        name={`quantity-${article.id}`}
-                        value={article.quantity}
-                        type="number"
-                        min="1"
-                        className="text-center mx-auto text-xs"
-                        onChange={e =>
-                          handleArticleInput(
-                            article.id,
-                            'quantity',
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
-                    </td>
-                    <td className="w-22 px-2 py-2 text-center">
-                      <FormInput
-                        name={`unitPrice-${article.id}`}
-                        value={article.unitPrice}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className="text-center mx-auto text-xs"
-                        onChange={e =>
-                          handleArticleInput(
-                            article.id,
-                            'unitPrice',
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
-                    </td>
-                    <td className="w-20 px-2 py-2 text-center">
-                      <FormSelect
-                        value={article.currency}
-                        onChange={e =>
-                          handleArticleInput(
-                            article.id,
-                            'currency',
-                            e.target.value
-                          )
-                        }
-                        className="px-0"
-                      >
-                        <option value="PEN">PEN</option>
-                        <option value="USD">USD</option>
-                      </FormSelect>
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      {total && `${total} ${article.currency}`}
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <FormInput
-                        name={`justification-${article.id}`}
-                        value={article.justification}
-                        onChange={e =>
-                          handleArticleInput(
-                            article.id,
-                            'justification',
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <button
-                        type="button"
-                        className="bg-transparent text-red-600 hover:text-red-800"
-                        onClick={() => removeProductFromArticles(article.id)}
-                      >
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {articlesSelected.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="text-center py-4 text-gray-500">
-                    No hay artículos añadidos.
-                  </td>
-                </tr>
-              )}
-              {/* Fila de total final */}
-              {articlesSelected.length > 0 && (
-                <>
-                  {/* Subtotal PEN */}
-                  {articlesSelected.some(art => art.currency === 'PEN') && (
-                    <tr className="bg-gray-100 dark:bg-gray-800">
-                      <td colSpan={7} className="text-right px-2 py-2">
-                        Subtotal PEN:
-                      </td>
-                      <td className="text-center px-2 py-2">
-                        {articlesSelected
-                          .filter(art => art.currency === 'PEN')
-                          .reduce((acc, art) => {
-                            const t =
-                              Number(art.quantity) > 0 &&
-                              Number(art.unitPrice) > 0
-                                ? Number(art.quantity) * Number(art.unitPrice)
-                                : 0;
-                            return acc + t;
-                          }, 0)
-                          .toFixed(2)}{' '}
-                        PEN
-                      </td>
-                      <td colSpan={1}></td>
-                    </tr>
-                  )}
-                  {/* Subtotal USD */}
-                  {articlesSelected.some(art => art.currency === 'USD') && (
-                    <tr className="bg-gray-100 dark:bg-gray-800">
-                      <td colSpan={7} className="text-right px-2 py-2">
-                        Subtotal USD:
-                      </td>
-                      <td className="text-center px-2 py-2">
-                        {articlesSelected
-                          .filter(art => art.currency === 'USD')
-                          .reduce((acc, art) => {
-                            const t =
-                              Number(art.quantity) > 0 &&
-                              Number(art.unitPrice) > 0
-                                ? Number(art.quantity) * Number(art.unitPrice)
-                                : 0;
-                            return acc + t;
-                          }, 0)
-                          .toFixed(2)}{' '}
-                        USD
-                      </td>
-                      <td colSpan={1}></td>
-                    </tr>
-                  )}
-                </>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </form>
 
-      {/* Modal para añadir artículos */}
+      {/* Modal de selección de artículos */}
       <Modal
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
-        title="Seleccionar artículos"
+        title="Seleccionar Artículo"
       >
-        <div className="mb-4">
+        <div className="space-y-4">
           <FormInput
+            id="search"
             name="search"
             label="Buscar artículo"
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
-            placeholder="Buscar por nombre o código..."
-            className="w-full"
+            placeholder="Buscar por código o nombre..."
           />
-        </div>
-        <div className="max-h-96 overflow-y-auto">
-          <table className="min-w-full border border-gray-200 dark:border-gray-700 rounded-lg mb-4">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-800">
-                <th className="px-2 py-2 text-center">ID</th>
-                <th className="px-2 py-2 text-center">Código</th>
-                <th className="px-2 py-2 text-center">Nombre</th>
-                <th className="px-2 py-2 text-center">Marca</th>
-                <th className="px-2 py-2 text-center">Unidad</th>
-                <th className="px-2 py-2 text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingArticles ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-4 text-gray-500">
-                    Cargando artículos...
-                  </td>
-                </tr>
-              ) : articles.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-4 text-gray-500">
-                    No se encontraron artículos.
-                  </td>
-                </tr>
-              ) : (
-                articles.map(product => {
-                  const isAdded = articlesSelected.some(
-                    a => a.id === product.id
-                  );
+
+          <div className="max-h-96 overflow-y-auto">
+            {loadingArticles ? (
+              <div className="text-center py-4">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {articles?.map(article => {
+                  const isSelected = isArticleSelected(article.id);
                   return (
-                    <tr
-                      key={product.id}
-                      className="border-t border-gray-200 dark:border-gray-700"
+                    <div
+                      key={article.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        isSelected
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
                     >
-                      <td className="px-2 py-2 text-center">{product.id}</td>
-                      <td className="px-2 py-2 text-center">{product.code}</td>
-                      <td className="px-2 py-2 text-center">{product.name}</td>
-                      <td className="px-2 py-2 text-center">
-                        {product.brand.name}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        {product.unitOfMeasure}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        {isAdded ? (
-                          <button
-                            type="button"
-                            className="bg-transparent text-red-600 hover:text-red-800"
-                            onClick={() =>
-                              removeProductFromArticles(product.id)
-                            }
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {article.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {article.code} - {article.brand?.name}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            removeProductFromArticles(article.id);
+                          } else {
+                            addProductToArticles(article);
+                          }
+                        }}
+                        className={`${
+                          isSelected
+                            ? 'bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400'
+                            : 'bg-transparent text-blue-600 hover:text-blue-900 dark:hover:text-blue-400'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <TrashIcon className="w-5 h-5" />
                         ) : (
-                          <button
-                            type="button"
-                            className="bg-transparent text-green-600 hover:text-green-800"
-                            onClick={() => addProductToArticles(product)}
-                          >
-                            <CheckIcon className="w-5 h-5" />
-                          </button>
+                          <CheckIcon className="w-5 h-5" />
                         )}
-                      </td>
-                    </tr>
+                      </button>
+                    </div>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-              onClick={() => setShowProductModal(false)}
-            >
-              Cerrar
-            </button>
+                })}
+              </div>
+            )}
           </div>
         </div>
       </Modal>
-
-      {/* 3. Observaciones */}
-      <div>
-        <h2 className="text-xl font-bold mb-2">Observaciones</h2>
-        <textarea
-          name="observations"
-          className="input w-full min-h-[80px]"
-          value={form.observations}
-          onChange={handleChange}
-          placeholder="Observaciones adicionales..."
-        />
-      </div>
-
-      {/* Botón de enviar (puedes adaptar la lógica de envío) */}
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          className="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400"
-          onClick={() => navigate(ROUTES.REQUIREMENTS)}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          {isEditing ? 'Actualizar requerimiento' : 'Guardar requerimiento'}
-        </button>
-      </div>
-    </form>
+    </div>
   );
 };
