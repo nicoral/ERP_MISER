@@ -245,6 +245,28 @@ export const RequirementForm = () => {
             </div>
           </div>
           <FormSelect
+            name="warehouse"
+            label="Almacén"
+            value={
+              warehouses && warehouses.length === 1
+                ? warehouses[0].id
+                : form.warehouse
+            }
+            onChange={handleChange}
+            required
+            disabled={
+              loadingWarehouse || (warehouses && warehouses.length === 1)
+            }
+          >
+            <option value="">Selecciona almacén</option>
+            {warehouses?.map(w => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </FormSelect>
+
+          <FormSelect
             name="priority"
             label="Prioridad"
             value={form.priority}
@@ -258,21 +280,7 @@ export const RequirementForm = () => {
               </option>
             ))}
           </FormSelect>
-          <FormSelect
-            name="warehouse"
-            label="Almacén"
-            value={form.warehouse}
-            onChange={handleChange}
-            required
-            disabled={loadingWarehouse}
-          >
-            <option value="">Selecciona almacén</option>
-            {warehouses?.map(w => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </FormSelect>
+
           <FormSelect
             name="costCenter"
             label="Centro de costos"

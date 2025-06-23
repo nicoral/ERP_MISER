@@ -108,7 +108,7 @@ export async function publishRequirement(id: number) {
     }
   );
   const data = await response.json();
-  if (response.status === 200) {
+  if (response.status === 201) {
     return data;
   }
   throw new Error(data.message);

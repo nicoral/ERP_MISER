@@ -45,14 +45,14 @@ export class RequirementService {
       status: RequirementStatus.PENDING,
     });
     requirement.code =
-      formatNumber(warehouseId, 5) + '-' + formatNumber(userId, 5);
+      formatNumber(warehouseId, 4) + '-' + formatNumber(userId, 10);
 
     const savedRequirement = await this.requirementRepository.save(requirement);
     await this.requirementRepository.update(savedRequirement.id, {
       code:
-        formatNumber(warehouseId, 5) +
+        formatNumber(warehouseId, 4) +
         '-' +
-        formatNumber(savedRequirement.id, 5),
+        formatNumber(savedRequirement.id, 10),
     });
     const articles = requirementArticles.map(article => ({
       requirement: { id: savedRequirement.id },
@@ -197,7 +197,7 @@ export class RequirementService {
           : 'BAJA',
       observation: requirement.observation,
       articles: requirementArticles.map(reqArticle => ({
-        articleId: reqArticle.article.id.toString().padStart(5, '0'),
+        articleId: reqArticle.article.id.toString().padStart(6, '0'),
         code: reqArticle.article.code,
         name: reqArticle.article.name,
         unitOfMeasure: reqArticle.article.unitOfMeasure,

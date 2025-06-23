@@ -190,6 +190,8 @@ export const RequirementList = () => {
             icon: <TrashIcon className="w-5 h-5 text-red-600" />,
             label: 'Eliminar',
             onClick: (requirement: Requirement) => handleDelete(requirement),
+            isHidden: (requirement: Requirement) =>
+              requirement.status !== 'PENDING',
           },
         ]
       : []),
