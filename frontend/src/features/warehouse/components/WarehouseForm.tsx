@@ -40,8 +40,8 @@ export const WarehouseForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {
-    employees,
-    loading: loadingEmployees,
+    data: employees,
+    isLoading: loadingEmployees,
     error: errorEmployees,
   } = useEmployees(1, 1000);
 
@@ -95,7 +95,7 @@ export const WarehouseForm = () => {
   if (isEditing && (errorWarehouse || errorEmployees)) {
     return (
       <div className="p-8 text-center text-red-500 dark:text-red-400">
-        {errorWarehouse?.message || errorEmployees}
+        {errorWarehouse?.message || errorEmployees?.message}
       </div>
     );
   }
