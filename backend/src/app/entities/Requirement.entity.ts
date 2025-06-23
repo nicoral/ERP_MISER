@@ -12,6 +12,7 @@ import { RequirementPriority, RequirementStatus } from '../common/enum';
 import { Employee } from './Employee.entity';
 import { CostCenter } from './CostCenter.entity';
 import { RequirementArticle } from './RequirementArticle.entity';
+import { Warehouse } from './Warehouse.entity';
 
 @Entity()
 export class Requirement {
@@ -35,6 +36,12 @@ export class Requirement {
 
   @ManyToOne(() => CostCenter, costCenter => costCenter.requirements)
   costCenter: CostCenter;
+
+  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements)
+  costCenterSecondary: CostCenter;
+
+  @ManyToOne(() => Warehouse, warehouse => warehouse.requirements)
+  warehouse: Warehouse;
 
   @OneToMany(
     () => RequirementArticle,

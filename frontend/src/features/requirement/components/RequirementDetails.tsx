@@ -57,10 +57,14 @@ export const RequirementDetails = () => {
       </div>
 
       {/* Cost Center Info */}
-      <div className="border-b border-gray-200 pb-4 dark:border-gray-700 grid grid-cols-4 gap-4 mb-6 text-sm">
-        <div className="col-span-3 border-r border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 pb-4 dark:border-gray-700 grid grid-cols-5 gap-4 mb-6 text-sm">
+        <div className="col-span-2 border-r border-gray-200 dark:border-gray-700">
           <p className="font-medium mb-1">Centro de Costo</p>
-          <p>{requirement?.costCenter.name}</p>
+          <p>{requirement?.costCenter.description}</p>
+        </div>
+        <div className="col-span-2 border-r border-gray-200 dark:border-gray-700">
+          <p className="font-medium mb-1">Centro de Costo Secundario</p>
+          <p>{requirement?.costCenterSecondary.description}</p>
         </div>
         <div className="border-r border-gray-200 dark:border-gray-700">
           <p className="font-medium mb-1">Prioridad</p>

@@ -5,8 +5,7 @@ import {
 } from '../../../services/api/costCenterService';
 import type { CostCenter } from '../../../types/costCenter';
 import type { TableAction, TableColumn } from '../../../types/table';
-import { COST_CENTER_TEXTS } from '../../../config/texts';
-import { EditIcon, TrashIcon } from '../../../components/common/Icons';
+import { EditIcon, TrashIcon, EyeIcon } from '../../../components/common/Icons';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import { FormInput } from '../../../components/common/FormInput';
@@ -25,7 +24,6 @@ export const CostCenterList = () => {
     totalPages: 0,
   });
   const [filters, setFilters] = useState({
-    name: '',
     description: '',
   });
   const [isFiltering, setIsFiltering] = useState(false);
@@ -40,7 +38,7 @@ export const CostCenterList = () => {
         const response = await getCostCenters(
           pagination.page,
           pagination.pageSize,
-          filters.name
+          filters.description
         );
         setCostCenters(response.data);
         setPagination(response);
@@ -55,14 +53,25 @@ export const CostCenterList = () => {
   }, []);
 
   const columns: TableColumn<CostCenter>[] = [
-    { header: COST_CENTER_TEXTS.table.columns.id, accessor: 'id' },
+    { header: 'ID', accessor: 'id' },
     {
-      header: COST_CENTER_TEXTS.table.columns.name,
-      accessor: 'name',
+      header: 'Descripción',
+      accessor: 'description',
     },
     {
-      header: COST_CENTER_TEXTS.table.columns.description,
-      accessor: 'description',
+      header: 'Código',
+      accessor: 'code',
+      render: row => row.code || '-',
+    },
+    {
+      header: 'Serial',
+      accessor: 'serial',
+      render: row => row.serial || '-',
+    },
+    {
+      header: 'Código Mina',
+      accessor: 'codeMine',
+      render: row => row.codeMine || '-',
     },
   ];
 
@@ -71,7 +80,7 @@ export const CostCenterList = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ name: '', description: '' });
+    setFilters({ description: '' });
   };
 
   const handlePageChange = (newPage: number) => {
@@ -84,7 +93,7 @@ export const CostCenterList = () => {
       const response = await getCostCenters(
         pagination.page,
         pagination.pageSize,
-        filters.name
+        filters.description
       );
       setCostCenters(response.data);
       setPagination(response);
@@ -99,7 +108,7 @@ export const CostCenterList = () => {
   const handleDelete = async (costCenter: CostCenter) => {
     if (
       window.confirm(
-        `¿Estás seguro de que quieres eliminar el centro de costo ${costCenter.name}?`
+        `¿Estás seguro de que quieres eliminar el centro de costo "${costCenter.description}"?`
       )
     ) {
       try {
@@ -107,13 +116,13 @@ export const CostCenterList = () => {
         await deleteCostCenter(costCenter.id);
         showSuccess(
           'Eliminado',
-          `Centro de costo ${costCenter.name} eliminado correctamente`
+          `Centro de costo "${costCenter.description}" eliminado correctamente`
         );
         // Recargar la lista
         const response = await getCostCenters(
           pagination.page,
           pagination.pageSize,
-          filters.name
+          filters.description
         );
         setCostCenters(response.data);
         setPagination(response);
@@ -126,11 +135,20 @@ export const CostCenterList = () => {
   };
 
   const actions: TableAction<CostCenter>[] = [
+    {
+      icon: <EyeIcon className="w-5 h-5 text-green-600" />,
+      label: 'Ver Detalles',
+      onClick: (costCenter: CostCenter) => {
+        navigate(
+          ROUTES.COST_CENTER_DETAILS.replace(':id', costCenter.id.toString())
+        );
+      },
+    },
     ...(hasPermission('update_cost_centers')
       ? [
           {
             icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-            label: COST_CENTER_TEXTS.table.actions.edit,
+            label: 'Editar',
             onClick: (costCenter: CostCenter) => {
               navigate(
                 ROUTES.COST_CENTER_EDIT.replace(':id', costCenter.id.toString())
@@ -154,14 +172,14 @@ export const CostCenterList = () => {
     <div className="sm:p-8 p-2">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {COST_CENTER_TEXTS.title}
+          Centros de Costo
         </h2>
         {hasPermission('create_cost_centers') && (
           <button
             onClick={() => navigate(ROUTES.COST_CENTER_CREATE)}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
           >
-            {COST_CENTER_TEXTS.buttons.create}
+            Crear Centro de Costo
           </button>
         )}
       </div>
@@ -171,9 +189,7 @@ export const CostCenterList = () => {
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center justify-between w-full text-left text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 px-4 py-2 rounded-md"
         >
-          <span className="font-medium text-base">
-            {COST_CENTER_TEXTS.filters.title}
-          </span>
+          <span className="font-medium text-base">Filtros</span>
           <svg
             className={`w-5 h-5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
             fill="none"
@@ -193,11 +209,11 @@ export const CostCenterList = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormInput
                 id="search"
-                name="search"
-                label={COST_CENTER_TEXTS.filters.name}
-                value={filters.name}
+                name="description"
+                label="Buscar por descripción"
+                value={filters.description}
                 onChange={handleFilterChange}
-                placeholder={COST_CENTER_TEXTS.filters.search}
+                placeholder="Buscar centros de costo..."
               />
             </div>
             <div className="mt-4 flex justify-end space-x-3">
@@ -205,16 +221,14 @@ export const CostCenterList = () => {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
               >
-                {COST_CENTER_TEXTS.filters.clear}
+                Limpiar
               </button>
               <button
                 onClick={applyFilters}
                 disabled={isFiltering}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                {isFiltering
-                  ? COST_CENTER_TEXTS.filters.filtering
-                  : COST_CENTER_TEXTS.filters.apply}
+                {isFiltering ? 'Filtrando...' : 'Aplicar Filtros'}
               </button>
             </div>
           </div>

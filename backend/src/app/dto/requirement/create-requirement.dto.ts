@@ -46,6 +46,14 @@ export class CreateRequirementDto {
   costCenterId: string;
 
   @IsNotEmpty()
+  @IsString()
+  costCenterSecondaryId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  warehouseId: string;
+
+  @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateRequirementArticleDto)

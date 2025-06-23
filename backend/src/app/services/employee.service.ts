@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Employee } from '../entities/Employee.entity';
@@ -131,5 +136,19 @@ export class EmployeeService {
     );
     employee.imageUrl = uploadResult.secure_url;
     return this.employeeRepository.save(employee);
+  }
+
+  async getEmployeeWithWarehouses(id: number) {
+    const employee = await this.employeeRepository.findOne({
+      where: { id },
+      relations: ['warehousesAssigned'],
+    });
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
+    return {
+      employee,
+      warehouses: employee.warehousesAssigned,
+    };
   }
 }

@@ -20,6 +20,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../../components/common/ErrorBanner';
 import type { RequirementArticle } from '../../../types/requirement';
+import { useAuthWarehouse } from '../../../hooks/useAuthService';
 
 interface ArticlesSelected {
   id: number;
@@ -46,6 +47,8 @@ export const RequirementForm = () => {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const user = getCurrentUser();
+  // Warehouses
+  const { warehouses, loading: loadingWarehouse } = useAuthWarehouse();
   // Cost Centers
   const { costCenters, loading: loadingCostCenters } = useCostCenters(1, 1000);
   // Articles (products)
@@ -65,6 +68,8 @@ export const RequirementForm = () => {
   const [form, setForm] = useState({
     priority: '',
     costCenter: '',
+    costCenterSecondary: '',
+    warehouse: '',
     observations: '',
   });
   const [articlesSelected, setArticlesSelected] = useState<Products[]>([]);
@@ -83,6 +88,8 @@ export const RequirementForm = () => {
           setForm({
             priority: requirement.priority,
             costCenter: requirement.costCenter.id.toString(),
+            costCenterSecondary: requirement.costCenterSecondary.id.toString(),
+            warehouse: requirement.warehouse.id.toString(),
             observations: requirement.observation || '',
           });
 
@@ -121,7 +128,17 @@ export const RequirementForm = () => {
   ) => {
     setError(null);
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+
+    // Si se cambia el centro de costos principal, limpiar el secundario
+    if (name === 'costCenter') {
+      setForm(prev => ({
+        ...prev,
+        [name]: value,
+        costCenterSecondary: '', // Limpiar el centro de costos secundario
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   // Manejo de inputs de artículos
@@ -167,6 +184,8 @@ export const RequirementForm = () => {
     const data = {
       priority: form.priority,
       costCenterId: form.costCenter,
+      costCenterSecondaryId: form.costCenterSecondary,
+      warehouseId: form.warehouse,
       observation: form.observations,
       requirementArticles: articlesSelected.map(article => ({
         articleId: article.id.toString(),
@@ -191,6 +210,16 @@ export const RequirementForm = () => {
     } finally {
       setLoadingData(false);
     }
+  };
+
+  // Obtener los centros de costos secundarios basados en el centro de costos principal seleccionado
+  const getSecondaryCostCenters = () => {
+    if (!form.costCenter) return [];
+
+    const selectedCostCenter = costCenters.find(
+      c => c.id.toString() === form.costCenter
+    );
+    return selectedCostCenter?.children || [];
   };
 
   if (loadingData) return <LoadingSpinner />;
@@ -230,6 +259,21 @@ export const RequirementForm = () => {
             ))}
           </FormSelect>
           <FormSelect
+            name="warehouse"
+            label="Almacén"
+            value={form.warehouse}
+            onChange={handleChange}
+            required
+            disabled={loadingWarehouse}
+          >
+            <option value="">Selecciona almacén</option>
+            {warehouses?.map(w => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </FormSelect>
+          <FormSelect
             name="costCenter"
             label="Centro de costos"
             value={form.costCenter}
@@ -240,7 +284,26 @@ export const RequirementForm = () => {
             <option value="">Selecciona centro de costos</option>
             {costCenters?.map(c => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.description}
+              </option>
+            ))}
+          </FormSelect>
+          <FormSelect
+            name="costCenterSecondary"
+            label="Centro de costos secundario"
+            value={form.costCenterSecondary}
+            onChange={handleChange}
+            required
+            disabled={loadingCostCenters || !form.costCenter}
+          >
+            <option value="">
+              {!form.costCenter
+                ? 'Selecciona primero un centro de costos principal'
+                : 'Selecciona centro de costos secundario'}
+            </option>
+            {getSecondaryCostCenters().map(c => (
+              <option key={c.id} value={c.id}>
+                {c.description}
               </option>
             ))}
           </FormSelect>

@@ -85,12 +85,6 @@ export const RoleForm = () => {
     setError(null);
 
     try {
-      // TODO: Implementar lógica de guardado
-      console.log(ADMINISTRATION_TEXTS.rolesForm.saving, {
-        name,
-        description,
-        permissions: selectedPermissions,
-      });
       if (isEditing) {
         await updateRole(roleId!, {
           name,

@@ -39,6 +39,7 @@ export const ROUTES = {
   COST_CENTER: '/cost-center',
   COST_CENTER_CREATE: '/cost-center/create',
   COST_CENTER_EDIT: '/cost-center/:id/edit',
+  COST_CENTER_DETAILS: '/cost-center/:id/details',
   REQUIREMENTS: '/requirements',
   REQUIREMENTS_DETAILS: '/requirements/:id/details',
   REQUIREMENTS_CREATE: '/requirements/create',

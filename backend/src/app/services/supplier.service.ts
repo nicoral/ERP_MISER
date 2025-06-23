@@ -37,7 +37,7 @@ export class SupplierService {
   }
 
   async findOne(id: number): Promise<Supplier> {
-    const supplier = await this.supplierRepository.findOne({ 
+    const supplier = await this.supplierRepository.findOne({
       where: { id },
       withDeleted: true,
     });

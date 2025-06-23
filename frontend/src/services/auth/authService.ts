@@ -49,3 +49,17 @@ export async function updatePassword(
   }
   throw new Error(data.message);
 }
+
+export async function getWarehousesByEmployeeId() {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/auth/me-warehouses`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+  return data;
+}

@@ -15,8 +15,11 @@ import type {
 import { useCostCenter } from '../hooks/useCostCenter';
 
 interface FormData {
-  name: string;
   description: string;
+  code: string;
+  serial: string;
+  codeMine: string;
+  children: CreateCostCenter[];
 }
 
 export const CostCenterForm = () => {
@@ -30,8 +33,11 @@ export const CostCenterForm = () => {
   );
 
   const [formData, setFormData] = useState<FormData>({
-    name: '',
     description: '',
+    code: '',
+    serial: '',
+    codeMine: '',
+    children: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -41,12 +47,19 @@ export const CostCenterForm = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
+      const submitData = {
+        ...formData,
+        children: formData.children.length > 0 ? formData.children : [],
+      };
+
       if (isEditing) {
-        await updateCostCenter(costCenterId ?? 0, formData as UpdateCostCenter);
+        await updateCostCenter(
+          costCenterId ?? 0,
+          submitData as UpdateCostCenter
+        );
       } else {
-        await createCostCenter(formData as CreateCostCenter);
+        await createCostCenter(submitData as CreateCostCenter);
       }
       navigate(ROUTES.COST_CENTER);
     } catch {
@@ -66,11 +79,57 @@ export const CostCenterForm = () => {
     }));
   };
 
+  const addChild = () => {
+    setFormData(prev => ({
+      ...prev,
+      children: [
+        ...prev.children,
+        {
+          description: '',
+          code: '',
+          serial: '',
+          codeMine: '',
+          children: [],
+        },
+      ],
+    }));
+  };
+
+  const removeChild = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      children: prev.children.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateChild = (
+    index: number,
+    field: keyof CreateCostCenter,
+    value: string
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      children: prev.children.map((child, i) =>
+        i === index ? { ...child, [field]: value } : child
+      ),
+    }));
+  };
+
   useEffect(() => {
     if (isEditing && costCenter) {
       setFormData({
-        name: costCenter.name,
         description: costCenter.description,
+        code: costCenter.code || '',
+        serial: costCenter.serial || '',
+        codeMine: costCenter.codeMine || '',
+        children:
+          costCenter.children?.map(child => ({
+            id: child.id,
+            description: child.description,
+            code: child.code || '',
+            serial: child.serial || '',
+            codeMine: child.codeMine || '',
+          })) || [],
       });
     }
   }, [isEditing, costCenter]);
@@ -84,7 +143,7 @@ export const CostCenterForm = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-2">
+    <div className="max-w-4xl mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditing
@@ -105,22 +164,114 @@ export const CostCenterForm = () => {
 
         <div className="space-y-6">
           <FormInput
-            id="name"
-            name="name"
-            label={COST_CENTER_TEXTS.form.fields.name}
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-
-          <FormInput
             id="description"
             name="description"
             label={COST_CENTER_TEXTS.form.fields.description}
             value={formData.description}
             onChange={handleChange}
-            type="textarea"
+            required
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormInput
+              id="code"
+              name="code"
+              label="Código"
+              value={formData.code}
+              onChange={handleChange}
+            />
+
+            <FormInput
+              id="serial"
+              name="serial"
+              label="Serial"
+              value={formData.serial}
+              onChange={handleChange}
+            />
+
+            <FormInput
+              id="codeMine"
+              name="codeMine"
+              label="Código Mina"
+              value={formData.codeMine}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Children Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Centros de Costo Secundarios
+              </h3>
+              <button
+                type="button"
+                onClick={addChild}
+                className="px-3 py-1 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                Agregar Centro de Costo Secundario
+              </button>
+            </div>
+
+            {formData.children.map((child, index) => (
+              <div
+                key={index}
+                className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-medium text-gray-700 dark:text-gray-300">
+                    Centro de Costo Secundario {index + 1}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => removeChild(index)}
+                    className="bg-transparent px-2 py-1 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+
+                <FormInput
+                  id={`child-description-${index}`}
+                  name="description"
+                  label="Descripción"
+                  value={child.description}
+                  onChange={e =>
+                    updateChild(index, 'description', e.target.value)
+                  }
+                  required
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormInput
+                    id={`child-code-${index}`}
+                    name="code"
+                    label="Código"
+                    value={child.code}
+                    onChange={e => updateChild(index, 'code', e.target.value)}
+                  />
+
+                  <FormInput
+                    id={`child-serial-${index}`}
+                    name="serial"
+                    label="Serial"
+                    value={child.serial}
+                    onChange={e => updateChild(index, 'serial', e.target.value)}
+                  />
+
+                  <FormInput
+                    id={`child-codeMine-${index}`}
+                    name="codeMine"
+                    label="Código Mina"
+                    value={child.codeMine}
+                    onChange={e =>
+                      updateChild(index, 'codeMine', e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex justify-end space-x-4">

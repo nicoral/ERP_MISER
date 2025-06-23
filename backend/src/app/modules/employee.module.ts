@@ -8,9 +8,9 @@ import { CloudinaryModule } from './cloudinary.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Employee]), 
-    forwardRef(() => RoleModule), 
-    CloudinaryModule
+    TypeOrmModule.forFeature([Employee]),
+    forwardRef(() => RoleModule),
+    CloudinaryModule,
   ],
   controllers: [EmployeeController],
   providers: [EmployeeService],

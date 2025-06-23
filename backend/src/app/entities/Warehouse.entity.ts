@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { Employee } from './Employee.entity';
 import { WarehouseArticle } from './WarehouseArticle.entity';
+import { Requirement } from './Requirement.entity';
 
 @Entity()
 export class Warehouse {
@@ -46,6 +47,9 @@ export class Warehouse {
     warehouseArticle => warehouseArticle.warehouse
   )
   warehouseArticles: WarehouseArticle[];
+
+  @OneToMany(() => Requirement, requirement => requirement.warehouse)
+  requirements: Requirement[];
 
   @CreateDateColumn({
     name: 'created_at',

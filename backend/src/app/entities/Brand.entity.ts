@@ -1,7 +1,7 @@
-import { 
-  Column, 
-  Entity, 
-  OneToMany, 
+import {
+  Column,
+  Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,

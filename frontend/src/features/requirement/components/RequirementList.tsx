@@ -126,7 +126,7 @@ export const RequirementList = () => {
     },
     {
       header: 'Centro de Costos',
-      render: (requirement: Requirement) => requirement.costCenter.name,
+      render: (requirement: Requirement) => requirement.costCenter.description,
     },
     {
       header: 'Estado',

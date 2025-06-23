@@ -8,9 +8,9 @@ import { EmployeeModule } from './employee.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Role]), 
-    PermissionModule, 
-    forwardRef(() => EmployeeModule)
+    TypeOrmModule.forFeature([Role]),
+    PermissionModule,
+    forwardRef(() => EmployeeModule),
   ],
   controllers: [RoleController],
   providers: [RoleService],

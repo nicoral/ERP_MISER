@@ -68,7 +68,6 @@ export class AuthService {
       updatePasswordDto.currentPassword,
       employee.password
     );
-    console.log(updatePasswordDto.currentPassword);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Contraseña actual incorrecta');
@@ -78,5 +77,11 @@ export class AuthService {
     });
 
     return { message: 'Contraseña actualizada correctamente' };
+  }
+
+  async getWarehousesByEmployeeId(id: number) {
+    const { warehouses } =
+      await this.employeeService.getEmployeeWithWarehouses(id);
+    return warehouses;
   }
 }

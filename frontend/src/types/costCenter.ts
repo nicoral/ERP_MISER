@@ -1,18 +1,36 @@
 export interface CostCenter {
   id: number;
-  name: string;
   description: string;
+  code?: string;
+  serial?: string;
+  codeMine?: string;
+  parent?: CostCenter;
+  children?: CostCenter[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 }
 
 export interface CreateCostCenter {
-  name: string;
-  description?: string;
+  description: string;
+  code?: string;
+  serial?: string;
+  codeMine?: string;
+  children?: CreateCostCenter[];
 }
 
 export interface UpdateCostCenter {
-  name?: string;
   description?: string;
+  code?: string;
+  serial?: string;
+  codeMine?: string;
+  children?: UpdateCostCenterChildren[];
+}
+
+export interface UpdateCostCenterChildren {
+  id?: number;
+  description?: string;
+  code?: string;
+  serial?: string;
+  codeMine?: string;
 }

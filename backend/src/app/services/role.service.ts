@@ -63,7 +63,7 @@ export class RoleService {
     const roles = await this.roleRepository.find({
       relations: ['employees'],
     });
-    const distribution = roles.map((role) => ({
+    const distribution = roles.map(role => ({
       name: role.name,
       value: role.employees.length,
     }));
@@ -75,7 +75,7 @@ export class RoleService {
     if (!role) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
-    
+
     // Verificar si hay empleados usando este rol
     const employeesWithRole = await this.roleRepository
       .createQueryBuilder('role')

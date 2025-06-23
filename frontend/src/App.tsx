@@ -26,6 +26,7 @@ import { ArticleForm } from './features/article/components/ArticleForm';
 import { SupplierForm } from './features/supplier/components/SupplierForm';
 import { CostCenterList } from './features/costCenter/components/costCenterList';
 import { CostCenterForm } from './features/costCenter/components/costCenterForm';
+import { CostCenterDetails } from './features/costCenter/components/CostCenterDetails';
 import { RequirementForm } from './features/requirement/components/RequirementForm';
 import { RequirementList } from './features/requirement/components/RequirementList';
 import { RequirementDetails } from './features/requirement/components/RequirementDetails';
@@ -99,6 +100,10 @@ function App() {
                   <Route
                     path={ROUTES.COST_CENTER_EDIT}
                     element={<CostCenterForm />}
+                  />
+                  <Route
+                    path={ROUTES.COST_CENTER_DETAILS}
+                    element={<CostCenterDetails />}
                   />
                   <Route
                     path={ROUTES.REQUIREMENTS}

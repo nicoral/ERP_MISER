@@ -42,7 +42,6 @@ export const Dashboard = () => {
 
   useEffect(() => {
     getGraphDistributionRequirements().then(data => {
-      console.log(data);
       setGraphDistributionRequirements(data);
       setLoadingRequirements(false);
     });

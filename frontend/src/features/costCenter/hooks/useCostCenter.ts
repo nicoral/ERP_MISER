@@ -27,7 +27,7 @@ export const useCostCenters = (
       }
     };
     fetchCostCenters();
-  }, []);
+  }, [page, pageSize, search]);
 
   return { costCenters, loading, error };
 };

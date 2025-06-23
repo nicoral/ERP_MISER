@@ -1,6 +1,7 @@
 import type { CostCenter } from './costCenter';
 import type { Employee } from './employee';
 import type { Article } from './article';
+import type { Warehouse } from './warehouse';
 
 export interface Requirement {
   id: number;
@@ -9,6 +10,8 @@ export interface Requirement {
   observation: string;
   status: string;
   costCenter: CostCenter;
+  costCenterSecondary: CostCenter;
+  warehouse: Warehouse;
   employee: Employee;
   requirementArticles: RequirementArticle[];
   createdAt: string;
