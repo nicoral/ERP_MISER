@@ -5,12 +5,8 @@ export interface Article {
   name: string;
   code: string;
   unitOfMeasure: string;
-  line: string;
-  shelf: string;
   type: string;
   rotationClassification: string;
-  minStock: number;
-  maxStock: number;
   active: boolean;
   imageUrl?: string;
   warehouseArticles: WarehouseStock[];
@@ -32,32 +28,35 @@ export interface Brand {
 export type ArticleCreate = Omit<Article, 'id'>;
 
 export interface ArticleFilters {
-  code?: string;
-  name?: string;
+  search?: string;
 }
 
 export interface WarehouseStockCreate {
   warehouseId: number;
   articleId?: number;
   stock: number;
+  minStock: number;
+  maxStock: number;
+  line: string;
+  shelf: string;
 }
 
 export interface WarehouseStock {
   warehouse: Warehouse;
   article: Article;
   stock: number;
+  minStock: number;
+  maxStock: number;
+  line: string;
+  shelf: string;
 }
 
 export interface ArticleCreateDto {
   name: string;
   code: string;
   unitOfMeasure: string;
-  line: string;
-  shelf: string;
   type: string;
   rotationClassification: string;
-  minStock: number;
-  maxStock: number;
   active: boolean;
   brandId: number;
   imageUrl?: string;

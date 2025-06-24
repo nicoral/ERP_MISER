@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { WarehouseArticle } from './WarehouseArticle.entity';
 import { Brand } from './Brand.entity';
@@ -26,12 +27,6 @@ export class Article {
   @Column('varchar', { length: 100, name: 'code', nullable: false })
   code: string;
 
-  @Column('varchar', { length: 100, name: 'line', nullable: false })
-  line: string;
-
-  @Column('varchar', { length: 100, name: 'shelf', nullable: false })
-  shelf: string;
-
   @Column('varchar', { length: 100, name: 'type', nullable: false })
   type: string;
 
@@ -41,12 +36,6 @@ export class Article {
     nullable: false,
   })
   rotationClassification: string;
-
-  @Column('int', { name: 'min_stock', nullable: false })
-  minStock: number;
-
-  @Column('int', { name: 'max_stock', nullable: false })
-  maxStock: number;
 
   @Column('boolean', { name: 'active', nullable: false, default: true })
   active: boolean;
@@ -67,6 +56,7 @@ export class Article {
   requirementArticles: RequirementArticle[];
 
   @ManyToOne(() => Brand, brand => brand.article)
+  @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 
   @CreateDateColumn({

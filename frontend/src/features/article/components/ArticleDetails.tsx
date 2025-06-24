@@ -69,22 +69,6 @@ export const ArticleDetails: React.FC<Props> = ({ article }) => {
           </div>
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              📦 {WAREHOUSE_TEXTS.articles.form.fields.line}:{' '}
-              <span className="text-gray-900 dark:text-white">
-                {articleData?.line}
-              </span>
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              🗂 {WAREHOUSE_TEXTS.articles.form.fields.shelf}:{' '}
-              <span className="text-gray-900 dark:text-white">
-                {articleData?.shelf}
-              </span>
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
               🔄 {WAREHOUSE_TEXTS.articles.form.fields.rotation}:{' '}
               <span className="text-gray-900 dark:text-white">
                 {articleData?.rotationClassification}
@@ -95,7 +79,7 @@ export const ArticleDetails: React.FC<Props> = ({ article }) => {
             <p className="text-sm text-gray-500 dark:text-gray-400">
               🏷 {WAREHOUSE_TEXTS.articles.form.fields.brand}:{' '}
               <span className="text-gray-900 dark:text-white">
-                {articleData?.brand.name}
+                {articleData?.brand?.name}
               </span>
             </p>
           </div>
@@ -105,36 +89,38 @@ export const ArticleDetails: React.FC<Props> = ({ article }) => {
       {/* Inventario */}
       <div>
         <h3 className="text-lg font-semibold mb-2">Inventario</h3>
-        <div className="grid grid-cols-2 gap-4 mb-2">
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              🔢{WAREHOUSE_TEXTS.articles.form.fields.minStock}
-            </p>
-            <p className="mt-1 text-sm text-gray-900 dark:text-white">
-              {articleData?.minStock}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              🔢 {WAREHOUSE_TEXTS.articles.form.fields.maxStock}
-            </p>
-            <p className="mt-1 text-sm text-gray-900 dark:text-white">
-              {articleData?.maxStock}
-            </p>
-          </div>
-        </div>
         <div className="mt-2 space-y-2">
           {articleData?.warehouseArticles.map((warehouseStock, index) => (
             <div
               key={index}
-              className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+              className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md"
             >
-              <span className="text-sm text-gray-900 dark:text-white">
-                📍{warehouseStock.warehouse.name}
-              </span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {warehouseStock.stock} {articleData?.unitOfMeasure}
-              </span>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  📍 {warehouseStock.warehouse.name}
+                </span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {warehouseStock.stock} {articleData?.unitOfMeasure}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 dark:text-gray-400">
+                <div>
+                  <span>
+                    📦 Línea: {warehouseStock.line || 'No especificado'}
+                  </span>
+                </div>
+                <div>
+                  <span>
+                    🗂 Estante: {warehouseStock.shelf || 'No especificado'}
+                  </span>
+                </div>
+                <div>
+                  <span>📉 Min: {warehouseStock.minStock}</span>
+                </div>
+                <div>
+                  <span>📈 Max: {warehouseStock.maxStock}</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>

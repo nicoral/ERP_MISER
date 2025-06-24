@@ -7,6 +7,18 @@ export class CreateArticleWarehouseDto {
 
   @IsNotEmpty()
   stock: number;
+
+  @IsNotEmpty()
+  minStock: number;
+
+  @IsNotEmpty()
+  maxStock: number;
+
+  @IsNotEmpty()
+  line: string;
+
+  @IsNotEmpty()
+  shelf: string;
 }
 
 export class CreateArticleDto {
@@ -20,23 +32,12 @@ export class CreateArticleDto {
   code: string;
 
   @IsNotEmpty()
-  line: string;
-
-  @IsNotEmpty()
-  shelf: string;
-
-  @IsNotEmpty()
   type: string;
 
   @IsNotEmpty()
   rotationClassification: string;
 
   @IsNotEmpty()
-  minStock: number;
-
-  @IsNotEmpty()
-  maxStock: number;
-
   @IsOptional()
   active: boolean;
 

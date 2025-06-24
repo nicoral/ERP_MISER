@@ -9,7 +9,11 @@ import { Requirement } from '../entities/Requirement.entity';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { UpdateRequirementDto } from '../dto/requirement/update-requirement.dto';
-import { Currency, RequirementPriority, RequirementStatus } from '../common/enum';
+import {
+  Currency,
+  RequirementPriority,
+  RequirementStatus,
+} from '../common/enum';
 import { formatNumber } from '../utils/transformer';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -193,8 +197,8 @@ export class RequirementService {
         requirement.priority === RequirementPriority.HIGH
           ? 'ALTA'
           : requirement.priority === RequirementPriority.MEDIUM
-          ? 'MEDIA'
-          : 'BAJA',
+            ? 'MEDIA'
+            : 'BAJA',
       observation: requirement.observation,
       articles: requirementArticles.map(reqArticle => ({
         articleId: reqArticle.article.id.toString().padStart(6, '0'),

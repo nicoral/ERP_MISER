@@ -138,3 +138,55 @@ export const deleteEmployee = async (id: number): Promise<void> => {
     throw new Error(data.message || 'Error al eliminar el empleado');
   }
 };
+
+export const downloadEmployeeTemplate = async (): Promise<Blob> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/employees/import/template`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  if (response.status === 200) {
+    return response.blob();
+  }
+
+  const data = await response.json();
+  throw new Error(data.message || 'Error al descargar el template');
+};
+
+export interface ImportResult {
+  message: string;
+  success: number;
+  errors: Array<{ row: number; error: string }>;
+  total: number;
+}
+
+export const importEmployeesFromExcel = async (
+  file: File
+): Promise<ImportResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/employees/import/excel`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: formData,
+    }
+  );
+
+  const data = await response.json();
+
+  if (response.status === 200 || response.status === 201) {
+    return data;
+  }
+
+  throw new Error(data.message || 'Error al importar empleados');
+};

@@ -183,7 +183,18 @@ export const EMPLOYEES_POSITIONS = [
   'Op. Tractor',
 ] as const;
 
-export const EMPLOYEES_AREAS = ['MANTTO', 'RUMA'] as const;
+export const EMPLOYEES_AREAS = [
+  'RUMA',
+  'CONTABILIDAD',
+  'RRHH',
+  'FINANZAS',
+  'HSE',
+  'GERENCIA',
+  'PROYECTOS',
+  'LOGISTICA',
+  'VIGILANCIA',
+  'TRANSPORTE',
+] as const;
 
 export const PRIORITIES = [
   { value: 'LOW', label: 'Baja' },

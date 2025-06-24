@@ -10,7 +10,10 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { Employee } from '../entities/Employee.entity';
 import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/employee/update-employee.dto';
@@ -84,5 +87,37 @@ export class EmployeeController {
     @UploadedFile() file: Express.Multer.File
   ) {
     return this.employeeService.updateImage(id, file);
+  }
+
+  @Post('import/excel')
+  @RequirePermissions('create_employee')
+  @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Importación masiva de empleados desde Excel')
+  async importFromExcel(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new Error('No se ha proporcionado ningún archivo');
+    }
+
+    const result = await this.employeeService.importFromExcel(file);
+    return {
+      message: `Importación completada. ${result.success} empleados importados exitosamente.`,
+      ...result,
+    };
+  }
+
+  @Get('import/template')
+  @RequirePermissions('create_employee')
+  @AuditDescription('Descarga de template para importación de empleados')
+  async downloadTemplate(@Res() res: Response) {
+    const template = await this.employeeService.generateImportTemplate();
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="template_empleados.xlsx"',
+      'Content-Length': template.length,
+    });
+
+    res.status(HttpStatus.OK).send(template);
   }
 }

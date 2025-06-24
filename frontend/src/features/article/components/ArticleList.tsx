@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
-import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
+import {
+  EyeIcon,
+  EditIcon,
+  TrashIcon,
+  UploadIcon,
+} from '../../../components/common/Icons';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
@@ -15,28 +20,51 @@ import { ArticleDetails } from './ArticleDetails';
 import { useArticles, useDeleteArticle } from '../hooks/useArticle';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
+import { ExcelImportModal } from './ExcelImportModal';
 
 export const ArticleList = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const deleteArticleMutation = useDeleteArticle();
 
-  const [filters, setFilters] = useState<ArticleFilters>({ code: '' });
+  const [filters, setFilters] = useState<ArticleFilters>({ search: '' });
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
   // Hook con datos y estados automáticos de React Query
-  const { data, isLoading, isFetching } = useArticles(page, 10, filters);
+  const { data, isLoading, isFetching, refetch } = useArticles(
+    page,
+    10,
+    filters
+  );
+
+  // Debounce effect for search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchValue }));
+      setPage(1);
+    }, 1000); // 1 seconds delay
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    if (name === 'search') {
+      setSearchValue(value);
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }));
+      setPage(1);
+    }
   };
 
   const clearFilters = () => {
-    setFilters({ code: '' });
+    setFilters({ search: '' });
+    setSearchValue('');
     setPage(1);
   };
 
@@ -68,15 +96,22 @@ export const ArticleList = () => {
   };
 
   const columns: TableColumn<Article>[] = [
-    { header: WAREHOUSE_TEXTS.articles.table.columns.id, accessor: 'id' },
+    { header: 'ID', accessor: 'id' },
     { header: WAREHOUSE_TEXTS.articles.table.columns.code, accessor: 'code' },
     { header: WAREHOUSE_TEXTS.articles.table.columns.name, accessor: 'name' },
     {
-      header: WAREHOUSE_TEXTS.articles.table.columns.line,
-      accessor: 'line',
+      header: WAREHOUSE_TEXTS.articles.table.columns.brand,
+      accessor: 'brand.name',
     },
-    { header: WAREHOUSE_TEXTS.articles.table.columns.shelf, accessor: 'shelf' },
     { header: WAREHOUSE_TEXTS.articles.table.columns.type, accessor: 'type' },
+    {
+      header: WAREHOUSE_TEXTS.articles.table.columns.unitOfMeasure,
+      accessor: 'unitOfMeasure',
+    },
+    {
+      header: WAREHOUSE_TEXTS.articles.table.columns.rotationClassification,
+      accessor: 'rotationClassification',
+    },
     {
       header: WAREHOUSE_TEXTS.articles.table.columns.status,
       render: (art: Article) => (
@@ -130,14 +165,25 @@ export const ArticleList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.articles.title}
         </h2>
-        {hasPermission('create_articles') && (
-          <button
-            onClick={handleCreate}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
-          >
-            {WAREHOUSE_TEXTS.articles.buttons.create}
-          </button>
-        )}
+        <div className="flex gap-2">
+          {hasPermission('create_articles') && (
+            <>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 w-fit flex items-center gap-2"
+              >
+                <UploadIcon className="w-4 h-4" />
+                Importar Excel
+              </button>
+              <button
+                onClick={handleCreate}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
+              >
+                {WAREHOUSE_TEXTS.articles.buttons.create}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filtros */}
@@ -167,10 +213,10 @@ export const ArticleList = () => {
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormInput
-                id="code"
-                name="code"
+                id="search"
+                name="search"
                 label={WAREHOUSE_TEXTS.articles.filters.code}
-                value={filters.code}
+                value={searchValue}
                 onChange={handleFilterChange}
                 placeholder={WAREHOUSE_TEXTS.articles.filters.codePlaceholder}
               />
@@ -210,6 +256,15 @@ export const ArticleList = () => {
       >
         {selectedArticle && <ArticleDetails article={selectedArticle} />}
       </Modal>
+
+      <ExcelImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          refetch();
+          setShowImportModal(false);
+        }}
+      />
     </div>
   );
 };

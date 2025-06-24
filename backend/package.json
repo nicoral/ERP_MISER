@@ -42,6 +42,7 @@
     "class-validator": "^0.14.1",
     "cloudinary": "^2.6.1",
     "handlebars": "^4.7.8",
+    "multer": "^2.0.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.0",
@@ -50,7 +51,8 @@
     "rxjs": "^7.8.1",
     "streamifier": "^0.1.1",
     "typeorm": "^0.3.24",
-    "typeorm-extension": "^3.7.1"
+    "typeorm-extension": "^3.7.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

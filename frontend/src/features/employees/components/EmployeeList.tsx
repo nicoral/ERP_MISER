@@ -8,6 +8,7 @@ import {
   EditIcon,
   EyeIcon,
   TrashIcon,
+  UploadIcon,
 } from '../../../components/common/Icons';
 import { FormInput } from '../../../components/common/FormInput';
 import {
@@ -17,6 +18,7 @@ import {
 } from '../../../components/common/Table';
 import { Modal } from '../../../components/common/Modal';
 import { EmployeeDetails } from './EmployeeDetails';
+import { ExcelImportModal } from './ExcelImportModal';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -29,12 +31,17 @@ export const EmployeeList = () => {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
 
   // Hook con datos y estados automáticos de React Query
-  const { data, isLoading, isFetching } = useEmployees(page, 10, filters);
+  const { data, isLoading, isFetching, refetch } = useEmployees(
+    page,
+    10,
+    filters
+  );
 
   // Manejar cambios en los filtros
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +63,7 @@ export const EmployeeList = () => {
 
   const handleCreate = () => navigate('/employees/create');
   const handleEdit = (id: number) => navigate(`/employees/${id}/edit`);
+  const handleImport = () => setShowImportModal(true);
 
   const handleDelete = async (employee: Employee) => {
     if (
@@ -73,6 +81,10 @@ export const EmployeeList = () => {
         showError('Error', 'No se pudo eliminar el empleado');
       }
     }
+  };
+
+  const handleImportSuccess = () => {
+    refetch(); // Recargar la lista después de importar
   };
 
   // Columnas para la tabla de empleados
@@ -161,12 +173,21 @@ export const EmployeeList = () => {
           {EMPLOYEES_TEXTS.title}
         </h2>
         {hasPermission('create_employee') && (
-          <button
-            onClick={handleCreate}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
-          >
-            {EMPLOYEES_TEXTS.buttons.create}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleImport}
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 w-fit flex items-center gap-2"
+            >
+              <UploadIcon className="w-4 h-4" />
+              Importar Excel
+            </button>
+            <button
+              onClick={handleCreate}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 w-fit"
+            >
+              {EMPLOYEES_TEXTS.buttons.create}
+            </button>
+          </div>
         )}
       </div>
 
@@ -230,6 +251,12 @@ export const EmployeeList = () => {
       >
         {selectedEmployee && <EmployeeDetails employee={selectedEmployee} />}
       </Modal>
+
+      <ExcelImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 };
