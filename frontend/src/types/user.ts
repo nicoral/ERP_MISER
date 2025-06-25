@@ -29,5 +29,6 @@ export interface User {
   lastName: string;
   email: string;
   imageUrl: string;
+  signature?: string;
   role: Role;
 }

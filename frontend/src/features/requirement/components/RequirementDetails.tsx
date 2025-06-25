@@ -1,19 +1,35 @@
-import { useRequirement } from '../hooks/useRequirements';
+import { useRequirement, useSignRequirement } from '../hooks/useRequirements';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
 import type { RequirementArticle } from '../../../types/requirement';
+import { canSignRequirement } from '../../../utils/permissions';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const RequirementDetails = () => {
   const params = useParams();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const {
     data: requirement,
     isLoading: loading,
     error,
   } = useRequirement(params.id ? Number(params.id) : 0);
+  const signRequirementMutation = useSignRequirement();
+
+  const handleSign = async () => {
+    if (!requirement) return;
+    
+    try {
+      await signRequirementMutation.mutateAsync(requirement.id);
+      showSuccess('Firmado', 'Requerimiento firmado correctamente');
+    } catch {
+      showError('Error', 'No se pudo firmar el requerimiento');
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <div className="text-red-500">{error.message}</div>;
   return (
@@ -228,14 +244,24 @@ export const RequirementDetails = () => {
         </div>
       </div>
 
-      {/* Botón de regreso */}
-      <div className="flex justify-end">
+      {/* Botones de acción */}
+      <div className="flex justify-between">
         <button
           onClick={() => navigate(ROUTES.REQUIREMENTS)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
         >
           Volver
         </button>
+        
+        {requirement && canSignRequirement(requirement) && (
+          <button
+            onClick={handleSign}
+            disabled={signRequirementMutation.isPending}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {signRequirementMutation.isPending ? 'Firmando...' : 'Firmar'}
+          </button>
+        )}
       </div>
     </div>
   );

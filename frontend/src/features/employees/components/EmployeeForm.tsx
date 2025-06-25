@@ -24,6 +24,22 @@ import { MultiSelect } from '../../../components/common/MultiSelect';
 import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
 import { FormSelect } from '../../../components/common/FormSelect';
 
+// Función auxiliar para convertir Date a string YYYY-MM-DD
+const formatDateForInput = (date: Date | string | null | undefined): string => {
+  if (!date) return '';
+  if (typeof date === 'string') {
+    return date;
+  }
+  return date.toISOString().split('T')[0];
+};
+
+// Función auxiliar para convertir string YYYY-MM-DD a Date
+const parseDateFromInput = (dateString: string): Date | null => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+};
+
 export const EmployeeForm = () => {
   const navigate = useNavigate();
   const params = useParams();
@@ -124,11 +140,21 @@ export const EmployeeForm = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]:
-        type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }));
+
+    if (type === 'date') {
+      // Manejar fechas específicamente
+      const parsedDate = parseDateFromInput(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: parsedDate,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]:
+          type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+      }));
+    }
   };
 
   const isLoading =
@@ -309,11 +335,7 @@ export const EmployeeForm = () => {
               id="hireDate"
               name="hireDate"
               label={EMPLOYEES_TEXTS.form.fields.hireDate}
-              value={
-                formData.hireDate instanceof Date
-                  ? formData.hireDate.toISOString().split('T')[0]
-                  : ''
-              }
+              value={formatDateForInput(formData.hireDate)}
               onChange={handleChange}
               required
             />
@@ -324,11 +346,7 @@ export const EmployeeForm = () => {
               id="birthDate"
               name="birthDate"
               label={EMPLOYEES_TEXTS.form.fields.birthDate}
-              value={
-                formData.birthDate instanceof Date
-                  ? formData.birthDate.toISOString().split('T')[0]
-                  : ''
-              }
+              value={formatDateForInput(formData.birthDate)}
               onChange={handleChange}
             />
           </div>
@@ -338,11 +356,7 @@ export const EmployeeForm = () => {
               id="dischargeDate"
               name="dischargeDate"
               label={EMPLOYEES_TEXTS.form.fields.dischargeDate}
-              value={
-                formData.dischargeDate instanceof Date
-                  ? formData.dischargeDate.toISOString().split('T')[0]
-                  : ''
-              }
+              value={formatDateForInput(formData.dischargeDate)}
               onChange={handleChange}
             />
           </div>

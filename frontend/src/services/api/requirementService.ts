@@ -114,6 +114,23 @@ export async function publishRequirement(id: number) {
   throw new Error(data.message);
 }
 
+export async function signRequirement(id: number) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/requirements/sign/${id}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  if (response.status === 201) {
+    return data;
+  }
+  throw new Error(data.message);
+}
+
 export async function deleteRequirement(id: number): Promise<void> {
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/requirements/${id}`,

@@ -8,6 +8,7 @@ import {
   useDeleteRequirement,
   usePublishRequirement,
   useGenerateRequirementPdf,
+  useSignRequirement,
 } from '../hooks/useRequirements';
 import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
@@ -19,7 +20,7 @@ import {
   EditIcon,
 } from '../../../components/common/Icons';
 import { DownloadIcon } from 'lucide-react';
-import { hasPermission } from '../../../utils/permissions';
+import { hasPermission, canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
 import { REQUIREMENT_STATUS_LABELS } from '../../../utils/requirementStatus';
@@ -30,6 +31,7 @@ export const RequirementList = () => {
   const deleteRequirementMutation = useDeleteRequirement();
   const publishRequirementMutation = usePublishRequirement();
   const generatePdfMutation = useGenerateRequirementPdf();
+  const signRequirementMutation = useSignRequirement();
 
   const [page, setPage] = useState(1);
 
@@ -67,6 +69,15 @@ export const RequirementList = () => {
       showSuccess('Publicado', 'Requerimiento publicado correctamente');
     } catch {
       showError('Error', 'No se pudo publicar el requerimiento');
+    }
+  };
+
+  const handleSign = async (requirement: Requirement) => {
+    try {
+      await signRequirementMutation.mutateAsync(requirement.id);
+      showSuccess('Firmado', 'Requerimiento firmado correctamente');
+    } catch {
+      showError('Error', 'No se pudo firmar el requerimiento');
     }
   };
 
@@ -153,8 +164,7 @@ export const RequirementList = () => {
             'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
           CANCELLED:
             'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-          REJECTED:
-            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+          REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
         };
 
         return (
@@ -163,7 +173,8 @@ export const RequirementList = () => {
               statusClasses[requirement.status as keyof typeof statusClasses]
             }`}
           >
-            {REQUIREMENT_STATUS_LABELS[requirement.status] || requirement.status}
+            {REQUIREMENT_STATUS_LABELS[requirement.status] ||
+              requirement.status}
           </span>
         );
       },
@@ -197,6 +208,12 @@ export const RequirementList = () => {
       icon: <DownloadIcon className="w-5 h-5 text-blue-600" />,
       label: 'Descargar PDF',
       onClick: handleDownloadPdf,
+    },
+    {
+      icon: <PublishIcon className="w-5 h-5 text-purple-600" />,
+      label: 'Firmar',
+      onClick: handleSign,
+      isHidden: (requirement: Requirement) => !canSignRequirement(requirement),
     },
     ...(hasPermission('delete_requirement')
       ? [
@@ -237,7 +254,8 @@ export const RequirementList = () => {
             isFetching ||
             deleteRequirementMutation.isPending ||
             publishRequirementMutation.isPending ||
-            generatePdfMutation.isPending
+            generatePdfMutation.isPending ||
+            signRequirementMutation.isPending
           }
           pagination={{
             page: page,

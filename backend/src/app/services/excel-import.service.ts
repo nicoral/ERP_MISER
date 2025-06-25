@@ -88,8 +88,10 @@ export class ExcelImportService {
         const lastName = names.slice(0, 2).join(' ') || '';
 
         const employeeData: ImportEmployeeRowDto = {
-          email: String(row[0] || '').trim(),
           documentId: String(row[1] || '').trim(),
+          email:
+            String(row[0] || '').trim() ??
+            `${String(row[1] || '').trim()}@myser.com`,
           documentType: String(row[2] || '').trim(),
           firstName,
           lastName,

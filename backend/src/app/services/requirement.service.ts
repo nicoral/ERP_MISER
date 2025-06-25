@@ -231,7 +231,8 @@ export class RequirementService {
             ? 'MEDIA'
             : 'BAJA',
       observation: requirement.observation,
-      articles: requirementArticles.map(reqArticle => ({
+      articles: requirementArticles.map((reqArticle, index) => ({
+        index: index + 1,
         articleId: reqArticle.article.id.toString().padStart(6, '0'),
         code: reqArticle.article.code,
         name: reqArticle.article.name,

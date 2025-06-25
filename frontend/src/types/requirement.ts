@@ -17,6 +17,18 @@ export interface Requirement {
   createdAt: string;
   updatedAt: Date;
   deletedAt: Date | null;
+  firstSignature?: string;
+  firstSignedBy?: number;
+  firstSignedAt?: string;
+  secondSignature?: string;
+  secondSignedBy?: number;
+  secondSignedAt?: string;
+  thirdSignature?: string;
+  thirdSignedBy?: number;
+  thirdSignedAt?: string;
+  fourthSignature?: string;
+  fourthSignedBy?: number;
+  fourthSignedAt?: string;
 }
 
 export interface RequirementArticle {

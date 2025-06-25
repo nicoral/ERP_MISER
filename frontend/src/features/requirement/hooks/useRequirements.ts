@@ -7,6 +7,7 @@ import {
   deleteRequirement,
   publishRequirement,
   generateRequirementPdf,
+  signRequirement,
 } from '../../../services/api/requirementService';
 import type { CreateRequirementDto } from '../../../types/requirement';
 
@@ -84,6 +85,20 @@ export const usePublishRequirement = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => publishRequirement(id),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['requirement', variables] });
+      queryClient.invalidateQueries({ queryKey: ['requirements'] });
+    },
+  });
+};
+
+/**
+ * Firmar requerimiento.
+ */
+export const useSignRequirement = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => signRequirement(id),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['requirement', variables] });
       queryClient.invalidateQueries({ queryKey: ['requirements'] });
