@@ -6,12 +6,17 @@ import {
   Req,
   Get,
   Put,
+  Request,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { AuthLoginDto } from '../dto/auth/auth-login.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
 import { UpdatePasswordDto } from '../dto/auth/update-password.dto';
+import { EmployeeProfileDto } from '../dto/employee/employee-profile.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('auth')
 export class AuthController {
@@ -53,4 +58,20 @@ export class AuthController {
       updatePasswordDto
     );
   }
+
+  @Post('update-signature')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Actualización de firma del usuario')
+  async updateSignature(@Req() req, @UploadedFile() file: Express.Multer.File) {
+    return await this.authService.updateSignature(req.user.id, file);
+  }
+
+  @Get('profile/me')
+  @UseGuards(JwtAuthGuard)
+  @AuditDescription('Consulta de perfil del usuario autenticado')
+  async getMyProfile(@Request() req): Promise<EmployeeProfileDto> {
+    return this.authService.getProfile(req.user.id);
+  }
+
 }

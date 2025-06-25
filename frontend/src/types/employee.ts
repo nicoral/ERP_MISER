@@ -13,6 +13,7 @@ export interface Employee {
   phone: string;
   address: string;
   imageUrl: string;
+  signature?: string;
   hireDate: Date;
   dischargeDate: Date | null;
   birthDate: Date | null;

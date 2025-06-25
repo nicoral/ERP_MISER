@@ -31,10 +31,8 @@
     }
 
     .logo-cell img {
-      width: 100px;
+      width: 100%;
       height: auto;
-      border-radius: 50%;
-      border: 2px solid #ccc;
       background: #fff;
     }
 
@@ -114,33 +112,32 @@
 </head>
 
 <body>
-  <table class="header-table">
+  <table class="header-table" border="1" cellspacing="0" cellpadding="4" style="border-collapse: collapse; width: 100%;">
     <tr>
-      <td class="logo-cell" rowspan="4">
+      <td rowspan="4" style="width: 20%;">
         <img style="width: 100%;" src="https://res.cloudinary.com/dgvnt5xct/image/upload/v1750026998/mixer/brands/ui6vpk7xtpcefobeq8xk.jpg" alt="Logo Myser">
       </td>
-      <td class="title-cell" colspan="2">FORMATO DE REQUERIMIENTO</td>
-      <td class="code-cell" colspan="2" rowspan="2">
+      <td colspan="3" style="background: #001f87; color: white; text-align: center;"><strong>FORMATO DE REQUERIMIENTO</strong></td>
+      <td rowspan="2" style="text-align: center;" colspan="1">
         <strong>CODIGO<br>MYS-LG-FT-{{id}}</strong>
       </td>
     </tr>
     <tr>
-      <td class="subtitle-cell" colspan="2"><strong>SISTEMA INTEGRADO DE GESTION</strong></td>
+      <td colspan="3" style="text-align: center;"><strong>SISTEMA INTEGRADO DE GESTION</strong></td>
     </tr>
     <tr>
-      <td class="field-label">&nbsp;REVISION:</td>
-      <td class="field-value">1</td>
-      <td class="field-label">&nbsp;VERSION:</td>
-      <td class="field-value">2</td>
+      <td >REVISION:</td>
+      <td >1</td>
+      <td >VERSION: </td>
+      <td >2 </td>
+      
     </tr>
     <tr>
-      <td class="field-label">&nbsp;FECHA:</td>
-      <td class="field-value">{{date}}</td>
-      <td class="field-label">&nbsp;PAGINA:</td>
-      <td class="field-value">1/1</td>
-    </tr>
-    <tr>
-      <td colspan="5" class="gray-row"></td>
+  
+      <td>FECHA:</td>
+      <td>{{date}}</td>
+      <td style="width: 20%;">PAGINA:</td>
+      <td style="width: 20%;">1/1</td>
     </tr>
   </table>
   <table class="header-table" style="margin-top:-2px; font-size:5px;">
@@ -249,10 +246,30 @@
     <table class="header-table"
       style="margin-top:6px; font-size:12px; border-top:1px solid #333; border-left:none; border-right:none; border-bottom:none; width:100%;">
       <tr>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;"></td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
+          {{#if firstSignature}}
+          <img src="{{firstSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
+          <div style="font-size:10px;text-align: end;">{{firstSignedAt}}</div>
+        {{/if}}
+        </td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
+          {{#if secondSignature}}
+          <img src="{{secondSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
+          <div style="font-size:10px;text-align: end;">{{secondSignedAt}}</div>
+        {{/if}}
+        </td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
+          {{#if thirdSignature}}
+          <img src="{{thirdSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
+          <div style="font-size:10px;text-align: end;">{{thirdSignedAt}}</div>
+        {{/if}}
+        </td>
+        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
+          {{#if fourthSignature}}
+          <img src="{{fourthSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
+          <div style="font-size:10px;text-align: end;">{{fourthSignedAt}}</div>
+        {{/if}}
+        </td>
       </tr>
       <tr style="background:#000080; color:#fff; font-size:11px;">
         <td style="text-align:center; font-weight:bold;">V°B° SOLICITANTE<br>ELABORA</td>

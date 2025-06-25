@@ -5,11 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Requirement } from '../entities/Requirement.entity';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { EmployeeModule } from './employee.module';
+import { RoleModule } from './role.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Requirement, RequirementArticle]),
     EmployeeModule,
+    RoleModule,
   ],
   controllers: [RequirementController],
   providers: [RequirementService],

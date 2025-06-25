@@ -22,6 +22,7 @@ import { DownloadIcon } from 'lucide-react';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
+import { REQUIREMENT_STATUS_LABELS } from '../../../utils/requirementStatus';
 
 export const RequirementList = () => {
   const navigate = useNavigate();
@@ -140,11 +141,19 @@ export const RequirementList = () => {
         const statusClasses = {
           PENDING:
             'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-          PUBLISHED:
+          SIGNED_1:
+            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+          SIGNED_2:
+            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+          SIGNED_3:
+            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+          SIGNED_4:
             'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
           APPROVED:
             'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
           CANCELLED:
+            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+          REJECTED:
             'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
         };
 
@@ -154,7 +163,7 @@ export const RequirementList = () => {
               statusClasses[requirement.status as keyof typeof statusClasses]
             }`}
           >
-            {requirement.status}
+            {REQUIREMENT_STATUS_LABELS[requirement.status] || requirement.status}
           </span>
         );
       },

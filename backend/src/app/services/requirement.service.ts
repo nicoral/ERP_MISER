@@ -19,6 +19,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
+import { EmployeeService } from './employee.service';
+import { RoleService } from './role.service';
 
 @Injectable()
 export class RequirementService {
@@ -26,7 +28,9 @@ export class RequirementService {
     @InjectRepository(Requirement)
     private readonly requirementRepository: Repository<Requirement>,
     @InjectRepository(RequirementArticle)
-    private readonly requirementArticleRepository: Repository<RequirementArticle>
+    private readonly requirementArticleRepository: Repository<RequirementArticle>,
+    private readonly employeeService: EmployeeService,
+    private readonly roleService: RoleService,
   ) {}
 
   async create(
@@ -77,20 +81,46 @@ export class RequirementService {
     page: number,
     limit: number
   ): Promise<{ requirements: Requirement[]; total: number }> {
-    const [requirements, total] = await this.requirementRepository.findAndCount(
-      {
-        where: [
-          { employee: { id: userId } },
-          { status: RequirementStatus.PUBLISHED },
-        ],
-        relations: ['employee', 'costCenter'],
-        order: {
-          id: 'DESC',
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-      }
-    );
+    const employee = await this.employeeService.findOne(userId);
+    const role = await this.roleService.findById(employee.role.id);
+    const userPermissions = role.permissions.map(p => p.name);
+
+    let whereConditions: Array<Partial<Requirement> | { employee: { id: number } }> = [];
+    
+    whereConditions.push({ employee: { id: userId } });
+
+    if (userPermissions.includes('requirement-view-all')) {
+      whereConditions = [];
+    } else if (userPermissions.includes('requirement-view-signed3')) {
+      whereConditions.push(
+        { status: RequirementStatus.SIGNED_3 },
+        { status: RequirementStatus.APPROVED }
+      );
+    } else if (userPermissions.includes('requirement-view-signed2')) {
+      whereConditions.push(
+        { status: RequirementStatus.SIGNED_2 },
+        { status: RequirementStatus.SIGNED_3 },
+        { status: RequirementStatus.APPROVED }
+      );
+    } else if (userPermissions.includes('requirement-view-signed1')) {
+      whereConditions.push(
+        { status: RequirementStatus.SIGNED_1 },
+        { status: RequirementStatus.SIGNED_2 },
+        { status: RequirementStatus.SIGNED_3 },
+        { status: RequirementStatus.APPROVED }
+      );
+    } 
+
+    const [requirements, total] = await this.requirementRepository.findAndCount({
+      where: whereConditions,
+      relations: ['employee', 'costCenter'],
+      order: {
+        id: 'DESC',
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
     return { requirements, total };
   }
 
@@ -180,6 +210,7 @@ export class RequirementService {
         (acc, reqArticle) => acc + reqArticle.unitPrice * reqArticle.quantity,
         0
       );
+
     const data = {
       id: '01',
       code: requirement.code,
@@ -213,8 +244,24 @@ export class RequirementService {
         brand: reqArticle.article.brand.name,
         justification: reqArticle.justification,
       })),
-      subtotalPEN: +subtotalPEN.toFixed(2),
-      subtotalUSD: +subtotalUSD.toFixed(2),
+      subtotalPEN: subtotalPEN.toFixed(2),
+      subtotalUSD: subtotalUSD.toFixed(2),
+      firstSignature: requirement.firstSignature,
+      firstSignedAt: requirement.firstSignedAt
+        ? requirement.firstSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        : '',
+      secondSignature: requirement.secondSignature,
+      secondSignedAt: requirement.secondSignedAt
+        ? requirement.secondSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        : '',
+      thirdSignature: requirement.thirdSignature,
+      thirdSignedAt: requirement.thirdSignedAt
+        ? requirement.thirdSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        : '',
+      fourthSignature: requirement.fourthSignature,
+      fourthSignedAt: requirement.fourthSignedAt
+        ? requirement.fourthSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        : '',
     };
     const template = Handlebars.compile(templateHtml);
     const html = template({ ...data });
@@ -245,7 +292,19 @@ export class RequirementService {
         'No tienes permisos para aprobar este requerimiento'
       );
     }
-    requirement.status = RequirementStatus.PUBLISHED;
+    if (requirement.status !== RequirementStatus.PENDING) {
+      throw new ForbiddenException(
+        'El requerimiento ya fue publicado o firmado'
+      );
+    }
+    const employee = requirement.employee;
+    if (!employee.signature) {
+      throw new ForbiddenException('El usuario no tiene firma registrada');
+    }
+    requirement.firstSignature = employee.signature;
+    requirement.firstSignedBy = userId;
+    requirement.firstSignedAt = new Date();
+    requirement.status = RequirementStatus.SIGNED_1;
     return this.requirementRepository.save(requirement);
   }
 
@@ -253,11 +312,10 @@ export class RequirementService {
     { month: string; PEN: number; USD: number }[]
   > {
     const requirements = await this.requirementRepository.find({
-      where: { status: RequirementStatus.PUBLISHED },
+      where: { status: RequirementStatus.APPROVED },
       relations: ['requirementArticles'],
     });
 
-    // Agrupar por mes y moneda
     const groupedByMonthAndCurrency = requirements.reduce(
       (acc, requirement) => {
         const month = requirement.createdAt.getMonth();
@@ -283,10 +341,8 @@ export class RequirementService {
       {} as Record<string, { month: string; PEN: number; USD: number }>
     );
 
-    // Convertir a array y ordenar por mes
     const result = Object.values(groupedByMonthAndCurrency);
 
-    // Ordenar por mes (enero, febrero, marzo, etc.)
     const monthOrder = [
       'ene',
       'feb',
@@ -318,5 +374,52 @@ export class RequirementService {
       );
     }
     await this.requirementRepository.softRemove(requirement);
+  }
+
+  async sign(id: number, userId: number): Promise<Requirement> {
+    const requirement = await this.findOne(id);
+    const employee = await this.employeeService.findOne(userId);
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+    if (!employee.signature) {
+      throw new ForbiddenException('El usuario no tiene firma registrada');
+    }
+
+    switch (requirement.status) {
+      case RequirementStatus.SIGNED_1:
+        requirement.secondSignature = employee.signature;
+        requirement.secondSignedBy = userId;
+        requirement.secondSignedAt = new Date();
+        requirement.status = RequirementStatus.SIGNED_2;
+        break;
+      case RequirementStatus.SIGNED_2:
+        requirement.thirdSignature = employee.signature;
+        requirement.thirdSignedBy = userId;
+        requirement.thirdSignedAt = new Date();
+        if (this.isLowAmount(requirement)) {
+          requirement.status = RequirementStatus.APPROVED;
+        } else {
+          requirement.status = RequirementStatus.SIGNED_3;
+        }
+        break;
+      case RequirementStatus.SIGNED_3:
+        requirement.fourthSignature = employee.signature;
+        requirement.fourthSignedBy = userId;
+        requirement.fourthSignedAt = new Date();
+        requirement.status = RequirementStatus.APPROVED;
+        break;
+      default:
+        throw new ForbiddenException('No se puede firmar en este estado');
+    }
+    return this.requirementRepository.save(requirement);
+  }
+
+  private isLowAmount(requirement: Requirement): boolean {
+    const total = (requirement.requirementArticles || []).reduce(
+      (acc, reqArticle) => acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
+      0
+    );
+    return total < 10000;
   }
 }

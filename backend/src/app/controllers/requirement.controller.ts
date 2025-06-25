@@ -95,4 +95,10 @@ export class RequirementController {
   async remove(@Param('id') id: number): Promise<void> {
     return this.requirementService.remove(id);
   }
+
+  @Post('sign/:id')
+  @AuditDescription('Firma de requerimiento')
+  async sign(@Req() req, @Param('id') id: number): Promise<Requirement> {
+    return this.requirementService.sign(id, req.user.id);
+  }
 }

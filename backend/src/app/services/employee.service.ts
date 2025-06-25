@@ -11,11 +11,13 @@ import { Employee } from '../entities/Employee.entity';
 import * as bcrypt from 'bcrypt';
 import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/employee/update-employee.dto';
+import { EmployeeProfileDto } from '../dto/employee/employee-profile.dto';
 import { RoleService } from './role.service';
 import { Warehouse } from '../entities/Warehouse.entity';
 import { CloudinaryService } from './cloudinary.service';
 import { ExcelImportService } from './excel-import.service';
 import { ImportEmployeeRowDto } from '../dto/employee/import-employee.dto';
+import { plainToClass } from 'class-transformer';
 
 @Injectable()
 export class EmployeeService {
@@ -400,5 +402,38 @@ export class EmployeeService {
 
   async generateImportTemplate(): Promise<Buffer> {
     return this.excelImportService.generateEmployeeTemplate();
+  }
+
+  /**
+   * Obtiene el perfil completo del empleado incluyendo la firma
+   */
+  async getProfile(id: number): Promise<EmployeeProfileDto> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id },
+      relations: ['role', 'warehousesAssigned'],
+      withDeleted: true,
+    });
+    
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
+
+    // Transformar usando el DTO específico que incluye la firma
+    return plainToClass(EmployeeProfileDto, employee, { 
+      excludeExtraneousValues: true 
+    });
+  }
+
+  async updateSignature(id: number, file: Express.Multer.File) {
+    const employee = await this.findOne(id);
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
+    const uploadResult = await this.cloudinaryService.uploadFile(
+      file,
+      'employees/signatures'
+    );
+    employee.signature = uploadResult.secure_url;
+    return this.employeeRepository.save(employee);
   }
 }

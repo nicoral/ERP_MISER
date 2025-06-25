@@ -197,6 +197,37 @@ export const RequirementDetails = () => {
         </p>
       </div>
 
+      {/* Firmas */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Firmas</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Solicitante', date: requirement?.firstSignedAt },
+            { label: 'Oficina Técnica', date: requirement?.secondSignedAt },
+            { label: 'Administración', date: requirement?.thirdSignedAt },
+            { label: 'Gerencia', date: requirement?.fourthSignedAt },
+          ].map((firma, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow"
+            >
+              <div className="font-medium text-sm mb-1">{firma.label}</div>
+              {firma.date ? (
+                <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
+                  {new Date(firma.date).toLocaleDateString('es-PE', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                  })}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-400 italic">Pendiente</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Botón de regreso */}
       <div className="flex justify-end">
         <button

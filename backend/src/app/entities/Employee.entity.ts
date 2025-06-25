@@ -32,6 +32,10 @@ export class Employee {
   @Column('varchar', { length: 255, name: 'password', nullable: false })
   password: string;
 
+  @Exclude()
+  @Column('varchar', { length: 255, name: 'signature', nullable: true })
+  signature: string;
+
   @Column('varchar', {
     length: 100,
     name: 'document_id',

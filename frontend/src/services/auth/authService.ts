@@ -1,4 +1,5 @@
 import { STORAGE_KEY_TOKEN, STORAGE_KEY_USER } from '../../config/constants';
+import type { Employee } from '../../types/employee';
 import type { User } from '../../types/user';
 
 export async function login(email: string, password: string): Promise<User> {
@@ -53,6 +54,43 @@ export async function updatePassword(
 export async function getWarehousesByEmployeeId() {
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/auth/me-warehouses`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+  return data;
+}
+
+export const uploadEmployeeSignature = async (
+  file: File
+): Promise<Employee> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/auth/update-signature`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+      body: formData,
+    }
+  );
+  const data = await response.json();
+  if (response.status === 201) {
+    return data;
+  }
+  throw new Error(data.message);
+};
+
+export async function getProfile() {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/auth/profile/me`,
     {
       headers: {
         Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,

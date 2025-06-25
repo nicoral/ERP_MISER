@@ -13,9 +13,10 @@ import { Employee } from './Employee.entity';
 import { CostCenter } from './CostCenter.entity';
 import { RequirementArticle } from './RequirementArticle.entity';
 import { Warehouse } from './Warehouse.entity';
+import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
 
 @Entity()
-export class Requirement {
+export class Requirement extends ApprovalFlowBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -28,7 +29,7 @@ export class Requirement {
   @Column('text', { nullable: true })
   observation: string;
 
-  @Column()
+  @Column({ enum: RequirementStatus, default: RequirementStatus.PENDING })
   status: RequirementStatus;
 
   @ManyToOne(() => Employee, employee => employee.requirements)

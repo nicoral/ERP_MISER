@@ -81,6 +81,13 @@ export const MODULES = [
   },
 ];
 
+export const ADVANCED_MODULES = [
+  {
+    key: 'advanced',
+    label: 'Configuración Avanzada',
+  },
+];
+
 export const ALPHABET = [
   'A',
   'B',

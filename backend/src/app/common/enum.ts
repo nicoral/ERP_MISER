@@ -6,8 +6,13 @@ export enum SupplierStatus {
 
 export enum RequirementStatus {
   PENDING = 'PENDING',
-  PUBLISHED = 'PUBLISHED',
+  SIGNED_1 = 'SIGNED_1',
+  SIGNED_2 = 'SIGNED_2',
+  SIGNED_3 = 'SIGNED_3',
+  SIGNED_4 = 'SIGNED_4',
   CANCELLED = 'CANCELLED',
+  REJECTED = 'REJECTED',
+  APPROVED = 'APPROVED',
 }
 
 export enum RequirementPriority {

@@ -112,6 +112,83 @@ export default class PermissionSeeder implements Seeder {
                 endpoint: '/articles/:id',
                 method: 'DELETE',
                 description: 'Eliminar artículos'
+            },
+            // Permisos para el flujo de firmas de requerimientos
+            {
+                id: 16,
+                name: 'requirement.view.all',
+                endpoint: '/requirements',
+                method: 'GET',
+                description: 'Ver todos los requerimientos (Admin)'
+            },
+            {
+                id: 17,
+                name: 'requirement.view.signed1',
+                endpoint: '/requirements',
+                method: 'GET',
+                description: 'Ver requerimientos con 1 firma o más'
+            },
+            {
+                id: 18,
+                name: 'requirement.view.signed2',
+                endpoint: '/requirements',
+                method: 'GET',
+                description: 'Ver requerimientos con 2 firmas o más'
+            },
+            {
+                id: 19,
+                name: 'requirement.view.signed3',
+                endpoint: '/requirements',
+                method: 'GET',
+                description: 'Ver requerimientos con 3 firmas o más'
+            },
+            {
+                id: 20,
+                name: 'requirement.sign',
+                endpoint: '/requirements/sign/:id',
+                method: 'POST',
+                description: 'Firmar requerimientos'
+            },
+            // Permisos avanzados
+            {
+                id: 21,
+                name: 'advanced.system_config',
+                module: 'advanced',
+                endpoint: '/system/config',
+                method: 'GET',
+                description: 'Configuración del sistema'
+            },
+            {
+                id: 22,
+                name: 'advanced.audit_logs',
+                module: 'advanced',
+                endpoint: '/audit-logs',
+                method: 'GET',
+                description: 'Ver logs de auditoría'
+            },
+            {
+                id: 23,
+                name: 'advanced.data_export',
+                module: 'advanced',
+                endpoint: '/export',
+                method: 'POST',
+                description: 'Exportar datos del sistema'
+            },
+            {
+                id: 24,
+                name: 'advanced.backup_restore',
+                module: 'advanced',
+                endpoint: '/backup',
+                method: 'POST',
+                description: 'Backup y restauración'
+            },
+            {
+                id: 25,
+                name: 'advanced.user_management',
+                module: 'advanced',
+                endpoint: '/users',
+                method: 'GET',
+                description: 'Gestión avanzada de usuarios'
             }
         ];
 

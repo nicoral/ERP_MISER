@@ -84,4 +84,12 @@ export class AuthService {
       await this.employeeService.getEmployeeWithWarehouses(id);
     return warehouses;
   }
+
+  async getProfile(id: number) {
+    return this.employeeService.getProfile(id);
+  }
+
+  async updateSignature(id: number, file: Express.Multer.File) {
+    return this.employeeService.updateSignature(id, file);
+  }
 }

@@ -9,6 +9,7 @@ import {
   CheckBadgeIcon,
   XCircleIcon,
   ChevronDownIcon,
+  SettingsIcon,
 } from '../../../components/common/Icons';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { MODULES } from '../../../config/constants';
@@ -44,9 +45,18 @@ const RoleDetails: React.FC<{ role: Role; loading?: boolean }> = ({
     );
   }
 
+  // Obtener permisos avanzados dinámicamente del rol
+  const advancedPermissions = role.permissions.filter(
+    p => p.module === 'advanced'
+  );
+
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div className="w-full max-w-lg mx-auto space-y-6">
+      {/* Permisos regulares */}
       <div className="space-y-2">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          Permisos del Sistema
+        </h3>
         {MODULES.map(module => {
           const enabledCount = ACTIONS.filter(action =>
             hasPermission(role, module.key, action.key)
@@ -104,6 +114,58 @@ const RoleDetails: React.FC<{ role: Role; loading?: boolean }> = ({
           );
         })}
       </div>
+
+      {/* Permisos avanzados */}
+      {advancedPermissions.length > 0 && (
+        <Disclosure
+          as="div"
+          className="bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800"
+        >
+          {({ open }) => (
+            <>
+              <Disclosure.Button className="w-full p-4 text-left">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                    <SettingsIcon className="w-5 h-5 mr-2 text-orange-500" />
+                    Configuración Avanzada
+                  </h3>
+                  <ChevronDownIcon
+                    className={`w-5 h-5 text-orange-500 transform transition-transform duration-200 ${
+                      open ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+                <p className="text-sm text-orange-700 dark:text-orange-300 mt-2">
+                  Estos permisos otorgan acceso a funciones avanzadas del
+                  sistema.
+                </p>
+              </Disclosure.Button>
+              <Disclosure.Panel className="px-4 pb-4 overflow-hidden transition-all duration-500 ease-out">
+                <div className="space-y-2 mt-4">
+                  {advancedPermissions.map(perm => (
+                    <div
+                      key={perm.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-green-100 dark:bg-green-800/60 border-green-200 dark:border-green-700 transform transition-all duration-300 ease-out hover:scale-105"
+                    >
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                          {perm.name.replace('advanced.', '')}
+                        </span>
+                        {perm.description && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            {perm.description}
+                          </p>
+                        )}
+                      </div>
+                      <CheckBadgeIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                  ))}
+                </div>
+              </Disclosure.Panel>
+            </>
+          )}
+        </Disclosure>
+      )}
     </div>
   );
 };
