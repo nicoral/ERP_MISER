@@ -33,6 +33,7 @@ import { RequirementDetails } from './features/requirement/components/Requiremen
 import { WelcomePage } from './pages/WelcomePage';
 import { UserRolesForm } from './features/administration/components/UserRolesForm';
 import { AuditLogForm } from './features/administration/components/AuditLogForm';
+import { GeneralSettingsForm } from './features/administration/components/GeneralSettingsForm';
 
 function App() {
   return (
@@ -120,6 +121,10 @@ function App() {
                   <Route
                     path={ROUTES.REQUIREMENT_EDIT}
                     element={<RequirementForm />}
+                  />
+                  <Route
+                    path={ROUTES.GENERAL_SETTINGS}
+                    element={<GeneralSettingsForm />}
                   />
                 </Route>
               </Route>

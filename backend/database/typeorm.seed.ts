@@ -4,8 +4,7 @@ import { DataSource } from 'typeorm';
 import 'dotenv/config';
 import { options } from './dataSource';
 import EmployeeSeed from './seeders/Employee.seeder';
-import RoleSeeder from './seeders/Role.seeder';
-import PermissionSeeder from './seeders/Permission.seeder';
+import GeneralSettingsSeeder from './seeders/GeneralSettings.seeder';
 
 config();
 export const dataSource = new DataSource(options);
@@ -13,7 +12,8 @@ export const dataSource = new DataSource(options);
   await dataSource.initialize();
   await runSeeders(dataSource, {
     seeds: [
-      EmployeeSeed
+      EmployeeSeed,
+      GeneralSettingsSeeder
     ],
   });
 })();

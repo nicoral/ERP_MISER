@@ -33,6 +33,12 @@ const menuItems: MenuItem[] = [
     icon: <SettingsIcon className="w-5 h-5" />,
     subItems: [
       {
+        label: SIDEBAR_TEXTS.generalSettings,
+        path: ROUTES.GENERAL_SETTINGS,
+        permission: ['view_administration'],
+        icon: <SettingsIcon className="w-5 h-5" />,
+      },
+      {
         label: SIDEBAR_TEXTS.roles,
         path: ROUTES.ROLES,
         permission: ['view_roles'],

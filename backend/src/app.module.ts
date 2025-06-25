@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { forRootObject } from './config/configModuleOptions';
 import { DatabaseModule } from './config/database/database.module';
 import { EmployeeModule } from './app/modules/employee.module';
@@ -18,10 +19,14 @@ import { CloudinaryModule } from './app/modules/cloudinary.module';
 import { AuditLogModule } from './app/modules/auditLog.module';
 import { CostCenterModule } from './app/modules/costCenter.module';
 import { RequirementModule } from './app/modules/requirement.module';
+import { SunatModule } from './app/modules/sunat.module';
+import { GeneralSettingsModule } from './app/modules/generalSettings.module';
+import { ScheduledTasksService } from './app/services/scheduledTasks.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot(forRootObject),
+    ScheduleModule.forRoot(),
     CloudinaryModule,
     DatabaseModule,
     PermissionModule,
@@ -34,6 +39,8 @@ import { RequirementModule } from './app/modules/requirement.module';
     AuditLogModule,
     CostCenterModule,
     RequirementModule,
+    SunatModule,
+    GeneralSettingsModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],
@@ -42,6 +49,7 @@ import { RequirementModule } from './app/modules/requirement.module';
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
     },
+    ScheduledTasksService,
   ],
 })
 export class AppModule {}

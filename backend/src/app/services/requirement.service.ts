@@ -377,16 +377,68 @@ export class RequirementService {
     await this.requirementRepository.softRemove(requirement);
   }
 
+  /**
+   * Verifica si un usuario puede firmar un requerimiento según su estado y permisos
+   * @param requirement - El requerimiento a verificar
+   * @param userPermissions - Los permisos del usuario
+   * @returns { canSign: boolean, requiredPermission: string }
+   */
+  private canUserSignRequirement(
+    requirement: Requirement,
+    userPermissions: string[]
+  ): { canSign: boolean; requiredPermission: string } {
+    let canSign = false;
+    let requiredPermission = '';
+
+    switch (requirement.status) {
+      case RequirementStatus.SIGNED_1:
+        requiredPermission = 'requirement-view-signed1';
+        canSign = userPermissions.includes(requiredPermission) && !requirement.secondSignedAt;
+        break;
+      case RequirementStatus.SIGNED_2:
+        requiredPermission = 'requirement-view-signed2';
+        canSign = userPermissions.includes(requiredPermission) && !requirement.thirdSignedAt;
+        break;
+      case RequirementStatus.SIGNED_3:
+        requiredPermission = 'requirement-view-signed3';
+        canSign = userPermissions.includes(requiredPermission) && !requirement.fourthSignedAt;
+        break;
+      default:
+        return { canSign: false, requiredPermission: '' };
+    }
+
+    return { canSign, requiredPermission };
+  }
+
   async sign(id: number, userId: number): Promise<Requirement> {
     const requirement = await this.findOne(id);
     const employee = await this.employeeService.findOne(userId);
+    
     if (!employee) {
       throw new NotFoundException('Empleado no encontrado');
     }
+    
     if (!employee.signature) {
       throw new ForbiddenException('El usuario no tiene firma registrada');
     }
 
+    // Obtener el rol del empleado con sus permisos
+    const role = await this.roleService.findById(employee.role.id);
+    const userPermissions = role.permissions.map(p => p.name);
+
+    // Verificar permisos según el estado del requerimiento
+    const { canSign } = this.canUserSignRequirement(
+      requirement,
+      userPermissions
+    );
+
+    if (!canSign) {
+      throw new ForbiddenException(
+        `No tienes permisos para firmar este requerimiento`
+      );
+    }
+
+    // Proceder con la firma según el estado
     switch (requirement.status) {
       case RequirementStatus.SIGNED_1:
         requirement.secondSignature = employee.signature;
@@ -413,6 +465,7 @@ export class RequirementService {
       default:
         throw new ForbiddenException('No se puede firmar en este estado');
     }
+    
     return this.requirementRepository.save(requirement);
   }
 

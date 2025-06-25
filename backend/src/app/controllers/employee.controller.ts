@@ -54,6 +54,12 @@ export class EmployeeController {
     return { data, total, page, limit };
   }
 
+  @Get('list/simple')
+  @AuditDescription('Consulta de lista de empleados')
+  async listSimple(@Query('search') search?: string) {
+    return this.employeeService.listSimple(search);
+  }
+
   @Get(':id')
   @RequirePermissions('view_employee')
   @AuditDescription('Consulta de detalle de empleado')

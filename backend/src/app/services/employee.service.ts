@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Employee } from '../entities/Employee.entity';
 import * as bcrypt from 'bcrypt';
 import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
@@ -435,5 +435,32 @@ export class EmployeeService {
     );
     employee.signature = uploadResult.secure_url;
     return this.employeeRepository.save(employee);
+  }
+
+  async listSimple(search?: string) {
+    const query = this.employeeRepository.find({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        documentId: true,
+      },
+      where: [
+        {
+          firstName: ILike(`%${search}%`),
+        },
+        {
+          lastName: ILike(`%${search}%`),
+        },
+        {
+          email: ILike(`%${search}%`),
+        },
+        {
+          documentId: ILike(`%${search}%`),
+        },
+      ],
+    });
+    return query;
   }
 }

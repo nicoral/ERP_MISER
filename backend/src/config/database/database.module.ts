@@ -14,6 +14,7 @@ import { Brand } from '../../app/entities/Brand.entity';
 import { CostCenter } from '../../app/entities/CostCenter.entity';
 import { RequirementArticle } from '../../app/entities/RequirementArticle.entity';
 import { Requirement } from '../../app/entities/Requirement.entity';
+import { GeneralSettings } from '../../app/entities/GeneralSettings.entity';
 
 @Global()
 @Module({
@@ -33,6 +34,7 @@ import { Requirement } from '../../app/entities/Requirement.entity';
         CostCenter,
         Requirement,
         RequirementArticle,
+        GeneralSettings,
       ],
     }),
   ],

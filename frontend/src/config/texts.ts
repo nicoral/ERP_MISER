@@ -99,6 +99,7 @@ export const EMPLOYEES_TEXTS = {
 };
 
 export const SIDEBAR_TEXTS = {
+  generalSettings: 'Conf. general',
   administration: 'Administración',
   employees: 'Empleados',
   process: 'Procesos',

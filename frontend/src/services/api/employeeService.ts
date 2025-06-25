@@ -190,3 +190,19 @@ export const importEmployeesFromExcel = async (
 
   throw new Error(data.message || 'Error al importar empleados');
 };
+
+export const getEmployeesSimple = async (
+  search?: string
+): Promise<Employee[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/employees/list/simple?search=${search}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    }
+  );
+  const data = await response.json();
+  return data;
+};

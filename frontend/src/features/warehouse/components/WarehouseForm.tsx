@@ -1,18 +1,19 @@
 import { FormCheckbox } from '../../../components/common/FormCheckbox';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
-import { useEmployees } from '../../employees/hooks/useEmployees';
 import { COMMON_TEXTS, WAREHOUSE_TEXTS } from '../../../config/texts';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { WarehouseCreate } from '../../../types/warehouse';
 import { FormInput } from '../../../components/common/FormInput';
 import { FormInputDate } from '../../../components/common/FormInputDate';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 import {
   useWarehouse,
   useWarehouseCreate,
   useWarehouseUpdate,
 } from '../hooks/useWarehouse';
 import { ROUTES } from '../../../config/constants';
+import { useEmployeesSimple } from '../../../hooks/useEmployeeService';
 
 export const WarehouseForm = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export const WarehouseForm = () => {
     data: employees,
     isLoading: loadingEmployees,
     error: errorEmployees,
-  } = useEmployees(1, 1000);
+  } = useEmployeesSimple('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +100,13 @@ export const WarehouseForm = () => {
       </div>
     );
   }
+
+  // Preparar las opciones para el SearchableSelect
+  const employeeOptions =
+    employees?.map(employee => ({
+      value: employee.id,
+      label: `${employee.firstName} ${employee.lastName}`,
+    })) || [];
 
   return (
     <div className="max-w-2xl mx-auto p-2">
@@ -181,29 +189,17 @@ export const WarehouseForm = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="employee"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              {WAREHOUSE_TEXTS.form.fields.employee}
-            </label>
-            <select
+            <SearchableSelect
               id="employee"
               name="employeeId"
+              label={WAREHOUSE_TEXTS.form.fields.employee}
               value={formData.employeeId}
               onChange={handleChange}
+              options={employeeOptions}
+              placeholder={WAREHOUSE_TEXTS.form.select.employee.placeholder}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-base py-2 px-3 h-10"
-            >
-              <option value="">
-                {WAREHOUSE_TEXTS.form.select.employee.placeholder}
-              </option>
-              {employees?.data.map(employee => (
-                <option key={employee.id} value={employee.id}>
-                  {`${employee.firstName} ${employee.lastName}`}
-                </option>
-              ))}
-            </select>
+              disabled={loadingEmployees}
+            />
           </div>
 
           <div className="flex items-center">

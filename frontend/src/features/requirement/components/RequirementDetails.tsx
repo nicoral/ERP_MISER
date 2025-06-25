@@ -21,7 +21,7 @@ export const RequirementDetails = () => {
 
   const handleSign = async () => {
     if (!requirement) return;
-    
+
     try {
       await signRequirementMutation.mutateAsync(requirement.id);
       showSuccess('Firmado', 'Requerimiento firmado correctamente');
@@ -252,7 +252,7 @@ export const RequirementDetails = () => {
         >
           Volver
         </button>
-        
+
         {requirement && canSignRequirement(requirement) && (
           <button
             onClick={handleSign}
