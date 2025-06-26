@@ -7,6 +7,7 @@ import { ROUTES } from '../../../config/constants';
 import type { RequirementArticle } from '../../../types/requirement';
 import { canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
+import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 
 export const RequirementDetails = () => {
   const params = useParams();
@@ -17,7 +18,26 @@ export const RequirementDetails = () => {
     isLoading: loading,
     error,
   } = useRequirement(params.id ? Number(params.id) : 0);
+  const { data: exchangeRate, isLoading: loadingExchangeRate } =
+    useCurrentExchangeRate();
   const signRequirementMutation = useSignRequirement();
+
+  const subtotals = {
+    PEN: requirement?.requirementArticles
+      .filter((article: RequirementArticle) => article.currency === 'PEN')
+      .reduce(
+        (sum: number, article: RequirementArticle) =>
+          sum + article.quantity * article.unitPrice,
+        0
+      ),
+    USD: requirement?.requirementArticles
+      .filter((article: RequirementArticle) => article.currency === 'USD')
+      .reduce(
+        (sum: number, article: RequirementArticle) =>
+          sum + article.quantity * article.unitPrice,
+        0
+      ),
+  };
 
   const handleSign = async () => {
     if (!requirement) return;
@@ -30,7 +50,7 @@ export const RequirementDetails = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading || loadingExchangeRate) return <LoadingSpinner />;
   if (error) return <div className="text-red-500">{error.message}</div>;
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -179,11 +199,16 @@ export const RequirementDetails = () => {
               </tr>
             )}
             {/* Subtotal USD */}
-            {requirement?.requirementArticles.some(
-              (article: RequirementArticle) => article.currency === 'USD'
-            ) && (
+            {subtotals.USD > 0 && (
               <tr className="bg-gray-50 dark:bg-gray-700">
-                <td colSpan={7} className="px-3 py-2 text-right font-medium">
+                <td
+                  colSpan={6}
+                  className="px-3 py-2 text-right font-small text-sm"
+                >
+                  Tipo de cambio: {exchangeRate?.saleRate} / PEN{' '}
+                  {(subtotals.USD * (exchangeRate?.saleRate || 0)).toFixed(2)}
+                </td>
+                <td className="px-3 py-2 text-right font-medium">
                   SUBTOTAL USD
                 </td>
                 <td className="px-3 py-2 text-right font-medium">

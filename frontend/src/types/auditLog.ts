@@ -1,7 +1,7 @@
 import type { Employee } from './employee';
 
 export interface AuditLogFilters {
-  action?: string;
+  search?: string;
   userId?: number;
   date?: string;
 }

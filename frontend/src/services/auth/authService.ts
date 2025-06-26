@@ -74,7 +74,7 @@ export const uploadEmployeeSignature = async (
   const response = await fetch(
     `${import.meta.env.VITE_API_URL}/auth/update-signature`,
     {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
@@ -82,7 +82,7 @@ export const uploadEmployeeSignature = async (
     }
   );
   const data = await response.json();
-  if (response.status === 201) {
+  if (response.status === 200) {
     return data;
   }
   throw new Error(data.message);

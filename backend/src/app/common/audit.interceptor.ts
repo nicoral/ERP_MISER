@@ -75,7 +75,7 @@ export class AuditInterceptor implements NestInterceptor {
 
           const audit = this.auditLogRepository.create({
             action:
-              action === 'post' && entity === 'AuthController'
+              action === 'post' && url === '/api/auth/login'
                 ? 'login'
                 : action,
             entity: entity ?? null,

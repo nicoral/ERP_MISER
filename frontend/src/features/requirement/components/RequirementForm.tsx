@@ -20,6 +20,7 @@ import {
   useCreateRequirement,
   useUpdateRequirement,
 } from '../hooks/useRequirements';
+import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 
 interface ArticlesSelected {
   id: number;
@@ -44,6 +45,8 @@ interface Products {
 export const RequirementForm = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { data: exchangeRate, isLoading: loadingExchangeRate } =
+    useCurrentExchangeRate();
   const isEditing = !!id;
 
   // React Query hooks
@@ -287,7 +290,8 @@ export const RequirementForm = () => {
     loadingWarehouse ||
     loadingCostCenters ||
     createRequirementMutation.isPending ||
-    updateRequirementMutation.isPending;
+    updateRequirementMutation.isPending ||
+    loadingExchangeRate;
 
   if (isLoading) {
     return (
@@ -555,6 +559,10 @@ export const RequirementForm = () => {
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   $ {subtotals.USD.toFixed(2)}
+                  <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                    Tipo de cambio: {exchangeRate?.saleRate} / PEN{' '}
+                    {(subtotals.USD * (exchangeRate?.saleRate || 0)).toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>

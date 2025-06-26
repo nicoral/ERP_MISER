@@ -17,28 +17,49 @@ export class AuditLogService {
     userId?: number,
     date?: string
   ): Promise<{ data: AuditLog[]; total: number }> {
-    const query = this.auditLogRepository.createQueryBuilder('auditLog');
-    query.leftJoinAndSelect('auditLog.employee', 'employee');
+    const query = this.auditLogRepository.createQueryBuilder('auditLog')
+      .leftJoinAndSelect('auditLog.employee', 'employee');
+
+    // Build conditions array
+    const conditions: Array<{ condition: string; params: Record<string, string | number> }> = [];
+
     if (search) {
-      query.where('auditLog.action LIKE :search', { search: `%${search}%` });
+      conditions.push({
+        condition: 'auditLog.action LIKE :search',
+        params: { search: `%${search}%` }
+      });
     }
+
     if (userId) {
-      query.where('auditLog.employee.id = :userId', { userId });
+      conditions.push({
+        condition: 'auditLog.employee.id = :userId',
+        params: { userId }
+      });
     }
+
     if (date) {
-      query.where(
-        'auditLog.timestamp >= :dateIni AND auditLog.timestamp <= :dateFin',
-        {
-          dateIni: new Date(date).setHours(0, 0, 0, 0),
-          dateFin: new Date(date).setHours(23, 59, 59, 999),
-        }
-      );
+      conditions.push({
+        condition: 'DATE(auditLog.timestamp) = :date',
+        params: { date }
+      });
     }
+
+    // Apply conditions
+    conditions.forEach((condition, index) => {
+      if (index === 0) {
+        query.where(condition.condition, condition.params);
+      } else {
+        query.andWhere(condition.condition, condition.params);
+      }
+    });
+
+    
     const [data, total] = await query
       .orderBy('auditLog.timestamp', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
+
     return { data, total };
   }
 }

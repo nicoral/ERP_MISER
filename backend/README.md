@@ -96,3 +96,26 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Seguridad y Prevención de Hackeos
+
+## Nivel de Seguridad Actual
+
+El sistema ERP_MISER implementa buenas prácticas de seguridad tanto en backend como en frontend. A continuación se detallan los principales mecanismos y recomendaciones:
+
+### 🔒 Backend (NestJS + TypeORM)
+- **Autenticación JWT**: Uso de tokens JWT para proteger endpoints.
+- **Guards de permisos y roles**: Acceso restringido a endpoints críticos mediante guards y decoradores.
+- **Validación de datos**: Uso de DTOs y class-validator para evitar inyecciones y datos maliciosos.
+- **TypeORM**: Previene inyecciones SQL mediante consultas parametrizadas.
+- **Gestión de archivos**: Subida de imágenes a Cloudinary, evitando archivos en el servidor.
+- **Auditoría y logs**: Registro de acciones administrativas y operaciones críticas.
+- **Variables de entorno**: Configuración sensible fuera del código fuente.
+- **Prevención de ataques comunes**: Protección contra CSRF (por diseño REST), XSS (no renderiza HTML), y estructura modular segura.
+
+### 🛡️ Frontend (React + Vite + Tailwind)
+- **Gestión de sesión**: JWT en sessionStorage, headers Authorization en cada request.
+- **Validación y UX**: Validación de archivos e inputs en formularios.
+- **Prevención de XSS**: Renderizado seguro en React.
+- **Gestión de archivos**: Solo imágenes permitidas para el logo.
+

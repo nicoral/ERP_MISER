@@ -10,8 +10,8 @@ export async function getAuditLogs(
   const queryParams = new URLSearchParams();
   queryParams.append('page', page.toString());
   queryParams.append('limit', pageSize.toString());
-  if (filters?.action) {
-    queryParams.append('action', filters.action);
+  if (filters?.search) {
+    queryParams.append('search', filters.search);
   }
   if (filters?.userId) {
     queryParams.append('userId', filters.userId.toString());

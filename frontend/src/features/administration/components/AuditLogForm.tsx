@@ -7,6 +7,8 @@ import type { AuditLog, AuditLogFilters } from '../../../types/auditLog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Table, type TableColumn } from '../../../components/common/Table';
+import { useEmployeesSimple } from '../../../hooks/useEmployeeService';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 export const AuditLogForm = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -18,6 +20,8 @@ export const AuditLogForm = () => {
     total: 0,
     totalPages: 0,
   });
+  const { data: employees, isLoading: loadingEmployees } =
+    useEmployeesSimple('');
 
   useEffect(() => {
     (async () => {
@@ -41,12 +45,16 @@ export const AuditLogForm = () => {
         setIsLoading(false);
       }
     })();
-  }, [filters]);
+  }, [filters, pagination.page, pagination.pageSize]);
 
   const handleFilterChange = (name: string, value: string) => {
     setFilters(prev => ({
       ...prev,
       [name]: value === 'Todos' ? undefined : value,
+    }));
+    setPagination(prev => ({
+      ...prev,
+      page: 1,
     }));
   };
 
@@ -132,6 +140,13 @@ export const AuditLogForm = () => {
     },
   ];
 
+  // Preparar las opciones para el SearchableSelect
+  const employeeOptions =
+    employees?.map(employee => ({
+      value: employee.id,
+      label: `${employee.firstName} ${employee.lastName}`,
+    })) || [];
+
   return (
     <div className="mt-6">
       <div className="mb-4 flex justify-between items-center">
@@ -139,35 +154,39 @@ export const AuditLogForm = () => {
           {ADMINISTRATION_TEXTS.audit.title}
         </h3>
       </div>
-      <form className="flex flex-wrap gap-4 mb-4 ">
-        <FormSelect
+      <form className="flex flex-wrap gap-4 mb-4 grid grid-cols-5">
+        <SearchableSelect
+          id="user"
+          name="user"
+          value={filters.userId || 'Todos'}
           label={ADMINISTRATION_TEXTS.audit.user}
           onChange={e => handleFilterChange('userId', e.target.value)}
-        >
-          <option value="">Todos</option>
-        </FormSelect>
+          options={employeeOptions}
+        />
         <FormInputDate
           label={ADMINISTRATION_TEXTS.audit.date}
           onChange={e => handleFilterChange('date', e.target.value)}
         />
         <FormSelect
           label={ADMINISTRATION_TEXTS.audit.action}
-          onChange={e => handleFilterChange('action', e.target.value)}
+          onChange={e => handleFilterChange('search', e.target.value)}
         >
           <option value="">Todos</option>
-          <option value="CREATE">Creación</option>
-          <option value="UPDATE">Actualización</option>
-          <option value="DELETE">Eliminación</option>
-          <option value="LOGIN">Inicio de sesión</option>
+          <option value="post">Creación</option>
+          <option value="put">Actualización</option>
+          <option value="delete">Eliminación</option>
+          <option value="login">Inicio de sesión</option>
         </FormSelect>
-        <button
+        {/* <button
           type="button"
           onClick={() => {}}
           className="self-end px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
           disabled={isLoading}
         >
-          {isLoading ? 'Cargando...' : ADMINISTRATION_TEXTS.audit.filter}
-        </button>
+          {isLoading || loadingEmployees
+            ? 'Cargando...'
+            : ADMINISTRATION_TEXTS.audit.filter}
+        </button> */}
         {/* <button
           type="button"
           onClick={handleExport}
@@ -181,7 +200,7 @@ export const AuditLogForm = () => {
           columns={columns}
           data={auditLogs}
           keyField="id"
-          loading={isLoading}
+          loading={isLoading || loadingEmployees}
           pagination={{
             page: pagination.page,
             totalPages: pagination.totalPages,

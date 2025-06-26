@@ -59,7 +59,7 @@ export class AuthController {
     );
   }
 
-  @Post('update-signature')
+  @Put('update-signature')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @AuditDescription('Actualización de firma del usuario')
