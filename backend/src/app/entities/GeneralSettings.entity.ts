@@ -87,4 +87,4 @@ export class GeneralSettings {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
-} 
+}

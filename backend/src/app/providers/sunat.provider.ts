@@ -9,7 +9,8 @@ export interface SunatExchangeRate {
 @Injectable()
 export class SunatProvider {
   private readonly logger = new Logger(SunatProvider.name);
-  private readonly SUNAT_API_URL = 'https://www.sunat.gob.pe/a/txt/tipoCambio.txt';
+  private readonly SUNAT_API_URL =
+    'https://www.sunat.gob.pe/a/txt/tipoCambio.txt';
 
   /**
    * Obtiene el tipo de cambio actual desde la API de SUNAT
@@ -18,7 +19,7 @@ export class SunatProvider {
   async getExchangeRate(): Promise<SunatExchangeRate> {
     try {
       this.logger.log('Obteniendo tipo de cambio desde SUNAT...');
-      
+
       const response = await fetch(this.SUNAT_API_URL, {
         method: 'GET',
         headers: {
@@ -27,7 +28,9 @@ export class SunatProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Error HTTP: ${response.status} ${response.statusText}`
+        );
       }
 
       const text = await response.text();
@@ -35,7 +38,7 @@ export class SunatProvider {
 
       // Parsear la respuesta: formato "25/06/2025|3.571|3.581|"
       const parts = text.trim().split('|');
-      
+
       if (parts.length < 3) {
         throw new Error('Formato de respuesta inválido de SUNAT');
       }
@@ -61,11 +64,15 @@ export class SunatProvider {
         saleRate,
       };
 
-      this.logger.log(`Tipo de cambio obtenido: ${dateStr} - Compra: ${purchaseRate}, Venta: ${saleRate}`);
-      
+      this.logger.log(
+        `Tipo de cambio obtenido: ${dateStr} - Compra: ${purchaseRate}, Venta: ${saleRate}`
+      );
+
       return result;
     } catch (error) {
-      this.logger.error(`Error al obtener tipo de cambio de SUNAT: ${error.message}`);
+      this.logger.error(
+        `Error al obtener tipo de cambio de SUNAT: ${error.message}`
+      );
       throw new Error(`No se pudo obtener el tipo de cambio: ${error.message}`);
     }
   }
@@ -95,7 +102,7 @@ export class SunatProvider {
 
     const [day, month, year] = dateStr.split('/').map(Number);
     const date = new Date(year, month - 1, day);
-    
+
     return (
       date.getDate() === day &&
       date.getMonth() === month - 1 &&

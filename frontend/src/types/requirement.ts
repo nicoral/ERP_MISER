@@ -32,6 +32,7 @@ export interface Requirement {
 }
 
 export interface RequirementArticle {
+  id: number;
   article: Article;
   quantity: number;
   unitPrice: number;

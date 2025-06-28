@@ -6,7 +6,9 @@ import { GeneralSettingsService } from './generalSettings.service';
 export class ScheduledTasksService {
   private readonly logger = new Logger(ScheduledTasksService.name);
 
-  constructor(private readonly generalSettingsService: GeneralSettingsService) {}
+  constructor(
+    private readonly generalSettingsService: GeneralSettingsService
+  ) {}
 
   /**
    * Actualiza el tipo de cambio diariamente a las 8:00 AM
@@ -17,10 +19,13 @@ export class ScheduledTasksService {
   })
   async updateExchangeRateDaily() {
     try {
-      this.logger.log('Ejecutando tarea programada: Actualización de tipo de cambio');
-      
-      const shouldUpdate = await this.generalSettingsService.shouldUpdateExchangeRate();
-      
+      this.logger.log(
+        'Ejecutando tarea programada: Actualización de tipo de cambio'
+      );
+
+      const shouldUpdate =
+        await this.generalSettingsService.shouldUpdateExchangeRate();
+
       if (shouldUpdate) {
         await this.generalSettingsService.updateExchangeRate();
         this.logger.log('Tipo de cambio actualizado exitosamente');
@@ -28,8 +33,9 @@ export class ScheduledTasksService {
         this.logger.log('No es necesario actualizar el tipo de cambio');
       }
     } catch (error) {
-      this.logger.error(`Error en tarea programada de actualización de tipo de cambio: ${error.message}`);
+      this.logger.error(
+        `Error en tarea programada de actualización de tipo de cambio: ${error.message}`
+      );
     }
   }
-
-} 
+}

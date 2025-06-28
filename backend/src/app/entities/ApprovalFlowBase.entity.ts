@@ -41,4 +41,4 @@ export abstract class ApprovalFlowBase {
 
   @Column({ nullable: true })
   fourthSignedAt: Date;
-} 
+}

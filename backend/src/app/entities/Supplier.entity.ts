@@ -5,8 +5,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { SupplierStatus } from '../common/enum';
+import { QuotationSupplier } from './QuotationSupplier.entity';
+import { FinalSelectionItem } from './FinalSelectionItem.entity';
 
 @Entity()
 export class Supplier {
@@ -50,6 +53,18 @@ export class Supplier {
 
   @Column('text', { name: 'lines', nullable: true })
   lines: string;
+
+  @OneToMany(
+    () => QuotationSupplier,
+    quotationSupplier => quotationSupplier.supplier
+  )
+  quotationSuppliers: QuotationSupplier[];
+
+  @OneToMany(
+    () => FinalSelectionItem,
+    finalSelectionItem => finalSelectionItem.supplier
+  )
+  finalSelectionItems: FinalSelectionItem[];
 
   @CreateDateColumn({
     name: 'created_at',

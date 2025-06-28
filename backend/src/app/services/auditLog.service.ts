@@ -17,30 +17,34 @@ export class AuditLogService {
     userId?: number,
     date?: string
   ): Promise<{ data: AuditLog[]; total: number }> {
-    const query = this.auditLogRepository.createQueryBuilder('auditLog')
+    const query = this.auditLogRepository
+      .createQueryBuilder('auditLog')
       .leftJoinAndSelect('auditLog.employee', 'employee');
 
     // Build conditions array
-    const conditions: Array<{ condition: string; params: Record<string, string | number> }> = [];
+    const conditions: Array<{
+      condition: string;
+      params: Record<string, string | number>;
+    }> = [];
 
     if (search) {
       conditions.push({
         condition: 'auditLog.action LIKE :search',
-        params: { search: `%${search}%` }
+        params: { search: `%${search}%` },
       });
     }
 
     if (userId) {
       conditions.push({
         condition: 'auditLog.employee.id = :userId',
-        params: { userId }
+        params: { userId },
       });
     }
 
     if (date) {
       conditions.push({
         condition: 'DATE(auditLog.timestamp) = :date',
-        params: { date }
+        params: { date },
       });
     }
 
@@ -53,7 +57,6 @@ export class AuditLogService {
       }
     });
 
-    
     const [data, total] = await query
       .orderBy('auditLog.timestamp', 'DESC')
       .skip((page - 1) * limit)

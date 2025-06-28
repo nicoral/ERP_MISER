@@ -10,6 +10,7 @@ import { RoleModule } from './app/modules/role.module';
 import { WarehouseModule } from './app/modules/warehouse.module';
 import { ArticleModule } from './app/modules/article.module';
 import { SupplierModule } from './app/modules/supplier.module';
+import { QuotationModule } from './app/modules/quotation.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './app/common/audit.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -36,6 +37,7 @@ import { ScheduledTasksService } from './app/services/scheduledTasks.service';
     WarehouseModule,
     ArticleModule,
     SupplierModule,
+    QuotationModule,
     AuditLogModule,
     CostCenterModule,
     RequirementModule,

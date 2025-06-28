@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsNumber, IsBoolean, IsUrl } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsUrl,
+} from 'class-validator';
 
 export class UpdateGeneralSettingsDto {
   @IsOptional()
@@ -32,4 +38,4 @@ export class UpdateGeneralSettingsDto {
   @IsOptional()
   @IsString()
   additionalSettings?: string;
-} 
+}

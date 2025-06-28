@@ -73,5 +73,4 @@ export class AuthController {
   async getMyProfile(@Request() req): Promise<EmployeeProfileDto> {
     return this.authService.getProfile(req.user.id);
   }
-
 }

@@ -21,7 +21,9 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 export class GeneralSettingsController {
   private readonly logger = new Logger(GeneralSettingsController.name);
 
-  constructor(private readonly generalSettingsService: GeneralSettingsService) {}
+  constructor(
+    private readonly generalSettingsService: GeneralSettingsService
+  ) {}
 
   @Get()
   //@RequirePermissions('read:settings')
@@ -69,7 +71,8 @@ export class GeneralSettingsController {
   @AuditDescription('Verificación de actualización de tipo de cambio')
   async shouldUpdateExchangeRate() {
     return {
-      shouldUpdate: await this.generalSettingsService.shouldUpdateExchangeRate(),
+      shouldUpdate:
+        await this.generalSettingsService.shouldUpdateExchangeRate(),
     };
   }
-} 
+}

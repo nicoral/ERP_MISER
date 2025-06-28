@@ -16,4 +16,4 @@ export class SunatController {
   async getSaleRate() {
     return await this.sunatProvider.getSaleRate();
   }
-} 
+}

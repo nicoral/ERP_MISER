@@ -14,6 +14,7 @@ import { CostCenter } from './CostCenter.entity';
 import { RequirementArticle } from './RequirementArticle.entity';
 import { Warehouse } from './Warehouse.entity';
 import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
+import { QuotationRequest } from './QuotationRequest.entity';
 
 @Entity()
 export class Requirement extends ApprovalFlowBase {
@@ -49,6 +50,12 @@ export class Requirement extends ApprovalFlowBase {
     requirementArticle => requirementArticle.requirement
   )
   requirementArticles: RequirementArticle[];
+
+  @OneToMany(
+    () => QuotationRequest,
+    quotationRequest => quotationRequest.requirement
+  )
+  quotationRequests: QuotationRequest[];
 
   @CreateDateColumn({
     name: 'created_at',

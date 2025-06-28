@@ -14,6 +14,7 @@ export const ROUTES = {
   HOME: '/',
   WELCOME: '/welcome',
   LOGIN: '/login',
+  UNAUTHORIZED: '/unauthorized',
   DASHBOARD: '/dashboard',
   ADMINISTRATION: '/administration',
   ROLES: '/roles',
@@ -45,6 +46,7 @@ export const ROUTES = {
   REQUIREMENTS_CREATE: '/requirements/create',
   REQUIREMENT_EDIT: '/requirements/:id/edit',
   GENERAL_SETTINGS: '/general-settings',
+  QUOTATIONS: '/quotations',
 } as const;
 
 export const MODULES = [

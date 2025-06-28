@@ -34,6 +34,68 @@ import { WelcomePage } from './pages/WelcomePage';
 import { UserRolesForm } from './features/administration/components/UserRolesForm';
 import { AuditLogForm } from './features/administration/components/AuditLogForm';
 import { GeneralSettingsForm } from './features/administration/components/GeneralSettingsForm';
+import Unauthorized from './pages/Unauthorized';
+import { Quotations } from './pages/Quotations';
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path={ROUTES.LOGIN} element={<Login />} />
+      <Route element={<PrivateRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
+          <Route path={ROUTES.WELCOME} element={<WelcomePage />} />
+          <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+          <Route path={ROUTES.ADMINISTRATION} element={<Administration />} />
+          <Route path={ROUTES.ROLES} element={<UserRolesForm />} />
+          <Route path={ROUTES.ROLE_CREATE} element={<RoleForm />} />
+          <Route path={ROUTES.ROLE_EDIT} element={<RoleForm />} />
+          <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogForm />} />
+          <Route path={ROUTES.EMPLOYEES} element={<Employees />} />
+          <Route path={ROUTES.EMPLOYEE_CREATE} element={<EmployeeForm />} />
+          <Route path={ROUTES.EMPLOYEE_EDIT} element={<EmployeeForm />} />
+          <Route path={ROUTES.WAREHOUSE} element={<Warehouse />} />
+          <Route path={ROUTES.WAREHOUSE_CREATE} element={<WarehouseForm />} />
+          <Route path={ROUTES.WAREHOUSE_EDIT} element={<WarehouseForm />} />
+          <Route path={ROUTES.ARTICLES} element={<ArticleList />} />
+          <Route path={ROUTES.ARTICLE_CREATE} element={<ArticleForm />} />
+          <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
+          <Route path={ROUTES.SERVICES} element={<ServiceList />} />
+          <Route path={ROUTES.SUPPLIERS} element={<SupplierList />} />
+          <Route path={ROUTES.SUPPLIERS_CREATE} element={<SupplierForm />} />
+          <Route path={ROUTES.SUPPLIERS_EDIT} element={<SupplierForm />} />
+          <Route path={ROUTES.PROFILE} element={<Profile />} />
+          <Route path={ROUTES.QUOTATIONS} element={<Quotations />} />
+          <Route path={ROUTES.COST_CENTER} element={<CostCenterList />} />
+          <Route
+            path={ROUTES.COST_CENTER_CREATE}
+            element={<CostCenterForm />}
+          />
+          <Route path={ROUTES.COST_CENTER_EDIT} element={<CostCenterForm />} />
+          <Route
+            path={ROUTES.COST_CENTER_DETAILS}
+            element={<CostCenterDetails />}
+          />
+          <Route path={ROUTES.REQUIREMENTS} element={<RequirementList />} />
+          <Route
+            path={ROUTES.REQUIREMENTS_DETAILS}
+            element={<RequirementDetails />}
+          />
+          <Route
+            path={ROUTES.REQUIREMENTS_CREATE}
+            element={<RequirementForm />}
+          />
+          <Route path={ROUTES.REQUIREMENT_EDIT} element={<RequirementForm />} />
+          <Route
+            path={ROUTES.GENERAL_SETTINGS}
+            element={<GeneralSettingsForm />}
+          />
+        </Route>
+      </Route>
+      <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
+    </Routes>
+  );
+};
 
 function App() {
   return (
@@ -41,98 +103,7 @@ function App() {
       <ThemeProvider>
         <ToastProvider>
           <Router>
-            <Routes>
-              <Route path={ROUTES.LOGIN} element={<Login />} />
-              <Route element={<PrivateRoute />}>
-                <Route element={<MainLayout />}>
-                  <Route path={ROUTES.WELCOME} element={<WelcomePage />} />
-                  <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
-                  <Route
-                    path={ROUTES.ADMINISTRATION}
-                    element={<Administration />}
-                  />
-                  <Route path={ROUTES.ROLES} element={<UserRolesForm />} />
-                  <Route path={ROUTES.ROLE_CREATE} element={<RoleForm />} />
-                  <Route path={ROUTES.ROLE_EDIT} element={<RoleForm />} />
-                  <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogForm />} />
-                  <Route path={ROUTES.EMPLOYEES} element={<Employees />} />
-                  <Route
-                    path={ROUTES.EMPLOYEE_CREATE}
-                    element={<EmployeeForm />}
-                  />
-                  <Route
-                    path={ROUTES.EMPLOYEE_EDIT}
-                    element={<EmployeeForm />}
-                  />
-                  <Route path={ROUTES.WAREHOUSE} element={<Warehouse />} />
-                  <Route
-                    path={ROUTES.WAREHOUSE_CREATE}
-                    element={<WarehouseForm />}
-                  />
-                  <Route
-                    path={ROUTES.WAREHOUSE_EDIT}
-                    element={<WarehouseForm />}
-                  />
-                  <Route path={ROUTES.ARTICLES} element={<ArticleList />} />
-                  <Route
-                    path={ROUTES.ARTICLE_CREATE}
-                    element={<ArticleForm />}
-                  />
-                  <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
-                  <Route path={ROUTES.SERVICES} element={<ServiceList />} />
-                  <Route path={ROUTES.SUPPLIERS} element={<SupplierList />} />
-                  <Route
-                    path={ROUTES.SUPPLIERS_CREATE}
-                    element={<SupplierForm />}
-                  />
-                  <Route
-                    path={ROUTES.SUPPLIERS_EDIT}
-                    element={<SupplierForm />}
-                  />
-                  <Route path={ROUTES.PROFILE} element={<Profile />} />
-                  <Route
-                    path={ROUTES.COST_CENTER}
-                    element={<CostCenterList />}
-                  />
-                  <Route
-                    path={ROUTES.COST_CENTER_CREATE}
-                    element={<CostCenterForm />}
-                  />
-                  <Route
-                    path={ROUTES.COST_CENTER_EDIT}
-                    element={<CostCenterForm />}
-                  />
-                  <Route
-                    path={ROUTES.COST_CENTER_DETAILS}
-                    element={<CostCenterDetails />}
-                  />
-                  <Route
-                    path={ROUTES.REQUIREMENTS}
-                    element={<RequirementList />}
-                  />
-                  <Route
-                    path={ROUTES.REQUIREMENTS_DETAILS}
-                    element={<RequirementDetails />}
-                  />
-                  <Route
-                    path={ROUTES.REQUIREMENTS_CREATE}
-                    element={<RequirementForm />}
-                  />
-                  <Route
-                    path={ROUTES.REQUIREMENT_EDIT}
-                    element={<RequirementForm />}
-                  />
-                  <Route
-                    path={ROUTES.GENERAL_SETTINGS}
-                    element={<GeneralSettingsForm />}
-                  />
-                </Route>
-              </Route>
-              <Route
-                path="*"
-                element={<Navigate to={ROUTES.LOGIN} replace />}
-              />
-            </Routes>
+            <AppRoutes />
           </Router>
         </ToastProvider>
       </ThemeProvider>

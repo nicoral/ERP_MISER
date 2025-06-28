@@ -114,6 +114,7 @@ export const SIDEBAR_TEXTS = {
   logistics: 'Logística',
   roles: 'Roles',
   auditLogs: 'Auditorías',
+  quotation: 'Cotización',
 };
 
 export const HEADER_TEXTS = {

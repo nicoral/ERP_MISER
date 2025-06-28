@@ -1,7 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { Article } from './Article.entity';
 import { Requirement } from './Requirement.entity';
 import { Currency } from '../common/enum';
+import { SupplierQuotationItem } from './SupplierQuotationItem.entity';
+import { QuotationSupplierArticle } from './QuotationSupplierArticle.entity';
+import { FinalSelectionItem } from './FinalSelectionItem.entity';
 
 @Entity()
 export class RequirementArticle {
@@ -30,4 +39,22 @@ export class RequirementArticle {
 
   @Column('varchar', { length: 5, name: 'currency', default: 'PEN' })
   currency: Currency;
+
+  @OneToMany(
+    () => SupplierQuotationItem,
+    supplierQuotationItem => supplierQuotationItem.requirementArticle
+  )
+  supplierQuotationItems: SupplierQuotationItem[];
+
+  @OneToMany(
+    () => QuotationSupplierArticle,
+    quotationSupplierArticle => quotationSupplierArticle.requirementArticle
+  )
+  quotationSupplierArticles: QuotationSupplierArticle[];
+
+  @OneToMany(
+    () => FinalSelectionItem,
+    finalSelectionItem => finalSelectionItem.requirementArticle
+  )
+  finalSelectionItems: FinalSelectionItem[];
 }

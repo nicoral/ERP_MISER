@@ -15,6 +15,13 @@ import { CostCenter } from '../../app/entities/CostCenter.entity';
 import { RequirementArticle } from '../../app/entities/RequirementArticle.entity';
 import { Requirement } from '../../app/entities/Requirement.entity';
 import { GeneralSettings } from '../../app/entities/GeneralSettings.entity';
+import { QuotationRequest } from '../../app/entities/QuotationRequest.entity';
+import { QuotationSupplier } from '../../app/entities/QuotationSupplier.entity';
+import { QuotationSupplierArticle } from '../../app/entities/QuotationSupplierArticle.entity';
+import { SupplierQuotation } from '../../app/entities/SupplierQuotation.entity';
+import { SupplierQuotationItem } from '../../app/entities/SupplierQuotationItem.entity';
+import { FinalSelection } from '../../app/entities/FinalSelection.entity';
+import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity';
 
 @Global()
 @Module({
@@ -35,6 +42,13 @@ import { GeneralSettings } from '../../app/entities/GeneralSettings.entity';
         Requirement,
         RequirementArticle,
         GeneralSettings,
+        QuotationRequest,
+        QuotationSupplier,
+        QuotationSupplierArticle,
+        SupplierQuotation,
+        SupplierQuotationItem,
+        FinalSelection,
+        FinalSelectionItem,
       ],
     }),
   ],

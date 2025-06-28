@@ -13,7 +13,7 @@ export class GeneralSettingsService {
     @InjectRepository(GeneralSettings)
     private generalSettingsRepository: Repository<GeneralSettings>,
     private sunatProvider: SunatProvider,
-    private cloudinaryService: CloudinaryService,
+    private cloudinaryService: CloudinaryService
   ) {}
 
   /**
@@ -38,11 +38,13 @@ export class GeneralSettingsService {
   /**
    * Actualiza las configuraciones generales
    */
-  async updateSettings(updateData: Partial<GeneralSettings>): Promise<GeneralSettings> {
+  async updateSettings(
+    updateData: Partial<GeneralSettings>
+  ): Promise<GeneralSettings> {
     const settings = await this.getSettings();
-    
+
     Object.assign(settings, updateData);
-    
+
     return await this.generalSettingsRepository.save(settings);
   }
 
@@ -52,15 +54,21 @@ export class GeneralSettingsService {
   async updateLogo(file: Express.Multer.File): Promise<GeneralSettings> {
     try {
       this.logger.log('Subiendo logo de la empresa a Cloudinary...');
-      
-      const uploadResult = await this.cloudinaryService.uploadFile(file, 'logos');
+
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        'logos'
+      );
       const settings = await this.getSettings();
-      
+
       settings.companyLogoUrl = uploadResult.secure_url;
-      const updatedSettings = await this.generalSettingsRepository.save(settings);
-      
-      this.logger.log(`Logo actualizado exitosamente: ${uploadResult.secure_url}`);
-      
+      const updatedSettings =
+        await this.generalSettingsRepository.save(settings);
+
+      this.logger.log(
+        `Logo actualizado exitosamente: ${uploadResult.secure_url}`
+      );
+
       return updatedSettings;
     } catch (error) {
       this.logger.error(`Error al actualizar logo: ${error.message}`);
@@ -74,17 +82,20 @@ export class GeneralSettingsService {
   async updateExchangeRate(): Promise<GeneralSettings> {
     try {
       this.logger.log('Actualizando tipo de cambio desde SUNAT...');
-      
+
       const exchangeRate = await this.sunatProvider.getExchangeRate();
       const settings = await this.getSettings();
 
       settings.exchangeRateSale = exchangeRate.saleRate;
       settings.exchangeRatePurchase = exchangeRate.purchaseRate;
-      settings.exchangeRateDate = this.sunatProvider.parseDate(exchangeRate.date);
+      settings.exchangeRateDate = this.sunatProvider.parseDate(
+        exchangeRate.date
+      );
       settings.exchangeRateDateString = exchangeRate.date;
 
-      const updatedSettings = await this.generalSettingsRepository.save(settings);
-      
+      const updatedSettings =
+        await this.generalSettingsRepository.save(settings);
+
       this.logger.log(
         `Tipo de cambio actualizado: ${exchangeRate.date} - Venta: ${exchangeRate.saleRate}, Compra: ${exchangeRate.purchaseRate}`
       );
@@ -99,9 +110,12 @@ export class GeneralSettingsService {
   /**
    * Obtiene solo el tipo de cambio de venta actual
    */
-  async getCurrentSaleRate(): Promise<{ date: string; saleRate: number } | null> {
+  async getCurrentSaleRate(): Promise<{
+    date: string;
+    saleRate: number;
+  } | null> {
     const settings = await this.getSettings();
-    
+
     if (!settings.exchangeRateSale || !settings.exchangeRateDateString) {
       return null;
     }
@@ -121,7 +135,7 @@ export class GeneralSettingsService {
     purchaseRate: number;
   } | null> {
     const settings = await this.getSettings();
-    
+
     if (!settings.exchangeRateSale || !settings.exchangeRateDateString) {
       return null;
     }
@@ -157,7 +171,7 @@ export class GeneralSettingsService {
    */
   async shouldUpdateExchangeRate(): Promise<boolean> {
     const settings = await this.getSettings();
-    
+
     if (!settings.exchangeRateAutoUpdate) {
       return false;
     }
@@ -168,11 +182,11 @@ export class GeneralSettingsService {
 
     const today = new Date();
     const exchangeDate = settings.exchangeRateDate;
-    
+
     // Comparar solo la fecha (sin hora)
     const todayStr = today.toISOString().split('T')[0];
     const exchangeDateStr = new Date(exchangeDate).toISOString().split('T')[0];
-    
+
     return todayStr !== exchangeDateStr;
   }
-} 
+}

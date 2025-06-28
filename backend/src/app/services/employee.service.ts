@@ -335,13 +335,16 @@ export class EmployeeService {
           createEmployeeDto.birthDate = new Date(employeeData.birthDate);
         }
         if (employeeData.area) {
-          if (!Object.values(EMPLOYEES_AREAS).includes(employeeData.area.toUpperCase())) {
+          if (
+            !Object.values(EMPLOYEES_AREAS).includes(
+              employeeData.area.toUpperCase()
+            )
+          ) {
             throw new BadRequestException(
               `Area "${employeeData.area}" no válida`
             );
           }
-          createEmployeeDto.area =
-            employeeData.area.toUpperCase();
+          createEmployeeDto.area = employeeData.area.toUpperCase();
         }
 
         createEmployeeDto.warehousesAssigned =
@@ -413,14 +416,14 @@ export class EmployeeService {
       relations: ['role', 'warehousesAssigned'],
       withDeleted: true,
     });
-    
+
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
 
     // Transformar usando el DTO específico que incluye la firma
-    return plainToClass(EmployeeProfileDto, employee, { 
-      excludeExtraneousValues: true 
+    return plainToClass(EmployeeProfileDto, employee, {
+      excludeExtraneousValues: true,
     });
   }
 

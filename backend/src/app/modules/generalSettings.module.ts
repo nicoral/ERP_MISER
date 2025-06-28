@@ -18,4 +18,4 @@ import { CloudinaryModule } from './cloudinary.module';
   providers: [GeneralSettingsService],
   exports: [GeneralSettingsService],
 })
-export class GeneralSettingsModule {} 
+export class GeneralSettingsModule {}

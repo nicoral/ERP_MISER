@@ -30,7 +30,7 @@ export class RequirementService {
     @InjectRepository(RequirementArticle)
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     private readonly employeeService: EmployeeService,
-    private readonly roleService: RoleService,
+    private readonly roleService: RoleService
   ) {}
 
   async create(
@@ -85,8 +85,10 @@ export class RequirementService {
     const role = await this.roleService.findById(employee.role.id);
     const userPermissions = role.permissions.map(p => p.name);
 
-    let whereConditions: Array<Partial<Requirement> | { employee: { id: number } }> = [];
-    
+    let whereConditions: Array<
+      Partial<Requirement> | { employee: { id: number } }
+    > = [];
+
     whereConditions.push({ employee: { id: userId } });
 
     if (userPermissions.includes('requirement-view-all')) {
@@ -109,17 +111,19 @@ export class RequirementService {
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED }
       );
-    } 
+    }
 
-    const [requirements, total] = await this.requirementRepository.findAndCount({
-      where: whereConditions,
-      relations: ['employee', 'costCenter'],
-      order: {
-        id: 'DESC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [requirements, total] = await this.requirementRepository.findAndCount(
+      {
+        where: whereConditions,
+        relations: ['employee', 'costCenter'],
+        order: {
+          id: 'DESC',
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      }
+    );
 
     return { requirements, total };
   }
@@ -249,19 +253,35 @@ export class RequirementService {
       subtotalUSD: subtotalUSD.toFixed(2),
       firstSignature: requirement.firstSignature,
       firstSignedAt: requirement.firstSignedAt
-        ? requirement.firstSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        ? requirement.firstSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
         : '',
       secondSignature: requirement.secondSignature,
       secondSignedAt: requirement.secondSignedAt
-        ? requirement.secondSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        ? requirement.secondSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
         : '',
       thirdSignature: requirement.thirdSignature,
       thirdSignedAt: requirement.thirdSignedAt
-        ? requirement.thirdSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        ? requirement.thirdSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
         : '',
       fourthSignature: requirement.fourthSignature,
       fourthSignedAt: requirement.fourthSignedAt
-        ? requirement.fourthSignedAt.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        ? requirement.fourthSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
         : '',
     };
     const template = Handlebars.compile(templateHtml);
@@ -393,15 +413,21 @@ export class RequirementService {
     switch (requirement.status) {
       case RequirementStatus.SIGNED_1:
         requiredPermission = 'requirement-view-signed1';
-        canSign = userPermissions.includes(requiredPermission) && !requirement.secondSignedAt;
+        canSign =
+          userPermissions.includes(requiredPermission) &&
+          !requirement.secondSignedAt;
         break;
       case RequirementStatus.SIGNED_2:
         requiredPermission = 'requirement-view-signed2';
-        canSign = userPermissions.includes(requiredPermission) && !requirement.thirdSignedAt;
+        canSign =
+          userPermissions.includes(requiredPermission) &&
+          !requirement.thirdSignedAt;
         break;
       case RequirementStatus.SIGNED_3:
         requiredPermission = 'requirement-view-signed3';
-        canSign = userPermissions.includes(requiredPermission) && !requirement.fourthSignedAt;
+        canSign =
+          userPermissions.includes(requiredPermission) &&
+          !requirement.fourthSignedAt;
         break;
       default:
         return { canSign: false, requiredPermission: '' };
@@ -413,11 +439,11 @@ export class RequirementService {
   async sign(id: number, userId: number): Promise<Requirement> {
     const requirement = await this.findOne(id);
     const employee = await this.employeeService.findOne(userId);
-    
+
     if (!employee) {
       throw new NotFoundException('Empleado no encontrado');
     }
-    
+
     if (!employee.signature) {
       throw new ForbiddenException('El usuario no tiene firma registrada');
     }
@@ -465,13 +491,14 @@ export class RequirementService {
       default:
         throw new ForbiddenException('No se puede firmar en este estado');
     }
-    
+
     return this.requirementRepository.save(requirement);
   }
 
   private isLowAmount(requirement: Requirement): boolean {
     const total = (requirement.requirementArticles || []).reduce(
-      (acc, reqArticle) => acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
+      (acc, reqArticle) =>
+        acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
       0
     );
     return total < 10000;

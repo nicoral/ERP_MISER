@@ -14,6 +14,8 @@ import { Exclude } from 'class-transformer';
 import { Role } from './Role.entity';
 import { Warehouse } from './Warehouse.entity';
 import { Requirement } from './Requirement.entity';
+import { QuotationRequest } from './QuotationRequest.entity';
+import { FinalSelection } from './FinalSelection.entity';
 
 @Entity()
 export class Employee {
@@ -88,6 +90,15 @@ export class Employee {
 
   @OneToMany(() => Requirement, requirement => requirement.employee)
   requirements: Requirement[];
+
+  @OneToMany(
+    () => QuotationRequest,
+    quotationRequest => quotationRequest.createdBy
+  )
+  quotationRequests: QuotationRequest[];
+
+  @OneToMany(() => FinalSelection, finalSelection => finalSelection.createdBy)
+  finalSelections: FinalSelection[];
 
   @ManyToMany(() => Warehouse, warehouse => warehouse.employees)
   @JoinTable()

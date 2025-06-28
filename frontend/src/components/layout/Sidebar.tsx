@@ -106,6 +106,12 @@ const menuItems: MenuItem[] = [
         permission: ['view_requirements'],
         icon: <DocumentIcon className="w-4 h-4" />,
       },
+      {
+        label: SIDEBAR_TEXTS.quotation,
+        path: ROUTES.QUOTATIONS,
+        permission: ['view_quotations'],
+        icon: <DocumentIcon className="w-4 h-4" />,
+      },
     ],
   },
 ];

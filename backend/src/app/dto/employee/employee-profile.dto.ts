@@ -47,4 +47,4 @@ export class EmployeeProfileDto {
 
   @Expose()
   warehousesAssigned: Warehouse[];
-} 
+}

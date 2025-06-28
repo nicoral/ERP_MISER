@@ -12,6 +12,14 @@ import { Brand } from '../../app/entities/Brand.entity';
 import { RequirementArticle } from '../../app/entities/RequirementArticle.entity';
 import { Requirement } from '../../app/entities/Requirement.entity';
 import { CostCenter } from '../../app/entities/CostCenter.entity';
+import { SupplierQuotationItem } from '../../app/entities/SupplierQuotationItem.entity';
+import { SupplierQuotation } from '../../app/entities/SupplierQuotation.entity';
+import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity';
+import { QuotationSupplierArticle } from '../../app/entities/QuotationSupplierArticle.entity';
+import { FinalSelection } from '../../app/entities/FinalSelection.entity';
+import { QuotationSupplier } from '../../app/entities/QuotationSupplier.entity';
+import { GeneralSettings } from '../../app/entities/GeneralSettings.entity';
+import { QuotationRequest } from '../../app/entities/QuotationRequest.entity';
 
 config();
 
@@ -35,6 +43,15 @@ const dataSource = new DataSource({
     CostCenter,
     Requirement,
     RequirementArticle,
+    GeneralSettings,
+    QuotationRequest,
+    QuotationSupplier,
+    QuotationSupplierArticle,
+    SupplierQuotationItem,
+    FinalSelection,
+    FinalSelectionItem,
+    SupplierQuotation,
+    SupplierQuotationItem,  
   ],
   synchronize: false,
   connectTimeoutMS: 5000,

@@ -7,4 +7,4 @@ export const REQUIREMENT_STATUS_LABELS: Record<string, string> = {
   APPROVED: 'Aprobado',
   CANCELLED: 'Cancelado',
   REJECTED: 'Rechazado',
-}; 
+};
