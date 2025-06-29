@@ -47,7 +47,7 @@ export interface QuotationRequest {
   requirement: Requirement;
   createdBy: Employee;
   quotationSuppliers: QuotationSupplier[];
-  finalSelections: FinalSelection[];
+  finalSelection: FinalSelection;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -314,7 +314,7 @@ export interface ReceivedQuotation {
   items: ReceivedQuotationItem[];
   totalAmount: number;
   currency?: string;
-  status: 'DRAFT' | 'SUBMITTED';
+  status: 'DRAFT' | 'SUBMITTED' | 'PENDING';
   notes?: string;
   updatedAt?: Date;
 }

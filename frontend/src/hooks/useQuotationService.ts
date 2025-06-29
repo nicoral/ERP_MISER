@@ -189,6 +189,13 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
+  const approveFinalSelection = useCallback(
+    async (id: number) => {
+      return handleRequest(() => quotationService.approveFinalSelection(id));
+    },
+    [handleRequest]
+  );
+
   // Quotation Order methods
   const updateQuotationOrder = useCallback(
     async (quotationRequestId: number, data: UpdateQuotationOrderDto) => {
@@ -256,6 +263,7 @@ export const useQuotationService = () => {
     getFinalSelection,
     getFinalSelectionByRequest,
     updateFinalSelection,
+    approveFinalSelection,
     // Quotation Orders
     updateQuotationOrder,
     sendQuotationOrder,

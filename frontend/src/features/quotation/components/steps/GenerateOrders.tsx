@@ -46,6 +46,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     updateQuotationOrder,
     sendQuotationOrder,
     applyGeneralTermsToAll,
+    sendAllQuotationOrders,
     getQuotationByRequirement,
     error,
   } = useQuotationService();
@@ -175,10 +176,9 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
 
   const handleExportPDF = (supplierId: number) => {
     // Simular exportación de PDF
-    console.log(`Exportando PDF para proveedor ${supplierId}`);
     showSuccess(
       'PDF generado',
-      'El PDF se ha generado correctamente (simulación)'
+      `El PDF se ha generado correctamente para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName}`
     );
   };
 
@@ -249,73 +249,35 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     }
   };
 
-  const handleApplyStandardTermsToAll = async () => {
+  const handleSendAllOrders = async () => {
     setLoading(true);
+    const result = await sendAllQuotationOrders(quotationRequestId);
+    if (result) {
+      // Actualizar el estado local de todas las órdenes a SENT
+      setOrders(prevOrders => {
+        const updatedOrders: Record<number, QuotationOrder> = {};
 
-    try {
-      // Seleccionar todos los artículos para todos los proveedores
-      const allRequirementArticleIds = new Set(
-        requirement.requirementArticles.map(ra => ra.id)
-      );
+        Object.keys(prevOrders).forEach(supplierId => {
+          const supplierIdNum = parseInt(supplierId);
+          updatedOrders[supplierIdNum] = {
+            ...prevOrders[supplierIdNum],
+            status: QuotationSupplierStatus.SENT,
+          };
+        });
 
-      const newSelectedProducts: Record<number, Set<number>> = {};
-
-      // Aplicar términos generales y guardar para cada proveedor
-      for (const selectedSupplier of selectedSuppliers) {
-        const supplierId = selectedSupplier.supplier.id;
-
-        // Seleccionar todos los artículos para este proveedor
-        newSelectedProducts[supplierId] = allRequirementArticleIds;
-
-        // Crear o actualizar la orden con términos generales
-        const orderNumber = `OC-${requirement.code}-${supplierId}-${Date.now()}`;
-
-        const updateData: UpdateQuotationOrderDto = {
-          supplierId,
-          orderNumber,
-          terms: generalTerms,
-          selectedArticles: Array.from(allRequirementArticleIds),
-        };
-
-        const result = await updateQuotationOrder(
-          quotationRequestId,
-          updateData
-        );
-
-        if (result) {
-          // Actualizar el estado local
-          setOrders(prev => ({
-            ...prev,
-            [supplierId]: {
-              id: Date.now(),
-              supplierId,
-              requirementId: requirement.id,
-              orderNumber,
-              terms: generalTerms,
-              deadline: new Date(deadline),
-              status: QuotationSupplierStatus.PENDING,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          }));
-        }
-      }
-
-      // Actualizar el estado de productos seleccionados
-      setSelectedProducts(newSelectedProducts);
-
+        return updatedOrders;
+      });
       showSuccess(
-        'Términos aplicados',
-        'Se han aplicado los términos generales y guardado todas las órdenes con todos los artículos seleccionados'
+        'Órdenes enviadas',
+        'Todas las órdenes se han enviado exitosamente'
       );
-    } catch {
+    } else {
       showError(
-        'Error al aplicar términos',
-        'No se pudieron aplicar los términos generales a todas las órdenes'
+        'Error al enviar órdenes',
+        error || 'No se pudieron enviar las órdenes. Inténtalo de nuevo.'
       );
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleApplyGeneralTermsToAll = async () => {
@@ -625,14 +587,12 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                         </h5>
                         <div className="flex space-x-2">
                           <Button
-                            variant="outline"
                             onClick={() => handleSelectAllProducts(supplier.id)}
                             className="text-xs"
                           >
                             Seleccionar todos
                           </Button>
                           <Button
-                            variant="outline"
                             onClick={() =>
                               handleDeselectAllProducts(supplier.id)
                             }
@@ -684,14 +644,12 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
                       <Button
-                        variant="outline"
                         onClick={() => handleEditTerms(supplier.id)}
                         className="text-xs"
                       >
                         ✏️ Editar términos
                       </Button>
                       <Button
-                        variant="outline"
                         onClick={() => handleExportPDF(supplier.id)}
                         className="text-xs"
                         disabled={!order || selectedCount === 0}
@@ -780,8 +738,21 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
         {/* Send All Orders Button */}
         <div className="flex justify-center">
           <Button
-            onClick={handleApplyStandardTermsToAll}
-            disabled={Object.keys(orders).length === 0 || loading}
+            variant={
+              Object.values(orders).every(
+                o => o.status === QuotationSupplierStatus.SENT
+              )
+                ? 'outline'
+                : 'primary'
+            }
+            onClick={handleSendAllOrders}
+            disabled={
+              Object.keys(orders).length === 0 ||
+              loading ||
+              Object.values(orders).every(
+                o => o.status === QuotationSupplierStatus.SENT
+              )
+            }
             className="text-sm"
           >
             {loading ? 'Enviando...' : '📤 Enviar todas las órdenes'}

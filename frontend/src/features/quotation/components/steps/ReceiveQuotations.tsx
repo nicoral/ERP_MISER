@@ -158,7 +158,7 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
           validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           items: initialItems,
           totalAmount: 0,
-          status: 'DRAFT',
+          status: 'PENDING',
         },
       }));
     }
@@ -489,7 +489,11 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
   const getQuotationStatus = (supplierId: number) => {
     const quotation = quotations[supplierId];
     if (!quotation) return 'PENDIENTE';
-    return quotation.status === 'SUBMITTED' ? 'ENVIADA' : 'BORRADOR';
+    return quotation.status === 'SUBMITTED'
+      ? 'ENVIADA'
+      : quotation.status === 'DRAFT'
+        ? 'BORRADOR'
+        : 'PENDIENTE';
   };
 
   const getStatusColor = (status: string) => {
@@ -591,7 +595,6 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
               </div>
               <div className="flex space-x-2">
                 <Button
-                  variant="outline"
                   onClick={() => handleSaveDraft(editingSupplier)}
                   className="text-sm"
                   disabled={loading}

@@ -51,7 +51,7 @@ const dataSource = new DataSource({
     FinalSelection,
     FinalSelectionItem,
     SupplierQuotation,
-    SupplierQuotationItem,  
+    SupplierQuotationItem,
   ],
   synchronize: false,
   connectTimeoutMS: 5000,

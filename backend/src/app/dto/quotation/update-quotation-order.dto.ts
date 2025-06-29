@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsArray,
+} from 'class-validator';
 
 export class UpdateQuotationOrderDto {
   @IsNotEmpty()
@@ -42,4 +48,4 @@ export class ApplyGeneralTermsDto {
   @IsArray()
   @IsNumber({}, { each: true })
   selectedArticles?: number[];
-} 
+}

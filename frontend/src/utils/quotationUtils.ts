@@ -154,7 +154,7 @@ export const getQuotationProgress = (
     quotationRequest.quotationSuppliers.some(
       qs => qs.supplierQuotation?.status === 'SUBMITTED'
     ), // Step 4: Quotations compared
-    quotationRequest.finalSelections.length > 0, // Step 5: Final selection made
+    quotationRequest.finalSelection !== null, // Step 5: Final selection made
   ];
 
   const completedSteps = steps.filter(Boolean).length;
@@ -181,7 +181,7 @@ export const canProceedToNextStep = (
         qs => qs.supplierQuotation?.status === 'SUBMITTED'
       );
     case 4: // Final Selection
-      return quotationRequest.finalSelections.length > 0;
+      return quotationRequest.finalSelection !== null;
     default:
       return false;
   }
@@ -220,7 +220,7 @@ export const getCurrentStepFromQuotation = (
   }
 
   // Si tiene cotizaciones enviadas pero no hay selección final
-  if (quotationRequest.finalSelections.length === 0) {
+  if (quotationRequest.finalSelection === null) {
     return QuotationStep.COMPARE_QUOTATIONS;
   }
 

@@ -13,7 +13,7 @@ import type {
 import { Button } from '../../../components/common/Button';
 import { Table } from '../../../components/common/Table';
 import { Card } from '../../../components/ui/card';
-import { Plus, Eye, Edit, Trash2, Badge } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { FormInput } from '../../../components/common/FormInput';
 
@@ -132,9 +132,9 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       key: 'status',
       header: 'Estado',
       render: (quotation: QuotationRequest) => (
-        <Badge className={getQuotationStatusColor(quotation.status)}>
+        <span className={getQuotationStatusColor(quotation.status)}>
           {getQuotationStatusText(quotation.status)}
-        </Badge>
+        </span>
       ),
     },
     {

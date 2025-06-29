@@ -36,4 +36,4 @@ import { EmployeeModule } from './employee.module';
   providers: [QuotationService],
   exports: [QuotationService],
 })
-export class QuotationModule {} 
+export class QuotationModule {}

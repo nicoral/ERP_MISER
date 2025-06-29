@@ -1,4 +1,11 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateSupplierQuotationItemDto {
@@ -36,4 +43,4 @@ export class UpdateSupplierQuotationDto {
   @ValidateNested({ each: true })
   @Type(() => UpdateSupplierQuotationItemDto)
   items: UpdateSupplierQuotationItemDto[];
-} 
+}

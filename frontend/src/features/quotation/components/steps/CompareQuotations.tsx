@@ -40,6 +40,11 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       )
     );
 
+  // Nuevo estado para selección de proveedores por producto
+  const [productSupplierSelections, setProductSupplierSelections] = useState<
+    Record<number, number>
+  >({});
+
   // Cargar productos seleccionados desde el backend
   useEffect(() => {
     const loadSelectedProducts = async () => {
@@ -182,6 +187,34 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
     selectedProductsBySupplier,
   ]);
 
+  // Generar selecciones automáticas basadas en mejores precios
+  const autoSelections = useMemo(() => {
+    const selections: Record<number, number> = {};
+
+    comparisonData.forEach(comparison => {
+      if (comparison.bestPrice) {
+        selections[comparison.articleId] = comparison.bestPrice.supplierId;
+      }
+    });
+
+    return selections;
+  }, [comparisonData]);
+
+  // Aplicar selecciones automáticas al cargar
+  useEffect(() => {
+    setProductSupplierSelections(autoSelections);
+  }, [autoSelections]);
+
+  const handleProductSupplierSelection = (
+    articleId: number,
+    supplierId: number
+  ) => {
+    setProductSupplierSelections(prev => ({
+      ...prev,
+      [articleId]: supplierId,
+    }));
+  };
+
   const handleSupplierToggle = (supplierId: number) => {
     const newSelected = new Set(selectedSuppliersForComparison);
     if (newSelected.has(supplierId)) {
@@ -207,52 +240,77 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       return;
     }
 
-    try {
-      // Verificar si hay cambios comparando con los proveedores originales
-      const originalSupplierIds = new Set(
-        selectedSuppliers.map(s => s.supplier.id)
-      );
-      const newSupplierIds = new Set(filteredSuppliers.map(s => s.supplier.id));
+    // Validar que todos los productos tengan un proveedor seleccionado
+    const unselectedProducts = comparisonData.filter(
+      comp => !productSupplierSelections[comp.articleId]
+    );
 
-      // Determinar si hay cambios
-      const hasChanges =
-        originalSupplierIds.size !== newSupplierIds.size ||
-        Array.from(originalSupplierIds).some(
-          id => !newSupplierIds.has(id as number)
-        ) ||
-        Array.from(newSupplierIds).some(
-          id => !originalSupplierIds.has(id as number)
+    if (unselectedProducts.length > 0) {
+      showError(
+        'Productos sin seleccionar',
+        `Debes seleccionar un proveedor para: ${unselectedProducts
+          .map(comp => comp.article.name)
+          .join(', ')}`
+      );
+      return;
+    }
+
+    try {
+      // Crear los items de la selección final
+      const finalSelectionItems = comparisonData.map(comparison => {
+        const selectedSupplierId =
+          productSupplierSelections[comparison.articleId];
+        const selectedSupplier = selectedSuppliers.find(
+          s => s.supplier.id === selectedSupplierId
+        );
+        const quotation = selectedSupplier?.receivedQuotation;
+        const item = quotation?.items.find(
+          i => i.article.id === comparison.articleId
         );
 
-      // Si no hay cambios, simplemente continuar al siguiente paso
-      if (!hasChanges) {
-        onComplete(filteredSuppliers);
-        return;
-      }
+        // Encontrar el requirementArticle correspondiente
+        const requirementArticle = requirement.requirementArticles.find(
+          ra => ra.article.id === comparison.articleId
+        );
 
-      // Hay cambios, crear/actualizar la selección final
+        return {
+          articleId: requirementArticle?.id.toString() || '',
+          supplierId: selectedSupplierId.toString(),
+          selectedPrice: item?.unitPrice || 0,
+          notes: item?.notes || '',
+        };
+      });
+
       const finalSelectionData = {
         quotationRequestId: String(quotationRequestId),
-        notes: `Proveedores seleccionados para comparación: ${filteredSuppliers.length}`,
-        items: [], // Items vacíos, se generarán en el paso final
+        notes: `Selección final completada con ${filteredSuppliers.length} proveedores`,
+        items: finalSelectionItems,
       };
 
       const createdFinalSelection =
         await createFinalSelection(finalSelectionData);
 
       if (createdFinalSelection) {
-        const message = `${filteredSuppliers.length} proveedores seleccionados (cambios guardados)`;
-        showSuccess('Proveedores guardados', message);
+        // Actualizar proveedores seleccionados
+        const updatedSuppliers = selectedSuppliers.map(supplier => ({
+          ...supplier,
+          isFinalSelected: finalSelectionItems.some(
+            item => Number(item.supplierId) === supplier.supplier.id
+          ),
+        }));
+
+        const message = `Selección final completada con ${filteredSuppliers.length} proveedores`;
+        showSuccess('Selección final guardada', message);
 
         // Pasar solo los proveedores seleccionados al siguiente paso
-        onComplete(filteredSuppliers);
+        onComplete(updatedSuppliers);
       } else {
-        showError('Error al guardar', 'No se pudieron guardar los proveedores');
+        showError('Error al guardar', 'No se pudo guardar la selección final');
       }
     } catch {
       showError(
         'Error al guardar',
-        'Ocurrió un error al guardar los proveedores seleccionados'
+        'Ocurrió un error al guardar la selección final'
       );
     }
   };
@@ -360,11 +418,11 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          Comparación de Cotizaciones
+          Selección Final de Proveedores
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Compara precios y términos entre proveedores para los productos
-          específicamente solicitados a cada uno
+          Compara precios y selecciona el proveedor final para cada producto
+          cotizado
         </p>
       </div>
 
@@ -438,6 +496,9 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                       );
                     }
                   )}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Proveedor Seleccionado
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -524,6 +585,35 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                         );
                       }
                     )}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={
+                          productSupplierSelections[comparison.articleId] || ''
+                        }
+                        onChange={e =>
+                          handleProductSupplierSelection(
+                            comparison.articleId,
+                            Number(e.target.value)
+                          )
+                        }
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      >
+                        <option value="">Seleccionar proveedor</option>
+                        {comparison.supplierQuotes
+                          .filter(
+                            quote => quote.status === QuotationItemStatus.QUOTED
+                          )
+                          .map(quote => (
+                            <option
+                              key={quote.supplierId}
+                              value={quote.supplierId}
+                            >
+                              {quote.supplier.businessName} - {quote.currency}{' '}
+                              {(Number(quote.unitPrice) || 0).toFixed(2)}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -779,9 +869,12 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         </Button>
         <Button
           onClick={handleContinue}
-          disabled={selectedSuppliersForComparison.size === 0}
+          disabled={
+            selectedSuppliersForComparison.size === 0 ||
+            Object.keys(productSupplierSelections).length === 0
+          }
         >
-          Continuar al siguiente paso
+          Completar Selección Final
         </Button>
       </div>
     </div>

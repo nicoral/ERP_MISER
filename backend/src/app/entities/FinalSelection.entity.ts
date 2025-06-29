@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   JoinColumn,
 } from 'typeorm';
 import { QuotationRequest } from './QuotationRequest.entity';
@@ -30,9 +31,6 @@ export class FinalSelection {
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   totalAmount: number;
 
-  @Column({ default: 'PEN' })
-  currency: string;
-
   @Column({
     type: 'enum',
     enum: FinalSelectionStatus,
@@ -40,12 +38,9 @@ export class FinalSelection {
   })
   status: FinalSelectionStatus;
 
-  @Column({ nullable: true })
-  purchaseOrderNumber: string;
-
-  @ManyToOne(
+  @OneToOne(
     () => QuotationRequest,
-    quotationRequest => quotationRequest.finalSelections
+    quotationRequest => quotationRequest.finalSelection
   )
   @JoinColumn({ name: 'quotation_request_id' })
   quotationRequest: QuotationRequest;

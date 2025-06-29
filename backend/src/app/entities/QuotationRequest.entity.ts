@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   JoinColumn,
 } from 'typeorm';
 import { Requirement } from './Requirement.entity';
@@ -56,11 +57,11 @@ export class QuotationRequest {
   )
   quotationSuppliers: QuotationSupplier[];
 
-  @OneToMany(
+  @OneToOne(
     () => FinalSelection,
     finalSelection => finalSelection.quotationRequest
   )
-  finalSelections: FinalSelection[];
+  finalSelection: FinalSelection;
 
   @CreateDateColumn({
     name: 'created_at',

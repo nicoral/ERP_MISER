@@ -1,4 +1,11 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateFinalSelectionItemDto {
@@ -32,4 +39,4 @@ export class CreateFinalSelectionDto {
   @ValidateNested({ each: true })
   @Type(() => CreateFinalSelectionItemDto)
   items: CreateFinalSelectionItemDto[];
-} 
+}

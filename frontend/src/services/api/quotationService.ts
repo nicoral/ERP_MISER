@@ -240,6 +240,16 @@ export const quotationService = {
     return response;
   },
 
+  async approveFinalSelection(id: number): Promise<FinalSelection> {
+    const response = await createApiCall<FinalSelection>(
+      `${BASE_URL}/final-selection/${id}/approve`,
+      {
+        method: 'PATCH',
+      }
+    );
+    return response;
+  },
+
   // Quotation Order endpoints
   async updateQuotationOrder(
     quotationRequestId: number,

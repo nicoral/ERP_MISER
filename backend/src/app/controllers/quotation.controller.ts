@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { QuotationService } from '../services/quotation.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -9,7 +19,10 @@ import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-req
 import { CreateSupplierQuotationDto } from '../dto/quotation/create-supplier-quotation.dto';
 import { UpdateSupplierQuotationDto } from '../dto/quotation/update-supplier-quotation.dto';
 import { UpdateQuotationBasicDto } from '../dto/quotation/update-quotation-basic.dto';
-import { UpdateQuotationOrderDto, ApplyGeneralTermsDto } from '../dto/quotation/update-quotation-order.dto';
+import {
+  UpdateQuotationOrderDto,
+  ApplyGeneralTermsDto,
+} from '../dto/quotation/update-quotation-order.dto';
 import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.dto';
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
@@ -23,10 +36,13 @@ export class QuotationController {
   @RequirePermissions('create_quotation')
   @AuditDescription('Crear solicitud de cotización')
   create(
-    @Body() createQuotationRequestDto: CreateQuotationRequestDto, 
+    @Body() createQuotationRequestDto: CreateQuotationRequestDto,
     @Request() req: { user: { id: number } }
   ) {
-    return this.quotationService.createQuotationRequest(req.user.id, createQuotationRequestDto);
+    return this.quotationService.createQuotationRequest(
+      req.user.id,
+      createQuotationRequestDto
+    );
   }
 
   @Get()
@@ -47,14 +63,22 @@ export class QuotationController {
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener solicitud de cotización por requerimiento')
   findByRequirement(@Param('requirementId') requirementId: string) {
-    return this.quotationService.getQuotationRequestByRequirement(+requirementId);
+    return this.quotationService.getQuotationRequestByRequirement(
+      +requirementId
+    );
   }
 
   @Patch(':id')
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar solicitud de cotización')
-  update(@Param('id') id: string, @Body() updateQuotationRequestDto: UpdateQuotationRequestDto) {
-    return this.quotationService.updateQuotationRequest(+id, updateQuotationRequestDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateQuotationRequestDto: UpdateQuotationRequestDto
+  ) {
+    return this.quotationService.updateQuotationRequest(
+      +id,
+      updateQuotationRequestDto
+    );
   }
 
   @Patch(':id/activate')
@@ -82,8 +106,12 @@ export class QuotationController {
   @Post('supplier-quotation')
   @RequirePermissions('create_quotation')
   @AuditDescription('Crear cotización de proveedor')
-  createSupplierQuotation(@Body() createSupplierQuotationDto: CreateSupplierQuotationDto) {
-    return this.quotationService.createSupplierQuotation(createSupplierQuotationDto);
+  createSupplierQuotation(
+    @Body() createSupplierQuotationDto: CreateSupplierQuotationDto
+  ) {
+    return this.quotationService.createSupplierQuotation(
+      createSupplierQuotationDto
+    );
   }
 
   @Get('supplier-quotation/:id')
@@ -96,15 +124,23 @@ export class QuotationController {
   @Get('supplier-quotation/request/:quotationRequestId')
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener cotizaciones de proveedores por solicitud')
-  findSupplierQuotationsByRequest(@Param('quotationRequestId') quotationRequestId: string) {
+  findSupplierQuotationsByRequest(
+    @Param('quotationRequestId') quotationRequestId: string
+  ) {
     return this.quotationService.findAllSupplierQuotations(+quotationRequestId);
   }
 
   @Patch('supplier-quotation/:id')
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar cotización de proveedor')
-  updateSupplierQuotation(@Param('id') id: string, @Body() updateSupplierQuotationDto: UpdateSupplierQuotationDto) {
-    return this.quotationService.updateSupplierQuotation(+id, updateSupplierQuotationDto);
+  updateSupplierQuotation(
+    @Param('id') id: string,
+    @Body() updateSupplierQuotationDto: UpdateSupplierQuotationDto
+  ) {
+    return this.quotationService.updateSupplierQuotation(
+      +id,
+      updateSupplierQuotationDto
+    );
   }
 
   @Patch('supplier-quotation/:id/submit')
@@ -118,8 +154,14 @@ export class QuotationController {
   @Patch(':id/basic')
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar información básica de solicitud de cotización')
-  updateBasic(@Param('id') id: string, @Body() updateQuotationBasicDto: UpdateQuotationBasicDto) {
-    return this.quotationService.updateQuotationRequest(+id, updateQuotationBasicDto);
+  updateBasic(
+    @Param('id') id: string,
+    @Body() updateQuotationBasicDto: UpdateQuotationBasicDto
+  ) {
+    return this.quotationService.updateQuotationRequest(
+      +id,
+      updateQuotationBasicDto
+    );
   }
 
   // Quotation Order endpoints
@@ -130,7 +172,10 @@ export class QuotationController {
     @Param('id') id: string,
     @Body() updateQuotationOrderDto: UpdateQuotationOrderDto
   ) {
-    return this.quotationService.updateQuotationOrder(+id, updateQuotationOrderDto);
+    return this.quotationService.updateQuotationOrder(
+      +id,
+      updateQuotationOrderDto
+    );
   }
 
   @Patch(':id/order/send')
@@ -154,12 +199,21 @@ export class QuotationController {
   @Post('final-selection')
   @RequirePermissions('create_quotation')
   @AuditDescription('Crear selección final')
-  createFinalSelection(@Body() createFinalSelectionDto: CreateFinalSelectionDto) {
+  createFinalSelection(
+    @Body() createFinalSelectionDto: CreateFinalSelectionDto
+  ) {
     return this.quotationService.createFinalSelection(createFinalSelectionDto);
   }
 
+  @Get('final-selection/request/:quotationRequestId')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Obtener selección final por solicitud de cotización')
+  findFinalSelectionByRequest(@Param('quotationRequestId') quotationRequestId: string) {
+    return this.quotationService.findFinalSelectionByRequest(+quotationRequestId);
+  }
+
   @Get('final-selection/:id')
-  @RequirePermissions('view_quotation')
+  @RequirePermissions('view_quotations')
   @AuditDescription('Obtener selección final por ID')
   findFinalSelection(@Param('id') id: string) {
     return this.quotationService.findOneFinalSelection(+id);
@@ -168,8 +222,21 @@ export class QuotationController {
   @Patch('final-selection/:id')
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar selección final')
-  updateFinalSelection(@Param('id') id: string, @Body() updateFinalSelectionDto: UpdateFinalSelectionDto) {
-    return this.quotationService.updateFinalSelection(+id, updateFinalSelectionDto);
+  updateFinalSelection(
+    @Param('id') id: string,
+    @Body() updateFinalSelectionDto: UpdateFinalSelectionDto
+  ) {
+    return this.quotationService.updateFinalSelection(
+      +id,
+      updateFinalSelectionDto
+    );
+  }
+
+  @Patch('final-selection/:id/approve')
+  @RequirePermissions('update_quotation')
+  @AuditDescription('Aprobar selección final')
+  approveFinalSelection(@Param('id') id: string) {
+    return this.quotationService.approveFinalSelection(+id);
   }
 
   @Delete('final-selection/:id')
@@ -182,11 +249,14 @@ export class QuotationController {
   @Patch(':id/apply-general-terms')
   @RequirePermissions('update_quotation')
   @AuditDescription('Aplicar términos generales en masa')
-  applyGeneralTerms(@Param('id') id: string, @Body() applyGeneralTermsDto: ApplyGeneralTermsDto) {
+  applyGeneralTerms(
+    @Param('id') id: string,
+    @Body() applyGeneralTermsDto: ApplyGeneralTermsDto
+  ) {
     return this.quotationService.applyGeneralTermsToAll(
-      +id, 
-      applyGeneralTermsDto.terms, 
+      +id,
+      applyGeneralTermsDto.terms,
       applyGeneralTermsDto.selectedArticles
     );
   }
-} 
+}

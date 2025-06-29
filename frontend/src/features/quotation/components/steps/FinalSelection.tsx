@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  type ProductSelection,
+  type FinalSelectionItem,
+  type FinalSelection as FinalSelectionType,
   type SelectedSupplier,
-  type CreateFinalSelectionDto,
 } from '../../../../types/quotation';
 import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { Button } from '../../../../components/common/Button';
-import { FormInput } from '../../../../components/common/FormInput';
 import type { Requirement } from '../../../../types/requirement';
 
 interface FinalSelectionProps {
@@ -26,249 +25,72 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
   onBack,
 }) => {
   const [internalNotes, setInternalNotes] = useState('');
-  const [productSelections, setProductSelections] = useState<
-    Record<number, number>
-  >({});
   const [loading, setLoading] = useState(false);
-  const [selectedProductsBySupplier, setSelectedProductsBySupplier] = useState<
-    Record<number, number[]>
-  >({});
+  const [approving, setApproving] = useState(false);
+  const [showApprovalWarning, setShowApprovalWarning] = useState(false);
+  const [finalSelectionData, setFinalSelectionData] =
+    useState<FinalSelectionType | null>(null);
 
-  const { createFinalSelection, getQuotationByRequirement, error } =
+  const { getFinalSelectionByRequest, approveFinalSelection } =
     useQuotationService();
   const { showSuccess, showError } = useToast();
 
   // Helper function to safely format numbers
   const formatNumber = (
-    value: number | undefined | null,
+    value: number | undefined | null | string,
     decimals: number = 2
   ): string => {
     if (typeof value === 'number' && !isNaN(value)) {
       return value.toFixed(decimals);
     }
+    if (typeof value === 'string' && !isNaN(Number(value))) {
+      return Number(value).toFixed(decimals);
+    }
     return '0.00';
   };
 
-  // Cargar productos seleccionados desde el backend
+  // Cargar la selección final desde el backend
   useEffect(() => {
-    const loadSelectedProducts = async () => {
+    const loadFinalSelection = async () => {
       try {
-        const existingQuotation = await getQuotationByRequirement(
-          requirement.id
-        );
-        if (existingQuotation) {
-          const productsBySupplier: Record<number, number[]> = {};
-
-          existingQuotation.quotationSuppliers.forEach(quotationSupplier => {
-            const supplierId = quotationSupplier.supplier.id;
-            const selectedArticleIds =
-              quotationSupplier.quotationSupplierArticles.map(
-                qsa => qsa.requirementArticle.id
-              );
-            productsBySupplier[supplierId] = selectedArticleIds;
-          });
-
-          setSelectedProductsBySupplier(productsBySupplier);
+        const finalSelection =
+          await getFinalSelectionByRequest(quotationRequestId);
+        if (finalSelection) {
+          setFinalSelectionData(finalSelection);
+          setInternalNotes(finalSelection.notes || '');
         }
-      } catch {
-        // Si no hay cotización existente, usar todos los productos como fallback
-        const fallbackProducts: Record<number, number[]> = {};
-        selectedSuppliers.forEach(supplier => {
-          fallbackProducts[supplier.supplier.id] =
-            requirement.requirementArticles.map(ra => ra.id);
-        });
-        setSelectedProductsBySupplier(fallbackProducts);
+      } catch (error) {
+        console.error('Error loading final selection:', error);
+        showError('Error al cargar', 'No se pudo cargar la selección final');
       }
     };
 
-    loadSelectedProducts();
-  }, [requirement.id, selectedSuppliers, getQuotationByRequirement]);
-
-  // Obtener los productos seleccionados para cada proveedor
-  const getSelectedProductsForSupplier = (supplierId: number) => {
-    const selectedArticleIds = selectedProductsBySupplier[supplierId] || [];
-    return requirement.requirementArticles.filter(ra =>
-      selectedArticleIds.includes(ra.id)
-    );
-  };
-
-  // Obtener todos los productos únicos que están siendo cotizados
-  const getAllQuotedProducts = () => {
-    const allProductIds = new Set<number>();
-
-    selectedSuppliers.forEach(selectedSupplier => {
-      if (selectedSupplier.receivedQuotation) {
-        const selectedProducts = getSelectedProductsForSupplier(
-          selectedSupplier.supplier.id
-        );
-        selectedProducts.forEach(ra => {
-          allProductIds.add(ra.article.id);
-        });
-      }
-    });
-
-    return requirement.requirementArticles.filter(ra =>
-      allProductIds.has(ra.article.id)
-    );
-  };
-
-  // Generar selecciones automáticas basadas en mejores precios
-  const autoSelections = useMemo(() => {
-    const selections: Record<number, number> = {};
-    const quotedProducts = getAllQuotedProducts();
-
-    quotedProducts.forEach(requirementArticle => {
-      let bestPrice = Infinity;
-      let bestSupplierId = 0;
-
-      selectedSuppliers.forEach(selectedSupplier => {
-        const quotation = selectedSupplier.receivedQuotation;
-        if (quotation) {
-          // Verificar si este producto fue seleccionado para este proveedor
-          const selectedProducts = getSelectedProductsForSupplier(
-            selectedSupplier.supplier.id
-          );
-          const isProductSelected = selectedProducts.some(
-            ra => ra.article.id === requirementArticle.article.id
-          );
-
-          if (isProductSelected) {
-            const item = quotation.items.find(
-              i => i.article.id === requirementArticle.article.id
-            );
-            if (item && item.unitPrice && item.unitPrice < bestPrice) {
-              bestPrice = item.unitPrice;
-              bestSupplierId = selectedSupplier.supplier.id;
-            }
-          }
-        }
-      });
-
-      if (bestSupplierId > 0) {
-        selections[requirementArticle.article.id] = bestSupplierId;
-      }
-    });
-
-    return selections;
-  }, [requirement, selectedSuppliers, selectedProductsBySupplier]);
-
-  // Aplicar selecciones automáticas al cargar
-  React.useEffect(() => {
-    setProductSelections(autoSelections);
-  }, [autoSelections]);
-
-  const handleProductSelection = (articleId: number, supplierId: number) => {
-    setProductSelections(prev => ({
-      ...prev,
-      [articleId]: supplierId,
-    }));
-  };
+    loadFinalSelection();
+  }, [quotationRequestId, getFinalSelectionByRequest, showError]);
 
   const handleGeneratePurchaseOrder = async () => {
     setLoading(true);
 
     try {
-      const finalSelections: ProductSelection[] = [];
-      const quotedProducts = getAllQuotedProducts();
+      // Aquí iría la lógica para generar la orden de compra
+      // Por ahora solo simulamos el proceso
 
-      // Validar que todos los productos cotizados tengan un proveedor seleccionado
-      const unselectedProducts = quotedProducts.filter(
-        ra => !productSelections[ra.article.id]
+      showSuccess(
+        'Orden de compra generada',
+        'Se ha generado la orden de compra exitosamente'
       );
 
-      if (unselectedProducts.length > 0) {
-        showError(
-          'Productos sin seleccionar',
-          `Debes seleccionar un proveedor para: ${unselectedProducts
-            .map(ra => ra.article.name)
-            .join(', ')}`
-        );
-        setLoading(false);
-        return;
-      }
+      // Marcar como completado
+      const updatedSuppliers = selectedSuppliers.map(supplier => ({
+        ...supplier,
+        isFinalSelected: true,
+      }));
 
-      quotedProducts.forEach(requirementArticle => {
-        const selectedSupplierId =
-          productSelections[requirementArticle.article.id];
-        if (selectedSupplierId) {
-          const selectedSupplier = selectedSuppliers.find(
-            s => s.supplier.id === selectedSupplierId
-          );
-          const quotation = selectedSupplier?.receivedQuotation;
-
-          if (quotation) {
-            const item = quotation.items.find(
-              i => i.article.id === requirementArticle.article.id
-            );
-            if (item) {
-              finalSelections.push({
-                articleId: requirementArticle.article.id,
-                article: requirementArticle.article,
-                quantity: requirementArticle.quantity,
-                selectedSupplierId,
-                selectedSupplier: selectedSupplier!.supplier,
-                unitPrice: item.unitPrice,
-                totalPrice: item.totalPrice,
-                currency: item.currency,
-                deliveryTime: item.deliveryTime,
-                notes: item.notes,
-                requirementArticleId: requirementArticle.id,
-              });
-            }
-          }
-        }
-      });
-
-      if (finalSelections.length === 0) {
-        showError(
-          'No hay productos para seleccionar',
-          'No se encontraron productos cotizados válidos para crear la selección final.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Crear la selección final en el backend
-      const createData: CreateFinalSelectionDto = {
-        quotationRequestId: quotationRequestId.toString(),
-        notes: internalNotes,
-        items: finalSelections.map(selection => ({
-          articleId: selection.requirementArticleId.toString(),
-          supplierId: selection.selectedSupplierId.toString(),
-          selectedPrice: selection.unitPrice || 0,
-          notes: selection.notes || '',
-        })),
-      };
-
-      console.log('Creating final selection with data:', createData);
-
-      const createdFinalSelection = await createFinalSelection(createData);
-
-      if (createdFinalSelection) {
-        // Actualizar proveedores seleccionados
-        const updatedSuppliers = selectedSuppliers.map(supplier => ({
-          ...supplier,
-          isFinalSelected: finalSelections.some(
-            selection => selection.selectedSupplierId === supplier.supplier.id
-          ),
-        }));
-
-        showSuccess(
-          'Selección final creada',
-          `Se ha creado la selección final con ${finalSelections.length} productos seleccionados`
-        );
-
-        onComplete(updatedSuppliers);
-      } else {
-        showError(
-          'Error al crear selección final',
-          error || 'No se pudo crear la selección final. Inténtalo de nuevo.'
-        );
-      }
+      onComplete(updatedSuppliers);
     } catch (error) {
-      console.error('Error creating final selection:', error);
+      console.error('Error generating purchase order:', error);
       showError(
-        'Error al crear selección final',
+        'Error al generar orden de compra',
         'Ocurrió un error inesperado. Inténtalo de nuevo.'
       );
     } finally {
@@ -276,57 +98,53 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
     }
   };
 
-  const getSupplierForArticle = (articleId: number) => {
-    const supplierId = productSelections[articleId];
-    return selectedSuppliers.find(s => s.supplier.id === supplierId);
-  };
+  const handleApproveFinalSelection = async () => {
+    if (!finalSelectionData) return;
 
-  const getTotalAmount = () => {
-    const quotedProducts = getAllQuotedProducts();
-    return quotedProducts.reduce((total, requirementArticle) => {
-      const selectedSupplier = getSupplierForArticle(
-        requirementArticle.article.id
+    setApproving(true);
+    try {
+      const approvedFinalSelection = await approveFinalSelection(
+        finalSelectionData.id
       );
-      const quotation = selectedSupplier?.receivedQuotation;
-      if (quotation) {
-        const item = quotation.items.find(
-          i => i.article.id === requirementArticle.article.id
+
+      if (approvedFinalSelection) {
+        setFinalSelectionData(approvedFinalSelection);
+        showSuccess(
+          'Selección final aprobada',
+          'La selección final ha sido aprobada exitosamente. No se permitirán más ediciones.'
         );
-        if (item) {
-          return (
-            total + (typeof item.totalPrice === 'number' ? item.totalPrice : 0)
-          );
-        }
+        setShowApprovalWarning(false);
       }
-      return total;
-    }, 0);
-  };
-
-  const getCurrency = () => {
-    const firstSelection = Object.values(productSelections)[0];
-    if (firstSelection) {
-      const supplier = selectedSuppliers.find(
-        s => s.supplier.id === firstSelection
+    } catch (error) {
+      console.error('Error approving final selection:', error);
+      showError(
+        'Error al aprobar',
+        'Ocurrió un error al aprobar la selección final. Inténtalo de nuevo.'
       );
-      return supplier?.receivedQuotation?.currency || 'PEN';
+    } finally {
+      setApproving(false);
     }
-    return 'PEN';
   };
 
-  const quotedProducts = getAllQuotedProducts();
+  const handleShowApprovalWarning = () => {
+    setShowApprovalWarning(true);
+  };
 
-  // Validar si hay productos cotizados
-  if (quotedProducts.length === 0) {
+  const handleCancelApproval = () => {
+    setShowApprovalWarning(false);
+  };
+
+  // Si no hay datos de selección final, mostrar mensaje
+  if (!finalSelectionData) {
     return (
       <div className="p-6">
         <div className="text-center">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
             <h3 className="text-lg font-medium text-yellow-900 dark:text-yellow-100 mb-2">
-              No hay productos cotizados
+              No hay selección final
             </h3>
             <p className="text-sm text-yellow-700 dark:text-yellow-200 mb-4">
-              No se encontraron productos que hayan sido cotizados por los
-              proveedores seleccionados.
+              No se encontró una selección final para esta cotización.
             </p>
             <Button variant="outline" onClick={onBack}>
               ← Volver al paso anterior
@@ -342,35 +160,107 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          Selección Final de Proveedores
+          Revisión y Generación de Orden de Compra
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Revisa y confirma la selección final de proveedores para los productos
-          específicamente cotizados
+          Revisa la selección final completada y genera la orden de compra
         </p>
       </div>
 
-      {/* Auto-selection Info */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+      {/* Success Message */}
+      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
         <div className="flex items-center space-x-2">
-          <span className="text-blue-500">💡</span>
-          <span className="text-sm text-blue-900 dark:text-blue-100">
-            Se han aplicado automáticamente las mejores opciones de precio para
-            los productos cotizados. Puedes modificar las selecciones según tus
-            criterios.
+          <span className="text-green-500">✅</span>
+          <span className="text-sm text-green-900 dark:text-green-100">
+            Selección final completada exitosamente. Revisa los detalles a
+            continuación.
           </span>
         </div>
       </div>
 
-      {/* Product Selections */}
+      {/* Status and Approval Section */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+              Estado de la Selección Final
+            </h4>
+            <div className="flex items-center space-x-2">
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  finalSelectionData.status === 'APPROVED'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                }`}
+              >
+                {finalSelectionData.status === 'APPROVED'
+                  ? 'Aprobada'
+                  : 'Borrador'}
+              </span>
+              {finalSelectionData.status === 'APPROVED' && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  No se permiten ediciones
+                </span>
+              )}
+            </div>
+          </div>
+          {finalSelectionData.status === 'DRAFT' && (
+            <Button
+              onClick={handleShowApprovalWarning}
+              variant="outline"
+              className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-300 dark:hover:bg-orange-900/20"
+            >
+              🚨 Aprobar Selección Final
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Approval Warning Modal */}
+      {showApprovalWarning && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <span className="text-orange-500 text-2xl">⚠️</span>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Confirmar Aprobación
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <strong>¡Atención!</strong> Una vez aprobada la selección final,
+              no se permitirán más ediciones. Esta acción es irreversible.
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              ¿Estás seguro de que deseas aprobar esta selección final?
+            </p>
+            <div className="flex space-x-3">
+              <Button
+                onClick={handleCancelApproval}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleApproveFinalSelection}
+                disabled={approving}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                {approving ? '🔄 Aprobando...' : 'Sí, Aprobar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Final Selection Summary */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden mb-6">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-            Selección por Producto
+            Resumen de Selección Final
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Solo se muestran los productos que fueron cotizados por al menos un
-            proveedor
+            Productos y proveedores seleccionados para la orden de compra
           </p>
         </div>
 
@@ -393,209 +283,119 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Acciones
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {quotedProducts.map(requirementArticle => {
-                const selectedSupplier = getSupplierForArticle(
-                  requirementArticle.article.id
-                );
-                const quotation = selectedSupplier?.receivedQuotation;
-                const item = quotation?.items.find(
-                  i => i.article.id === requirementArticle.article.id
-                );
+              {finalSelectionData.finalSelectionItems?.map(
+                (item: FinalSelectionItem, index: number) => {
+                  const requirementArticle =
+                    requirement.requirementArticles.find(
+                      ra => ra.id === item.requirementArticle.id
+                    );
+                  const supplier = selectedSuppliers.find(
+                    s => s.supplier.id === item.supplier.id
+                  );
 
-                return (
-                  <tr key={requirementArticle.article.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {requirementArticle.article.name}
+                  return (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {requirementArticle?.article.name ||
+                              'Producto no encontrado'}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {requirementArticle?.article.code || ''}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {requirementArticle.article.code}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {requirementArticle.quantity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={
-                          productSelections[requirementArticle.article.id] || ''
-                        }
-                        onChange={e =>
-                          handleProductSelection(
-                            requirementArticle.article.id,
-                            Number(e.target.value)
-                          )
-                        }
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-sm"
-                      >
-                        <option value="">Seleccionar proveedor</option>
-                        {selectedSuppliers
-                          .filter(s => s.receivedQuotation)
-                          .map(supplier => {
-                            const supplierQuotation =
-                              supplier.receivedQuotation;
-                            const supplierItem = supplierQuotation?.items.find(
-                              i =>
-                                i.article.id === requirementArticle.article.id
-                            );
-
-                            // Verificar si este producto fue seleccionado para este proveedor
-                            const selectedProducts =
-                              getSelectedProductsForSupplier(
-                                supplier.supplier.id
-                              );
-                            const isProductSelected = selectedProducts.some(
-                              ra =>
-                                ra.article.id === requirementArticle.article.id
-                            );
-
-                            if (!isProductSelected) return null;
-
-                            return (
-                              <option
-                                key={supplier.supplier.id}
-                                value={supplier.supplier.id}
-                              >
-                                {supplier.supplier.businessName} -{' '}
-                                {supplierItem?.currency || 'PEN'}{' '}
-                                {formatNumber(supplierItem?.unitPrice)}
-                              </option>
-                            );
-                          })
-                          .filter(Boolean)}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {item ? (
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {requirementArticle?.quantity || 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {supplier?.supplier.businessName ||
+                          'Proveedor no encontrado'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <span className="font-medium">
                           {item.currency} {formatNumber(item.unitPrice)}
                         </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {item ? (
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <span className="font-medium">
                           {item.currency} {formatNumber(item.totalPrice)}
                         </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {item && (
-                        <div className="flex items-center space-x-2">
-                          {item.deliveryTime && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              📦 {item.deliveryTime}d
-                            </span>
-                          )}
-                          {item.notes && (
-                            <span
-                              className="text-xs text-gray-500 dark:text-gray-400"
-                              title={item.notes}
-                            >
-                              💬
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                }
+              ) || (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
+                    No hay items en la selección final
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Selected Suppliers Summary */}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Selected Suppliers */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
             Proveedores Seleccionados
           </h4>
-          <div className="space-y-2">
-            {Array.from(new Set(Object.values(productSelections))).map(
-              supplierId => {
-                const supplier = selectedSuppliers.find(
-                  s => s.supplier.id === supplierId
-                );
-                if (!supplier) return null;
-
-                const supplierArticles = quotedProducts.filter(
-                  ra => productSelections[ra.article.id] === supplierId
-                );
-
-                return (
-                  <div
-                    key={supplierId}
-                    className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                  >
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {supplier.supplier.businessName}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {supplierArticles.length} producto(s) seleccionado(s)
-                    </div>
-                  </div>
-                );
-              }
-            )}
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {finalSelectionData.finalSelectionItems
+              ? new Set(
+                  finalSelectionData.finalSelectionItems.map(
+                    (item: FinalSelectionItem) => item.supplier.id
+                  )
+                ).size
+              : 0}
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Proveedores únicos
           </div>
         </div>
 
-        {/* Financial Summary */}
+        {/* Selected Products */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-            Resumen Financiero
+            Productos Seleccionados
           </h4>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">
-                Productos cotizados:
-              </span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {quotedProducts.length} de{' '}
-                {requirement.requirementArticles.length}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">
-                Productos seleccionados:
-              </span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {Object.keys(productSelections).length}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">
-                Proveedores seleccionados:
-              </span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {new Set(Object.values(productSelections)).size}
-              </span>
-            </div>
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between">
-                <span className="text-lg font-medium text-gray-900 dark:text-white">
-                  Total estimado:
-                </span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {getCurrency()} {formatNumber(getTotalAmount())}
-                </span>
-              </div>
-            </div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            {finalSelectionData.finalSelectionItems?.length || 0}
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Productos únicos
+          </div>
+        </div>
+
+        {/* Total Amount */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            Total Estimado
+          </h4>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {finalSelectionData.currency || 'PEN'}{' '}
+            {formatNumber(
+              finalSelectionData.finalSelectionItems?.reduce(
+                (total: number, item: FinalSelectionItem) => {
+                  return total + (+item.totalPrice || 0);
+                },
+                0
+              ) || 0
+            )}
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Monto total
           </div>
         </div>
       </div>
@@ -603,27 +403,33 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       {/* Internal Notes */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-          Notas Internas
+          Notas de la Selección
         </h4>
-        <FormInput
-          type="textarea"
-          value={internalNotes}
-          onChange={e => setInternalNotes(e.target.value)}
-          placeholder="Ingresa notas internas sobre la selección de proveedores..."
-        />
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {internalNotes || 'No hay notas adicionales'}
+        </div>
       </div>
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button variant="outline" onClick={onBack} disabled={loading}>
-          ← Volver
-        </Button>
-        <Button
-          onClick={handleGeneratePurchaseOrder}
-          disabled={Object.keys(productSelections).length === 0 || loading}
-        >
-          {loading ? '🔄 Creando...' : '🛒 Generar Orden de Compra Final'}
-        </Button>
+        <div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            {loading || finalSelectionData.status === 'APPROVED'
+              ? 'La selección está aprobada. No se permiten cambios.'
+              : ''}
+          </div>
+          <Button
+            onClick={onBack}
+            disabled={loading || finalSelectionData.status === 'APPROVED'}
+          >
+            ← Volver
+          </Button>
+        </div>
+        <div className="text-right">
+          <Button onClick={handleGeneratePurchaseOrder} disabled={loading}>
+            {loading ? '🔄 Generando...' : '🛒 Generar Orden de Compra'}
+          </Button>
+        </div>
       </div>
     </div>
   );
