@@ -45,7 +45,7 @@ export const createApiCall = async <T>(
   isBlob: boolean = false
 ): Promise<T> => {
   try {
-    const token = sessionStorage.getItem(STORAGE_KEY_TOKEN);
+    const token = localStorage.getItem(STORAGE_KEY_TOKEN);
 
     const response = await fetch(url, {
       ...options,

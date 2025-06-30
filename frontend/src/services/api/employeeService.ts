@@ -16,7 +16,7 @@ export const getEmployee = async (
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -41,7 +41,7 @@ export async function getEmployees(
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -65,7 +65,7 @@ export const createEmployee = async (
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
     body: JSON.stringify(employee),
   });
@@ -86,7 +86,7 @@ export const updateEmployee = async (
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: JSON.stringify(employee),
     }
@@ -109,7 +109,7 @@ export const uploadEmployeeImage = async (
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
@@ -128,7 +128,7 @@ export const deleteEmployee = async (id: number): Promise<void> => {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -145,7 +145,7 @@ export const downloadEmployeeTemplate = async (): Promise<Blob> => {
     {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -176,7 +176,7 @@ export const importEmployeesFromExcel = async (
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
@@ -199,7 +199,7 @@ export const getEmployeesSimple = async (
     {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

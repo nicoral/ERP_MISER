@@ -47,7 +47,7 @@ export const getGeneralSettings = async (): Promise<GeneralSettings> => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -74,7 +74,7 @@ export const updateGeneralSettings = async (
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: JSON.stringify(updateData),
     }
@@ -102,7 +102,7 @@ export const uploadLogo = async (file: File): Promise<GeneralSettings> => {
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
@@ -126,7 +126,7 @@ export const getCurrentExchangeRate = async (): Promise<ExchangeRate> => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -149,7 +149,7 @@ export const getCurrentSaleRate = async (): Promise<SaleRate> => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -174,7 +174,7 @@ export const updateExchangeRate = async (): Promise<GeneralSettings> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -199,7 +199,7 @@ export const shouldUpdateExchangeRate = async (): Promise<{
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

@@ -23,7 +23,7 @@ export async function getAuditLogs(
     `${import.meta.env.VITE_API_URL}/audit-logs?${queryParams.toString()}`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

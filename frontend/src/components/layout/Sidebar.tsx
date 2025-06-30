@@ -17,6 +17,7 @@ import {
   LogisticsIcon,
   RolesIcon,
   AuditIcon,
+  CalculatorIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
 
@@ -110,7 +111,7 @@ const menuItems: MenuItem[] = [
         label: SIDEBAR_TEXTS.quotation,
         path: ROUTES.QUOTATIONS,
         permission: ['view_quotations'],
-        icon: <DocumentIcon className="w-4 h-4" />,
+        icon: <CalculatorIcon className="w-4 h-4" />,
       },
     ],
   },

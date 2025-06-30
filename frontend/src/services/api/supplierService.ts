@@ -19,7 +19,7 @@ export async function getSuppliers(
     {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -41,7 +41,7 @@ export async function getSupplier(id: number): Promise<Supplier> {
     `${import.meta.env.VITE_API_URL}/suppliers/${id}`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -58,7 +58,7 @@ export async function createSupplier(supplier: Supplier): Promise<Supplier> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
     body: JSON.stringify(supplier),
   });
@@ -79,7 +79,7 @@ export async function updateSupplier(
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: JSON.stringify(supplier),
     }
@@ -98,7 +98,7 @@ export async function deleteSupplier(id: number): Promise<void> {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

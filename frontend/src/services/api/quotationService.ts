@@ -90,16 +90,6 @@ export const quotationService = {
     return response;
   },
 
-  async activateQuotationRequest(id: number): Promise<QuotationRequest> {
-    const response = await createApiCall<QuotationRequest>(
-      `${BASE_URL}/${id}/activate`,
-      {
-        method: 'PATCH',
-      }
-    );
-    return response;
-  },
-
   async cancelQuotationRequest(id: number): Promise<QuotationRequest> {
     const response = await createApiCall<QuotationRequest>(
       `${BASE_URL}/${id}/cancel`,
@@ -260,7 +250,7 @@ export const quotationService = {
       {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+          Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
         },
       }
     );

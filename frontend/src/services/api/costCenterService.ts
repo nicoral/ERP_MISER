@@ -30,7 +30,7 @@ export async function getCostCenters(
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -54,7 +54,7 @@ export async function getCostCenter(id: number): Promise<CostCenter> {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -72,7 +72,7 @@ export async function createCostCenter(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
     body: JSON.stringify(costCenter),
   });
@@ -93,7 +93,7 @@ export async function updateCostCenter(
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: JSON.stringify(costCenter),
     }
@@ -112,7 +112,7 @@ export async function deleteCostCenter(id: number): Promise<void> {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

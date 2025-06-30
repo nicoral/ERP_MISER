@@ -12,20 +12,20 @@ export async function login(email: string, password: string): Promise<User> {
   });
   const data = await response.json();
   if (response.status === 201) {
-    sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.employee));
-    sessionStorage.setItem(STORAGE_KEY_TOKEN, data.access_token);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.employee));
+    localStorage.setItem(STORAGE_KEY_TOKEN, data.access_token);
     return data.employee;
   }
   throw new Error(data.message);
 }
 
 export function logout() {
-  sessionStorage.removeItem(STORAGE_KEY_TOKEN);
-  sessionStorage.removeItem(STORAGE_KEY_USER);
+  localStorage.removeItem(STORAGE_KEY_TOKEN);
+  localStorage.removeItem(STORAGE_KEY_USER);
 }
 
 export function getCurrentUser(): User | null {
-  const data = sessionStorage.getItem(STORAGE_KEY_USER);
+  const data = localStorage.getItem(STORAGE_KEY_USER);
   return data ? JSON.parse(data) : null;
 }
 
@@ -40,7 +40,7 @@ export async function updatePassword(
       body: JSON.stringify({ currentPassword, newPassword }),
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -56,7 +56,7 @@ export async function getWarehousesByEmployeeId() {
     `${import.meta.env.VITE_API_URL}/auth/me-warehouses`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -76,7 +76,7 @@ export const uploadEmployeeSignature = async (
     {
       method: 'PUT',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
@@ -93,7 +93,7 @@ export async function getProfile() {
     `${import.meta.env.VITE_API_URL}/auth/profile/me`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

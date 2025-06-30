@@ -6,7 +6,7 @@ export const getPermissions = async () => {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
   });
   const data = await response.json();
@@ -21,7 +21,7 @@ export const getPermissionsByRole = async (roleId: number | null) => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );

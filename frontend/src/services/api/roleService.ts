@@ -6,7 +6,7 @@ export const getRoles = async () => {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
   });
   const data = await response.json();
@@ -21,7 +21,7 @@ export const getRoleById = async (id: number) => {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
   });
   const data = await response.json();
@@ -36,7 +36,7 @@ export const createRole = async (role: CreateRole) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
     body: JSON.stringify(role),
   });
@@ -52,7 +52,7 @@ export const updateRole = async (id: number, role: UpdateRole) => {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
     body: JSON.stringify(role),
   });

@@ -185,6 +185,7 @@ export class QuotationService {
         'quotationSuppliers.quotationSupplierArticles',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle.article',
+        'quotationSuppliers.quotationSupplierArticles.requirementArticle.article.brand',
         'quotationSuppliers.supplierQuotation',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems.requirementArticle',
@@ -1259,14 +1260,14 @@ export class QuotationService {
     // Buscar la cotización con todas las relaciones necesarias
     const quotation = await this.findOneQuotationRequest(id);
     const { quotationSuppliers } = quotation;
-    const supplierQuotation = quotationSuppliers.find(s => s.supplier.id === supplierId);
-    if (!supplierQuotation) {
+    const quotationSupplier = quotationSuppliers.find(s => s.supplier.id === supplierId);
+    if (!quotationSupplier) {
       throw new NotFoundException('Supplier quotation not found');
     }
     
     // Preparar datos para el template
     const data = {
-      code: supplierQuotation.orderNumber || '',
+      code: quotationSupplier.orderNumber || '',
       date: quotation.createdAt
         ? quotation.createdAt.toISOString().slice(0, 10).replace(/-/g, '/')
         : '',
@@ -1278,13 +1279,14 @@ export class QuotationService {
         : '',
       costCenter: quotation.requirement?.costCenter?.description || '',
       observation: `Requerimiento N° ${quotation.requirement?.code || ''}`,
-      articles: (quotation.requirement?.requirementArticles || []).map(article => ({
-        manufacturerCode: article.article?.code || '',
-        quantity: article.quantity,
-        unit: article.article?.unitOfMeasure || '',
-        description: article.article?.name || '',
-        brand: article.article?.brand?.name || '',
-        unitPrice: (+article.unitPrice).toFixed(2) || '',
+      articles: (quotationSupplier.quotationSupplierArticles || []).map(article => ({
+        manufacturerCode: article.requirementArticle?.article?.code || '',
+        quantity: article.requirementArticle?.quantity,
+        unit: article.requirementArticle?.article?.unitOfMeasure || '',
+        description: article.requirementArticle?.article?.name || '',
+        brand: article.requirementArticle?.article?.brand?.name || '',
+        unitPrice: (+article.requirementArticle?.unitPrice).toFixed(2) || '',
+        image: article.requirementArticle?.article?.imageUrl || null,
       })),
     };
 

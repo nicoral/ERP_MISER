@@ -17,7 +17,7 @@ import {
   type TableAction,
 } from '../../../components/common/Table';
 import { Card } from '../../../components/ui/card';
-import { Plus, Eye, Edit, Trash2, Play, Pause } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Pause } from 'lucide-react';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { FormInput } from '../../../components/common/FormInput';
 
@@ -35,7 +35,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   const {
     getQuotationRequests,
     deleteQuotationRequest,
-    activateQuotationRequest,
     cancelQuotationRequest,
     loading,
     error,
@@ -76,25 +75,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
         loadQuotations(currentPage);
       } else {
         showError('Error', error || 'No se pudo eliminar la cotización');
-      }
-    }
-  };
-
-  const handleActivate = async (quotation: QuotationRequest) => {
-    if (
-      window.confirm(
-        `¿Estás seguro de que quieres activar la cotización ${quotation.code}?`
-      )
-    ) {
-      const success = await activateQuotationRequest(quotation.id);
-      if (success) {
-        showSuccess(
-          'Activado',
-          `Cotización ${quotation.code} activada correctamente`
-        );
-        loadQuotations(currentPage);
-      } else {
-        showError('Error', 'No se pudo activar la cotización');
       }
     }
   };
@@ -214,12 +194,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       icon: <Edit className="w-5 h-5 text-blue-600" />,
       label: 'Editar',
       onClick: onEditQuotation,
-      isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
-    },
-    {
-      icon: <Play className="w-5 h-5 text-green-600" />,
-      label: 'Activar cotización',
-      onClick: handleActivate,
       isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
     },
     {

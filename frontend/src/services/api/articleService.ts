@@ -23,7 +23,7 @@ export async function getArticles(
     `${import.meta.env.VITE_API_URL}/articles?${queryParams.toString()}`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -45,7 +45,7 @@ export async function getArticlesSimple(search?: string): Promise<Article[]> {
     `${import.meta.env.VITE_API_URL}/articles/list/simple?search=${search}`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -67,7 +67,7 @@ export async function getArticle(
     `${import.meta.env.VITE_API_URL}/articles/${id}`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -85,7 +85,7 @@ export async function createArticle(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
     },
     body: JSON.stringify(article),
   });
@@ -106,7 +106,7 @@ export async function updateArticle(
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: JSON.stringify(article),
     }
@@ -130,7 +130,7 @@ export async function uploadArticleImage(
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
@@ -147,7 +147,7 @@ export async function getBrands(): Promise<Brand[]> {
     `${import.meta.env.VITE_API_URL}/articles/brands`,
     {
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -173,7 +173,7 @@ export const createBrand = async (
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
@@ -192,7 +192,7 @@ export const deleteArticle = async (id: number): Promise<void> => {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -209,7 +209,7 @@ export const downloadArticleTemplate = async (): Promise<Blob> => {
     {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
     }
   );
@@ -240,7 +240,7 @@ export const importArticlesFromExcel = async (
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
       },
       body: formData,
     }
