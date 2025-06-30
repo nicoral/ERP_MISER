@@ -21,6 +21,8 @@ import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
 import { EmployeeService } from './employee.service';
 import { RoleService } from './role.service';
+import { QuotationService } from './quotation.service';
+import { forwardRef, Inject } from '@nestjs/common';
 
 @Injectable()
 export class RequirementService {
@@ -30,7 +32,9 @@ export class RequirementService {
     @InjectRepository(RequirementArticle)
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     private readonly employeeService: EmployeeService,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    @Inject(forwardRef(() => QuotationService))
+    private readonly quotationService: QuotationService
   ) {}
 
   async create(
@@ -465,6 +469,7 @@ export class RequirementService {
     }
 
     // Proceder con la firma según el estado
+    let becameApproved = false;
     switch (requirement.status) {
       case RequirementStatus.SIGNED_1:
         requirement.secondSignature = employee.signature;
@@ -478,6 +483,7 @@ export class RequirementService {
         requirement.thirdSignedAt = new Date();
         if (this.isLowAmount(requirement)) {
           requirement.status = RequirementStatus.APPROVED;
+          becameApproved = true;
         } else {
           requirement.status = RequirementStatus.SIGNED_3;
         }
@@ -487,12 +493,29 @@ export class RequirementService {
         requirement.fourthSignedBy = userId;
         requirement.fourthSignedAt = new Date();
         requirement.status = RequirementStatus.APPROVED;
+        becameApproved = true;
         break;
       default:
         throw new ForbiddenException('No se puede firmar en este estado');
     }
 
-    return this.requirementRepository.save(requirement);
+    const savedRequirement = await this.requirementRepository.save(requirement);
+
+    // Si el requerimiento fue aprobado, crear cotización automáticamente si no existe
+    if (becameApproved) {
+      const existingQuotation =
+        await this.quotationService.getQuotationRequestByRequirement(
+          savedRequirement.id
+        );
+      if (!existingQuotation) {
+        await this.quotationService.createQuotationRequest(null, {
+          requirementId: savedRequirement.id,
+          // Puedes agregar más campos por defecto si es necesario
+        });
+      }
+    }
+
+    return savedRequirement;
   }
 
   private isLowAmount(requirement: Requirement): boolean {

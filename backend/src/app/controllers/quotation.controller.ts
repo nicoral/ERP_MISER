@@ -8,7 +8,10 @@ import {
   Delete,
   UseGuards,
   Request,
+  Req,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { QuotationService } from '../services/quotation.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -72,10 +75,12 @@ export class QuotationController {
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar solicitud de cotización')
   update(
+    @Req() req: { user: { id: number } },
     @Param('id') id: string,
     @Body() updateQuotationRequestDto: UpdateQuotationRequestDto
   ) {
     return this.quotationService.updateQuotationRequest(
+      req.user.id,
       +id,
       updateQuotationRequestDto
     );
@@ -155,10 +160,12 @@ export class QuotationController {
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar información básica de solicitud de cotización')
   updateBasic(
+    @Req() req: { user: { id: number } },
     @Param('id') id: string,
     @Body() updateQuotationBasicDto: UpdateQuotationBasicDto
   ) {
     return this.quotationService.updateQuotationRequest(
+      req.user.id,
       +id,
       updateQuotationBasicDto
     );
@@ -208,8 +215,12 @@ export class QuotationController {
   @Get('final-selection/request/:quotationRequestId')
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener selección final por solicitud de cotización')
-  findFinalSelectionByRequest(@Param('quotationRequestId') quotationRequestId: string) {
-    return this.quotationService.findFinalSelectionByRequest(+quotationRequestId);
+  findFinalSelectionByRequest(
+    @Param('quotationRequestId') quotationRequestId: string
+  ) {
+    return this.quotationService.findFinalSelectionByRequest(
+      +quotationRequestId
+    );
   }
 
   @Get('final-selection/:id')
@@ -258,5 +269,21 @@ export class QuotationController {
       applyGeneralTermsDto.terms,
       applyGeneralTermsDto.selectedArticles
     );
+  }
+
+  @Get(':id/purchase-request/:supplierId/pdf')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Descargar PDF de solicitud de compra para proveedor')
+  async downloadPurchaseRequestPdf(
+    @Param('id') id: string,
+    @Param('supplierId') supplierId: string,
+    @Res() res: Response
+  ) {
+    const pdfBuffer = await this.quotationService.generatePurchaseRequestPdf(+id, +supplierId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="solicitud_compra_${id}_${supplierId}.pdf"`,
+    });
+    res.end(pdfBuffer);
   }
 }

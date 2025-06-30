@@ -11,9 +11,13 @@ import type {
   QuotationFilters,
 } from '../../../types/quotation';
 import { Button } from '../../../components/common/Button';
-import { Table } from '../../../components/common/Table';
+import {
+  Table,
+  type TableColumn,
+  type TableAction,
+} from '../../../components/common/Table';
 import { Card } from '../../../components/ui/card';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Play, Pause } from 'lucide-react';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { FormInput } from '../../../components/common/FormInput';
 
@@ -57,14 +61,18 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     loadQuotations(1);
   }, [filters]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (quotation: QuotationRequest) => {
     if (
-      window.confirm('¿Estás seguro de que quieres eliminar esta cotización?')
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar la cotización ${quotation.code}?`
+      )
     ) {
-      const success = await deleteQuotationRequest(id);
-      console.log('success', success);
+      const success = await deleteQuotationRequest(quotation.id);
       if (success) {
-        showSuccess('Eliminado', 'Cotización eliminada correctamente');
+        showSuccess(
+          'Eliminado',
+          `Cotización ${quotation.code} eliminada correctamente`
+        );
         loadQuotations(currentPage);
       } else {
         showError('Error', error || 'No se pudo eliminar la cotización');
@@ -72,13 +80,18 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     }
   };
 
-  const handleActivate = async (id: number) => {
+  const handleActivate = async (quotation: QuotationRequest) => {
     if (
-      window.confirm('¿Estás seguro de que quieres activar esta cotización?')
+      window.confirm(
+        `¿Estás seguro de que quieres activar la cotización ${quotation.code}?`
+      )
     ) {
-      const success = await activateQuotationRequest(id);
+      const success = await activateQuotationRequest(quotation.id);
       if (success) {
-        showSuccess('Activado', 'Cotización activada correctamente');
+        showSuccess(
+          'Activado',
+          `Cotización ${quotation.code} activada correctamente`
+        );
         loadQuotations(currentPage);
       } else {
         showError('Error', 'No se pudo activar la cotización');
@@ -86,13 +99,18 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     }
   };
 
-  const handleCancel = async (id: number) => {
+  const handleCancel = async (quotation: QuotationRequest) => {
     if (
-      window.confirm('¿Estás seguro de que quieres cancelar esta cotización?')
+      window.confirm(
+        `¿Estás seguro de que quieres cancelar la cotización ${quotation.code}?`
+      )
     ) {
-      const success = await cancelQuotationRequest(id);
+      const success = await cancelQuotationRequest(quotation.id);
       if (success) {
-        showSuccess('Cancelado', 'Cotización cancelada correctamente');
+        showSuccess(
+          'Cancelado',
+          `Cotización ${quotation.code} cancelada correctamente`
+        );
         loadQuotations(currentPage);
       } else {
         showError('Error', 'No se pudo cancelar la cotización');
@@ -108,16 +126,16 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     loadQuotations(page);
   };
 
-  const columns = [
+  const columns: TableColumn<QuotationRequest>[] = [
     {
-      key: 'code',
-      header: 'Código',
-      render: (quotation: QuotationRequest) => (
-        <span className="font-medium">{quotation.code}</span>
-      ),
+      header: 'ID',
+      accessor: 'id',
     },
     {
-      key: 'requirement',
+      header: 'Código',
+      accessor: 'code',
+    },
+    {
       header: 'Requerimiento',
       render: (quotation: QuotationRequest) => (
         <div>
@@ -129,23 +147,47 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       ),
     },
     {
-      key: 'status',
       header: 'Estado',
+      accessor: 'status',
       render: (quotation: QuotationRequest) => (
-        <span className={getQuotationStatusColor(quotation.status)}>
+        <span
+          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getQuotationStatusColor(
+            quotation.status
+          )}`}
+        >
           {getQuotationStatusText(quotation.status)}
         </span>
       ),
     },
     {
-      key: 'suppliers',
-      header: 'Proveedores',
-      render: (quotation: QuotationRequest) => (
-        <span>{quotation.quotationSuppliers.length} proveedores</span>
-      ),
+      header: 'Progreso',
+      render: (quotation: QuotationRequest) => {
+        const progress = quotation.progress;
+        const progressColor =
+          progress === 100
+            ? 'bg-green-500'
+            : progress >= 60
+              ? 'bg-blue-500'
+              : progress >= 30
+                ? 'bg-yellow-500'
+                : 'bg-gray-500';
+
+        return (
+          <div className="flex items-center space-x-2">
+            <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+              <div
+                className={`h-2 rounded-full ${progressColor}`}
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {Math.round(progress)}%
+            </span>
+          </div>
+        );
+      },
     },
     {
-      key: 'deadline',
       header: 'Fecha Límite',
       render: (quotation: QuotationRequest) => (
         <span>
@@ -154,61 +196,43 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       ),
     },
     {
-      key: 'createdAt',
       header: 'Creado',
       render: (quotation: QuotationRequest) => (
         <span>{formatDate(quotation.createdAt)}</span>
       ),
     },
+  ];
+
+  const actions: TableAction<QuotationRequest>[] = [
     {
-      key: 'actions',
-      header: 'Acciones',
-      render: (quotation: QuotationRequest) => (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onViewQuotation(quotation)}
-            title="Ver detalles"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onEditQuotation(quotation)}
-            title="Editar"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          {quotation.status === 'DRAFT' && (
-            <Button
-              variant="outline"
-              onClick={() => handleActivate(quotation.id)}
-              className="text-green-600 hover:text-green-700"
-              title="Activar"
-            >
-              ✓
-            </Button>
-          )}
-          {quotation.status === 'ACTIVE' && (
-            <Button
-              variant="outline"
-              onClick={() => handleCancel(quotation.id)}
-              className="text-yellow-600 hover:text-yellow-700"
-              title="Cancelar"
-            >
-              ⏸
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => handleDelete(quotation.id)}
-            className="text-red-600 hover:text-red-700"
-            title="Eliminar"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      icon: <Eye className="w-5 h-5 text-green-600" />,
+      label: 'Ver detalles',
+      onClick: onViewQuotation,
+      isHidden: (quotation: QuotationRequest) => quotation.status !== 'ACTIVE',
+    },
+    {
+      icon: <Edit className="w-5 h-5 text-blue-600" />,
+      label: 'Editar',
+      onClick: onEditQuotation,
+      isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
+    },
+    {
+      icon: <Play className="w-5 h-5 text-green-600" />,
+      label: 'Activar cotización',
+      onClick: handleActivate,
+      isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
+    },
+    {
+      icon: <Pause className="w-5 h-5 text-yellow-600" />,
+      label: 'Cancelar cotización',
+      onClick: handleCancel,
+      isHidden: (quotation: QuotationRequest) => quotation.status !== 'ACTIVE',
+    },
+    {
+      icon: <Trash2 className="w-5 h-5 text-red-600" />,
+      label: 'Eliminar cotización',
+      onClick: handleDelete,
+      isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
     },
   ];
 
@@ -225,73 +249,53 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       </div>
 
       <Card className="p-6">
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1">
+        {/* Filtros */}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormInput
-              label="Buscar"
+              id="search"
               name="search"
-              placeholder="Buscar cotizaciones..."
+              label="Buscar"
               value={filters.search || ''}
-              onChange={value =>
-                handleFilterChange('search', value.target.value)
-              }
+              onChange={e => handleFilterChange('search', e.target.value)}
+              placeholder="Buscar por código o requerimiento..."
             />
-          </div>
-          <div className="w-48">
             <FormSelect
-              label="Estado"
+              id="status"
               name="status"
+              label="Estado"
               value={filters.status || ''}
-              onChange={value =>
-                handleFilterChange('status', value.target.value)
-              }
+              onChange={e => handleFilterChange('status', e.target.value)}
             >
               <option value="">Todos los estados</option>
-              <option value="DRAFT">Borrador</option>
-              <option value="ACTIVE">Activo</option>
-              <option value="COMPLETED">Completado</option>
-              <option value="CANCELLED">Cancelado</option>
+              <option value="DRAFT">📝 Borrador</option>
+              <option value="ACTIVE">🔄 Activo</option>
+              <option value="COMPLETED">✅ Completado</option>
+              <option value="CANCELLED">❌ Cancelado</option>
             </FormSelect>
+            <div className="flex items-end">
+              <Button onClick={() => setFilters({})} className="w-full">
+                Limpiar Filtros
+              </Button>
+            </div>
           </div>
         </div>
 
-        <Table<QuotationRequest>
-          columns={columns}
-          data={quotations}
-          keyField="id"
-          loading={loading}
-        />
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Mostrando {(currentPage - 1) * pageSize + 1} a{' '}
-              {Math.min(currentPage * pageSize, total)} de {total} cotizaciones
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="text-sm"
-              >
-                Anterior
-              </Button>
-              <span className="px-3 py-2 text-sm text-gray-500">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="text-sm"
-              >
-                Siguiente
-              </Button>
-            </div>
-          </div>
-        )}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+          <Table<QuotationRequest>
+            columns={columns}
+            data={quotations}
+            keyField="id"
+            loading={loading}
+            pagination={{
+              page: currentPage,
+              totalPages: totalPages,
+              onPageChange: handlePageChange,
+            }}
+            actions={actions}
+            pageSize={pageSize}
+          />
+        </div>
 
         <div className="mt-4 text-sm text-gray-500">
           Total: {total} cotizaciones

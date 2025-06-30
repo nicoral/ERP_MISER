@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, IsNull } from 'typeorm';
 import {
   QuotationRequest,
   QuotationRequestStatus,
@@ -32,8 +32,6 @@ import { SupplierService } from './supplier.service';
 import { EmployeeService } from './employee.service';
 import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-request.dto';
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
-import { UpdateQuotationSuppliersDto } from '../dto/quotation/update-quotation-suppliers.dto';
-import { UpdateQuotationSupplierDto } from '../dto/quotation/update-quotation-supplier.dto';
 import { formatNumber } from '../utils/transformer';
 import { CreateSupplierQuotationDto } from '../dto/quotation/create-supplier-quotation.dto';
 import { UpdateSupplierQuotationDto } from '../dto/quotation/update-supplier-quotation.dto';
@@ -43,6 +41,11 @@ import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { arraysAreEqual, compareArraysNumbers } from '../utils/utils';
+import { Employee } from '../entities/Employee.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as Handlebars from 'handlebars';
+import * as puppeteer from 'puppeteer';
 
 @Injectable()
 export class QuotationService {
@@ -73,7 +76,7 @@ export class QuotationService {
   // ========================================
 
   async createQuotationRequest(
-    userId: number,
+    userId: number | null,
     createQuotationRequestDto: CreateQuotationRequestDto
   ): Promise<QuotationRequest> {
     const {
@@ -87,18 +90,23 @@ export class QuotationService {
     await this.requirementService.findOne(requirementId);
 
     // Create quotation request
-    const quotationRequest = this.quotationRequestRepository.create({
-      ...quotationData,
-      deadline: quotationData.deadline
-        ? new Date(quotationData.deadline)
-        : undefined,
-      requirement: { id: requirementId },
-      createdBy: { id: userId },
-      status: QuotationRequestStatus.DRAFT,
-    });
+    const quotationRequest: Partial<QuotationRequest> =
+      this.quotationRequestRepository.create({
+        ...quotationData,
+        deadline: quotationData.deadline
+          ? new Date(quotationData.deadline)
+          : undefined,
+        requirement: { id: requirementId },
+        status: QuotationRequestStatus.DRAFT,
+      });
+    if (userId) {
+      quotationRequest.createdBy = Object.assign(new Employee(), {
+        id: userId,
+      });
+    }
 
     // Generate code
-    quotationRequest.code = `COT-${formatNumber(requirementId, 6)}-${formatNumber(userId, 6)}`;
+    quotationRequest.code = `COT-${formatNumber(requirementId, 6)}-${userId ? formatNumber(userId, 6) : '000000'}`;
 
     const savedQuotationRequest =
       await this.quotationRequestRepository.save(quotationRequest);
@@ -137,6 +145,11 @@ export class QuotationService {
       );
     }
 
+    // Update progress asynchronously (don't await to avoid blocking)
+    this.updateQuotationProgress(savedQuotationRequest.id).catch(error => {
+      console.error('Error updating initial progress:', error);
+    });
+
     return this.findOneQuotationRequest(savedQuotationRequest.id);
   }
 
@@ -147,8 +160,8 @@ export class QuotationService {
   ): Promise<{ quotationRequests: QuotationRequest[]; total: number }> {
     const [quotationRequests, total] =
       await this.quotationRequestRepository.findAndCount({
-        where: { createdBy: { id: userId } },
-        relations: ['requirement', 'createdBy', 'quotationSuppliers'],
+        where: [{ createdBy: { id: userId } }, { createdBy: IsNull() }],
+        relations: ['requirement', 'createdBy'],
         order: { id: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
@@ -164,6 +177,8 @@ export class QuotationService {
         'requirement',
         'requirement.requirementArticles',
         'requirement.requirementArticles.article',
+        'requirement.employee',
+        'requirement.costCenter',
         'createdBy',
         'quotationSuppliers',
         'quotationSuppliers.supplier',
@@ -178,6 +193,7 @@ export class QuotationService {
         'finalSelection.finalSelectionItems',
         'finalSelection.finalSelectionItems.requirementArticle',
         'finalSelection.finalSelectionItems.requirementArticle.article',
+        'finalSelection.finalSelectionItems.supplier',
       ],
     });
 
@@ -189,6 +205,7 @@ export class QuotationService {
   }
 
   async updateQuotationRequest(
+    userId: number,
     id: number,
     updateQuotationRequestDto: UpdateQuotationRequestDto
   ): Promise<QuotationRequest> {
@@ -196,6 +213,11 @@ export class QuotationService {
       'quotationSuppliers',
       'quotationSuppliers.supplier',
     ]);
+    if (quotationRequest.createdBy === undefined) {
+      await this.quotationRequestRepository.update(id, {
+        createdBy: { id: userId },
+      });
+    }
 
     if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
       throw new BadRequestException(
@@ -276,7 +298,9 @@ export class QuotationService {
   }
 
   async cancelQuotationRequest(id: number): Promise<QuotationRequest> {
-    const quotationRequest = await this.getQuotationRequestBasic(id);
+    const quotationRequest = await this.getQuotationRequestOrders(id, [
+      'quotationSuppliers',
+    ]);
 
     if (quotationRequest.status === QuotationRequestStatus.COMPLETED) {
       throw new BadRequestException(
@@ -292,7 +316,7 @@ export class QuotationService {
   }
 
   async removeQuotationRequest(id: number): Promise<void> {
-    const quotationRequest = await this.getQuotationRequestBasic(id);
+    const quotationRequest = await this.getQuotationRequestOrders(id);
 
     if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
       throw new BadRequestException(
@@ -332,6 +356,11 @@ export class QuotationService {
     // Check if supplier already has a quotation
     const existingQuotation = await this.supplierQuotationRepository.findOne({
       where: { quotationSupplier: { id: quotationSupplier.id } },
+      relations: [
+        'supplierQuotationItems',
+        'supplierQuotationItems.requirementArticle',
+        'supplierQuotationItems.requirementArticle.article',
+      ],
     });
 
     if (existingQuotation) {
@@ -341,13 +370,50 @@ export class QuotationService {
         notes: notes,
       });
 
-      // Delete existing items
-      await this.supplierQuotationItemRepository.delete({
-        supplierQuotation: { id: existingQuotation.id },
-      });
-      console.log(items);
+      const { eliminated, added, equal } = compareArraysNumbers(
+        existingQuotation.supplierQuotationItems.map(
+          item => item.requirementArticle.id
+        ),
+        items.map(item => +item.articleId)
+      );
+
+      if (eliminated.length > 0) {
+        await this.supplierQuotationItemRepository.delete({
+          supplierQuotation: { id: existingQuotation.id },
+          requirementArticle: In(eliminated),
+        });
+      }
+
+      if (equal.length > 0) {
+        const updateItems = existingQuotation.supplierQuotationItems.filter(
+          item => equal.includes(+item.requirementArticle.id)
+        );
+
+        for (const item of updateItems) {
+          const newItem = items.find(
+            i => i.articleId === item.requirementArticle.id
+          );
+          if (!newItem) {
+            continue;
+          }
+          await this.supplierQuotationItemRepository.update(item.id, {
+            status:
+              (newItem.status as QuotationItemStatus) ||
+              QuotationItemStatus.NOT_QUOTED,
+            quantity: newItem.quantity,
+            unitPrice: newItem.unitPrice || 0,
+            totalPrice: (newItem.unitPrice || 0) * newItem.quantity,
+            currency: newItem.currency,
+            deliveryTime: newItem.deliveryTime,
+            notes: newItem.notes,
+            reasonNotAvailable: newItem.reasonNotAvailable,
+          });
+        }
+      }
+
+      const newItems = items.filter(item => added.includes(+item.articleId));
       // Create new quotation items
-      const quotationItems = items.map(item => ({
+      const quotationItems = newItems.map(item => ({
         status:
           (item.status as QuotationItemStatus) ||
           QuotationItemStatus.NOT_QUOTED,
@@ -394,13 +460,13 @@ export class QuotationService {
     const quotationItems = items.map(item => ({
       status:
         (item.status as QuotationItemStatus) || QuotationItemStatus.QUOTED,
-      quantity: 1, // Default quantity
+      quantity: item.quantity,
       unitPrice: item.unitPrice || 0,
       totalPrice:
         item.status === QuotationItemStatus.QUOTED
-          ? (item.unitPrice || 0) * 1
+          ? (item.unitPrice || 0) * item.quantity
           : 0,
-      currency: 'PEN',
+      currency: item.currency || 'PEN',
       deliveryTime: item.deliveryTime || 0,
       notes: item.notes || '',
       reasonNotAvailable: item.reasonNotAvailable,
@@ -413,7 +479,7 @@ export class QuotationService {
     // Calculate total amount (only quoted items)
     const totalAmount = items
       .filter(item => item.status === QuotationItemStatus.QUOTED)
-      .reduce((sum, item) => sum + (item.unitPrice || 0) * 1, 0);
+      .reduce((sum, item) => sum + (item.unitPrice || 0) * item.quantity, 0);
 
     await this.supplierQuotationRepository.update(savedSupplierQuotation.id, {
       totalAmount,
@@ -486,13 +552,13 @@ export class QuotationService {
       const quotationItems = items.map(item => ({
         status:
           (item.status as QuotationItemStatus) || QuotationItemStatus.QUOTED,
-        quantity: 1, // Default quantity
+        quantity: item.quantity,
         unitPrice: item.unitPrice || 0,
         totalPrice:
           item.status === QuotationItemStatus.QUOTED
-            ? (item.unitPrice || 0) * 1
+            ? (item.unitPrice || 0) * item.quantity
             : 0,
-        currency: supplierQuotation.currency,
+        currency: item.currency,
         deliveryTime: item.deliveryTime || 0,
         notes: item.notes || '',
         reasonNotAvailable: item.reasonNotAvailable,
@@ -505,7 +571,7 @@ export class QuotationService {
       // Recalculate total amount
       const totalAmount = items
         .filter(item => item.status === QuotationItemStatus.QUOTED)
-        .reduce((sum, item) => sum + (item.unitPrice || 0) * 1, 0);
+        .reduce((sum, item) => sum + (item.unitPrice || 0) * item.quantity, 0);
 
       await this.supplierQuotationRepository.update(id, { totalAmount });
     }
@@ -523,6 +589,24 @@ export class QuotationService {
     await this.supplierQuotationRepository.update(id, {
       status: SupplierQuotationStatus.SUBMITTED,
     });
+
+    // Update progress asynchronously after submitting quotation
+    const supplierQuotationAfterSubmit =
+      await this.supplierQuotationRepository.findOne({
+        where: { id },
+        relations: ['quotationSupplier', 'quotationSupplier.quotationRequest'],
+      });
+
+    if (supplierQuotationAfterSubmit) {
+      this.updateQuotationProgress(
+        supplierQuotationAfterSubmit.quotationSupplier.quotationRequest.id
+      ).catch(error => {
+        console.error(
+          'Error updating progress after submitting quotation:',
+          error
+        );
+      });
+    }
 
     return this.findOneSupplierQuotation(id);
   }
@@ -578,9 +662,7 @@ export class QuotationService {
       );
       const selectedArticlesIds = selectedArticles;
 
-      if (
-        arraysAreEqual(quotationSupplierArticlesIds, selectedArticlesIds)
-      ) {
+      if (arraysAreEqual(quotationSupplierArticlesIds, selectedArticlesIds)) {
         return this.findOneQuotationRequest(quotationRequestId);
       }
 
@@ -591,9 +673,9 @@ export class QuotationService {
 
       if (eliminated.length > 0) {
         await this.quotationSupplierArticleRepository.delete({
-            quotationSupplier: { id: quotationSupplier.id },
-            requirementArticle: In(eliminated),
-          });
+          quotationSupplier: { id: quotationSupplier.id },
+          requirementArticle: In(eliminated),
+        });
       }
 
       if (added.length > 0) {
@@ -668,6 +750,11 @@ export class QuotationService {
       }
     );
 
+    // Update progress asynchronously after sending orders
+    this.updateQuotationProgress(quotationRequestId).catch(error => {
+      console.error('Error updating progress after sending orders:', error);
+    });
+
     return await this.findOneQuotationRequest(quotationRequestId);
   }
 
@@ -741,7 +828,8 @@ export class QuotationService {
       await this.finalSelectionRepository.update(existingFinalSelection.id, {
         notes,
       });
-      const finalSelectionItemsId = existingFinalSelection.finalSelectionItems.map(item => item.id);
+      const finalSelectionItemsId =
+        existingFinalSelection.finalSelectionItems.map(item => item.id);
       const itemsIds = items.map(item => +item.articleId);
       const { eliminated, added } = compareArraysNumbers(
         finalSelectionItemsId,
@@ -764,13 +852,13 @@ export class QuotationService {
                 where: { id: +item.articleId },
                 relations: ['article'],
               });
-    
+
             if (!requirementArticle) {
               throw new BadRequestException(
                 `RequirementArticle with id ${item.articleId} not found`
               );
             }
-    
+
             // Get supplier quotation item to get currency and other details
             const supplierQuotationItem =
               await this.supplierQuotationItemRepository.findOne({
@@ -785,12 +873,12 @@ export class QuotationService {
                 },
                 relations: ['supplierQuotation'],
               });
-    
+
             const quantity = requirementArticle.quantity;
             const unitPrice = item.selectedPrice;
             const totalPrice = unitPrice * quantity;
             const currency = supplierQuotationItem?.currency || 'PEN';
-    
+
             const finalSelectionItemData = {
               finalSelection: { id: existingFinalSelection.id },
               requirementArticle: { id: +item.articleId },
@@ -801,22 +889,38 @@ export class QuotationService {
               currency,
               notes: item.notes,
             };
-    
+
             // Add supplierQuotationItem if found
             if (supplierQuotationItem) {
               finalSelectionItemData['supplierQuotationItem'] = {
                 id: supplierQuotationItem.id,
               };
             }
-    
+
             return finalSelectionItemData;
           })
         );
-    
-        await this.finalSelectionItemRepository.save(finalSelectionItems);
-      }
 
-      return this.findOneFinalSelection(existingFinalSelection.id);
+        await this.finalSelectionItemRepository.save(finalSelectionItems);
+
+        // Update final selection with calculated totals
+        await this.finalSelectionRepository.update(existingFinalSelection.id, {
+          totalAmount: finalSelectionItems.reduce(
+            (sum, item) => sum + item.totalPrice,
+            0
+          ),
+        });
+
+        // Update progress asynchronously after creating final selection
+        this.updateQuotationProgress(+quotationRequestId).catch(error => {
+          console.error(
+            'Error updating progress after creating final selection:',
+            error
+          );
+        });
+
+        return this.findOneFinalSelection(existingFinalSelection.id);
+      }
     }
 
     // Create final selection
@@ -890,21 +994,28 @@ export class QuotationService {
 
     await this.finalSelectionItemRepository.save(finalSelectionItems);
 
-    // Calculate total amount for final selection
-    const totalAmount = finalSelectionItems.reduce(
-      (sum, item) => sum + item.totalPrice,
-      0
-    );
-
     // Update final selection with calculated totals
     await this.finalSelectionRepository.update(savedFinalSelection.id, {
-      totalAmount,
+      totalAmount: finalSelectionItems.reduce(
+        (sum, item) => sum + item.totalPrice,
+        0
+      ),
+    });
+
+    // Update progress asynchronously after creating final selection
+    this.updateQuotationProgress(+quotationRequestId).catch(error => {
+      console.error(
+        'Error updating progress after creating final selection:',
+        error
+      );
     });
 
     return this.findOneFinalSelection(savedFinalSelection.id);
   }
 
-  async findFinalSelectionByRequest(quotationRequestId: number): Promise<FinalSelection> {
+  async findFinalSelectionByRequest(
+    quotationRequestId: number
+  ): Promise<FinalSelection> {
     const finalSelection = await this.finalSelectionRepository.findOne({
       where: { quotationRequest: { id: quotationRequestId } },
       relations: [
@@ -987,9 +1098,12 @@ export class QuotationService {
     });
 
     // Update quotation request status to ACTIVE
-    await this.quotationRequestRepository.update(finalSelection.quotationRequest.id, {
-      status: QuotationRequestStatus.ACTIVE,
-    });
+    await this.quotationRequestRepository.update(
+      finalSelection.quotationRequest.id,
+      {
+        status: QuotationRequestStatus.ACTIVE,
+      }
+    );
 
     return this.findOneFinalSelection(id);
   }
@@ -1009,6 +1123,50 @@ export class QuotationService {
   // ========================================
   // UTILITY METHODS
   // ========================================
+
+  // Private method to calculate quotation progress
+  private calculateQuotationProgress(
+    quotationRequest: QuotationRequest
+  ): number {
+    const steps = [
+      quotationRequest.quotationSuppliers.length > 0, // Step 1: Suppliers selected
+      quotationRequest.quotationSuppliers.some(qs => qs.status === 'SENT'), // Step 2: Orders sent
+      quotationRequest.quotationSuppliers.some(qs => qs.supplierQuotation), // Step 3: Quotations received
+      quotationRequest.quotationSuppliers.some(
+        qs => qs.supplierQuotation?.status === 'SUBMITTED'
+      ), // Step 4: Quotations compared
+      quotationRequest.finalSelection !== null, // Step 5: Final selection made
+    ];
+
+    const completedSteps = steps.filter(Boolean).length;
+    return Math.round((completedSteps / 5) * 100);
+  }
+
+  // Private method to update quotation progress asynchronously
+  private async updateQuotationProgress(
+    quotationRequestId: number
+  ): Promise<void> {
+    try {
+      const quotationRequest = await this.quotationRequestRepository.findOne({
+        where: { id: quotationRequestId },
+        relations: [
+          'quotationSuppliers',
+          'quotationSuppliers.supplierQuotation',
+          'finalSelection',
+        ],
+      });
+
+      if (quotationRequest) {
+        const progress = this.calculateQuotationProgress(quotationRequest);
+        await this.quotationRequestRepository.update(quotationRequestId, {
+          progress,
+        });
+      }
+    } catch (error) {
+      // Log error but don't fail the main operation
+      console.error('Error updating quotation progress:', error);
+    }
+  }
 
   // Private method to handle supplier updates with soft delete
   private async updateQuotationSuppliersWithSoftDelete(
@@ -1054,20 +1212,6 @@ export class QuotationService {
     }
   }
 
-  // Utility methods for optimized queries
-  // Use this method when you only need basic data (id, status, etc.) without relations
-  async getQuotationRequestBasic(
-    quotationRequestId: number
-  ): Promise<QuotationRequest> {
-    const quotationRequest = await this.quotationRequestRepository.findOne({
-      where: { id: quotationRequestId },
-    });
-    if (!quotationRequest) {
-      throw new NotFoundException('Quotation request not found');
-    }
-    return quotationRequest;
-  }
-
   // Use this method when you need specific relations for processing/updating
   // This is more efficient than findOneQuotationRequest which loads all relations
   async getQuotationRequestOrders(
@@ -1111,128 +1255,61 @@ export class QuotationService {
     });
   }
 
-  async getQuotationRequestStats(
-    userId: number
-  ): Promise<Record<string, number>> {
-    const stats = await this.quotationRequestRepository
-      .createQueryBuilder('qr')
-      .select('qr.status', 'status')
-      .addSelect('COUNT(*)', 'count')
-      .where('qr.createdBy.id = :userId', { userId })
-      .groupBy('qr.status')
-      .getRawMany();
+  async generatePurchaseRequestPdf(id: number, supplierId: number): Promise<Buffer> {
+    // Buscar la cotización con todas las relaciones necesarias
+    const quotation = await this.findOneQuotationRequest(id);
+    const { quotationSuppliers } = quotation;
+    const supplierQuotation = quotationSuppliers.find(s => s.supplier.id === supplierId);
+    if (!supplierQuotation) {
+      throw new NotFoundException('Supplier quotation not found');
+    }
+    
+    // Preparar datos para el template
+    const data = {
+      code: supplierQuotation.orderNumber || '',
+      date: quotation.createdAt
+        ? quotation.createdAt.toISOString().slice(0, 10).replace(/-/g, '/')
+        : '',
+      hour: quotation.createdAt
+        ? new Date(quotation.createdAt).toLocaleTimeString('es-PE', { hour12: false })
+        : '',
+      employee: quotation.createdBy
+        ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`
+        : '',
+      costCenter: quotation.requirement?.costCenter?.description || '',
+      observation: `Requerimiento N° ${quotation.requirement?.code || ''}`,
+      articles: (quotation.requirement?.requirementArticles || []).map(article => ({
+        manufacturerCode: article.article?.code || '',
+        quantity: article.quantity,
+        unit: article.article?.unitOfMeasure || '',
+        description: article.article?.name || '',
+        brand: article.article?.brand?.name || '',
+        unitPrice: (+article.unitPrice).toFixed(2) || '',
+      })),
+    };
 
-    return stats.reduce(
-      (acc, stat) => {
-        acc[stat.status] = parseInt(stat.count);
-        return acc;
-      },
-      {} as Record<string, number>
+    // Leer y compilar el template
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/purchase-request.template.html'),
+      'utf8'
     );
-  }
+    const template = Handlebars.compile(templateHtml);
+    const html = template(data);
 
-  async updateQuotationSuppliers(
-    id: number,
-    updateQuotationSuppliersDto: UpdateQuotationSuppliersDto
-  ): Promise<QuotationRequest> {
-    const quotationRequest = await this.getQuotationRequestOrders(id, [
-      'quotationSuppliers',
-      'quotationSuppliers.supplier',
-    ]);
-
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
-      throw new BadRequestException(
-        'Cannot update non-draft quotation request'
-      );
-    }
-
-    const { suppliers, supplierArticles } = updateQuotationSuppliersDto;
-
-    // Verify all suppliers exist
-    for (const supplier of suppliers) {
-      await this.supplierService.findOne(supplier.supplierId);
-    }
-
-    // Update suppliers using the helper method
-    await this.updateQuotationSuppliersWithSoftDelete(id, suppliers);
-
-    // Update articles - assign to first supplier if multiple suppliers
-    if (supplierArticles) {
-      // Get all quotation suppliers (including newly added ones)
-      const allQuotationSuppliers = await this.quotationSupplierRepository.find(
-        {
-          where: { quotationRequest: { id } },
-        }
-      );
-
-      if (allQuotationSuppliers.length > 0) {
-        // Remove existing articles for all suppliers
-        await this.quotationSupplierArticleRepository.delete({
-          quotationSupplier: { quotationRequest: { id } },
-        });
-
-        // Add articles to the first supplier
-        const quotationSupplierArticles = supplierArticles.map(article => ({
-          quotationSupplier: { id: allQuotationSuppliers[0].id },
-          requirementArticle: { id: article.requirementArticleId },
-          quantity: article.quantity,
-        }));
-        await this.quotationSupplierArticleRepository.save(
-          quotationSupplierArticles
-        );
-      }
-    }
-
-    return this.findOneQuotationRequest(id);
-  }
-
-  async updateQuotationSupplier(
-    id: number,
-    supplierId: number,
-    updateQuotationSupplierDto: UpdateQuotationSupplierDto
-  ): Promise<QuotationRequest> {
-    const quotationRequest = await this.getQuotationRequestOrders(id, [
-      'quotationSuppliers',
-      'quotationSuppliers.supplier',
-    ]);
-
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
-      throw new BadRequestException(
-        'Cannot update non-draft quotation request'
-      );
-    }
-
-    // Verify supplier exists using service
-    await this.supplierService.findOne(supplierId);
-
-    // Verify supplier exists in this quotation
-    const existingSupplier = quotationRequest.quotationSuppliers.find(
-      qs => qs.supplier.id === supplierId
-    );
-    if (!existingSupplier) {
-      throw new NotFoundException(
-        'Supplier not found in this quotation request'
-      );
-    }
-
-    const { articles } = updateQuotationSupplierDto;
-
-    // Update articles for this specific supplier
-    // First, remove existing articles for this supplier
-    await this.quotationSupplierArticleRepository.delete({
-      quotationSupplier: { id: existingSupplier.id },
+    // Generar el PDF con puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
+    });
+    await browser.close();
 
-    // Add new articles
-    const quotationSupplierArticles = articles.map(article => ({
-      quotationSupplier: { id: existingSupplier.id },
-      requirementArticle: { id: article.requirementArticleId },
-      quantity: article.quantity,
-    }));
-    await this.quotationSupplierArticleRepository.save(
-      quotationSupplierArticles
-    );
-
-    return this.findOneQuotationRequest(id);
+    return Buffer.from(pdfBuffer);
   }
 }

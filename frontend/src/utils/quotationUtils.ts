@@ -23,28 +23,28 @@ export const calculateQuotationTotal = (
 export const getQuotationStatusColor = (status: string): string => {
   switch (status) {
     case 'DRAFT':
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     case 'ACTIVE':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
     case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'CANCELLED':
-      return 'bg-red-100 text-red-800';
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
 };
 
 export const getQuotationStatusText = (status: string): string => {
   switch (status) {
     case 'DRAFT':
-      return 'Borrador';
+      return '📝 Borrador';
     case 'ACTIVE':
-      return 'Activo';
+      return '🔄 Activo';
     case 'COMPLETED':
-      return 'Completado';
+      return '✅ Completado';
     case 'CANCELLED':
-      return 'Cancelado';
+      return '❌ Cancelado';
     default:
       return status;
   }
@@ -142,23 +142,6 @@ export const generateQuotationComparisons = (
   });
 
   return comparisons;
-};
-
-export const getQuotationProgress = (
-  quotationRequest: QuotationRequest
-): number => {
-  const steps = [
-    quotationRequest.quotationSuppliers.length > 0, // Step 1: Suppliers selected
-    quotationRequest.quotationSuppliers.some(qs => qs.status === 'SENT'), // Step 2: Orders sent
-    quotationRequest.quotationSuppliers.some(qs => qs.supplierQuotation), // Step 3: Quotations received
-    quotationRequest.quotationSuppliers.some(
-      qs => qs.supplierQuotation?.status === 'SUBMITTED'
-    ), // Step 4: Quotations compared
-    quotationRequest.finalSelection !== null, // Step 5: Final selection made
-  ];
-
-  const completedSteps = steps.filter(Boolean).length;
-  return (completedSteps / 5) * 100;
 };
 
 export const canProceedToNextStep = (

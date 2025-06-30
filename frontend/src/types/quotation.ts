@@ -5,6 +5,7 @@ import type { Employee } from './employee';
 
 // Enums from backend entities
 export enum QuotationRequestStatus {
+  PENDING = 'PENDING',
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
@@ -44,6 +45,7 @@ export interface QuotationRequest {
   status: QuotationRequestStatus;
   deadline?: Date;
   notes?: string;
+  progress: number;
   requirement: Requirement;
   createdBy: Employee;
   quotationSuppliers: QuotationSupplier[];

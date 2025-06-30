@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { QuotationWizard } from '../features/quotation/components/QuotationWizard';
 import { QuotationList } from '../features/quotation/components/QuotationList';
 import { type QuotationRequest } from '../types/quotation';
 import { useQuotationService } from '../hooks/useQuotationService';
 import { useToast } from '../contexts/ToastContext';
+import { ROUTES } from '../config/constants';
 
 export const Quotations: React.FC = () => {
+  const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [selectedQuotation, setSelectedQuotation] =
     useState<QuotationRequest | null>(null);
@@ -32,9 +35,7 @@ export const Quotations: React.FC = () => {
   };
 
   const handleViewQuotation = (quotation: QuotationRequest) => {
-    setSelectedQuotation(quotation);
-    // Aquí se podría abrir un modal o navegar a una vista detallada
-    console.log('Ver cotización:', quotation);
+    navigate(ROUTES.QUOTATION_DETAILS.replace(':id', quotation.id.toString()));
   };
 
   const handleEditQuotation = async (quotation: QuotationRequest) => {

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Solicitud de Compra</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 0; }
+    .header { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    .header td { border: none; }
+    .logo { width: 120px; }
+    .title { font-size: 20px; font-weight: bold; text-align: center; }
+    .subtitle { font-size: 16px; text-align: center; }
+    .info-table { width: 100%; margin-bottom: 8px; }
+    .info-table td { padding: 2px 6px; }
+    .label { font-weight: bold; }
+    .main-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .main-table th, .main-table td { border: 1px solid #222; padding: 4px 6px; font-size: 13px; }
+    .main-table th { background: #f5f5f5; }
+    .footer { font-size: 11px; text-align: right; margin-top: 10px; }
+    .dashed { border-top: 1px dashed #222; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <table class="header">
+    <tr>
+      <td class="logo" rowspan="2">
+        <img src="https://res.cloudinary.com/dgvnt5xct/image/upload/v1750026998/mixer/brands/ui6vpk7xtpcefobeq8xk.jpg" alt="Logo" style="width: 100px;">
+      </td>
+      <td class="title" colspan="2">SOLICITUD DE COMPRA N° {{code}}</td>
+    </tr>
+    <tr>
+      <td class="subtitle" colspan="2">MAQUINARIA Y SERVICIOS ALTO HUARCA S.A.</td>
+    </tr>
+  </table>
+  <table class="info-table">
+    <tr>
+      <td class="label">Fecha:</td>
+      <td>{{date}}</td>
+    </tr>
+    <tr>
+      <td class="label">Solicitante:</td>
+      <td>{{employee}}</td>
+    </tr>
+    <tr>
+      <td class="label">Centro de Costos:</td>
+      <td colspan="3">{{costCenter}}</td>
+    </tr>
+    <tr>
+      <td class="label">Observaciones:</td>
+      <td colspan="3">{{observation}}</td>
+    </tr>
+  </table>
+  <table class="main-table">
+    <tr>
+      <th>Código Fabricante</th>
+      <th>Cantidad</th>
+      <th>Unidad</th>
+      <th>Descripción Artículo</th>
+      <th>Marca</th>
+      <th>Precio Unitario Referencial</th>
+    </tr>
+    {{#each articles}}
+    <tr>
+      <td>{{manufacturerCode}}</td>
+      <td style="text-align: right;">{{quantity}}</td>
+      <td>{{unit}}</td>
+      <td>{{description}}</td>
+      <td>{{brand}}</td>
+      <td style="text-align: right;">{{unitPrice}}</td>
+    </tr>
+    {{/each}}
+  </table>
+  <div class="footer">
+    Fecha {{date}} &nbsp; Hora {{hour}} &nbsp; Página 1/1
+  </div>
+  <div class="dashed"></div>
+</body>
+</html> 

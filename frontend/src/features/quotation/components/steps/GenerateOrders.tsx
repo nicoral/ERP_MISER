@@ -11,6 +11,7 @@ import { useToast } from '../../../../contexts/ToastContext';
 import { Button } from '../../../../components/common/Button';
 import { FormInput } from '../../../../components/common/FormInput';
 import type { Requirement } from '../../../../types/requirement';
+import { quotationService } from '../../../../services/api/quotationService';
 
 interface GenerateOrdersProps {
   requirement: Requirement;
@@ -174,12 +175,24 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     }
   };
 
-  const handleExportPDF = (supplierId: number) => {
-    // Simular exportación de PDF
-    showSuccess(
-      'PDF generado',
-      `El PDF se ha generado correctamente para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName}`
-    );
+  const handleExportPDF = async (supplierId: number) => {
+    try {
+      const blob = await quotationService.downloadPurchaseRequestPdf(
+        quotationRequestId,
+        supplierId
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `solicitud_compra_${quotationRequestId}_${supplierId}.pdf`;
+      a.click();
+      showSuccess(
+        'PDF generado',
+        `El PDF se ha generado correctamente para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName}`
+      );
+    } catch (error) {
+      showError('Error al generar PDF', (error as Error).message);
+    }
   };
 
   const handleSaveOrder = async (supplierId: number) => {

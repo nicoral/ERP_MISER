@@ -16,6 +16,7 @@ import { QuotationSupplier } from './QuotationSupplier.entity';
 import { FinalSelection } from './FinalSelection.entity';
 
 export enum QuotationRequestStatus {
+  PENDING = 'PENDING',
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
@@ -33,7 +34,7 @@ export class QuotationRequest {
   @Column({
     type: 'enum',
     enum: QuotationRequestStatus,
-    default: QuotationRequestStatus.DRAFT,
+    default: QuotationRequestStatus.PENDING,
   })
   status: QuotationRequestStatus;
 
@@ -42,6 +43,9 @@ export class QuotationRequest {
 
   @Column('text', { nullable: true })
   notes: string;
+
+  @Column({ type: 'integer', default: 0 })
+  progress: number;
 
   @ManyToOne(() => Requirement, requirement => requirement.quotationRequests)
   @JoinColumn({ name: 'requirement_id' })

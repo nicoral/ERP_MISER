@@ -41,7 +41,8 @@ export const handleApiError = (error: { response?: { status: number } }) => {
 
 export const createApiCall = async <T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  isBlob: boolean = false
 ): Promise<T> => {
   try {
     const token = sessionStorage.getItem(STORAGE_KEY_TOKEN);
@@ -49,7 +50,7 @@ export const createApiCall = async <T>(
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(!isBlob ? { 'Content-Type': 'application/json' } : {}),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },

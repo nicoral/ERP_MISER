@@ -36,6 +36,7 @@ import { AuditLogForm } from './features/administration/components/AuditLogForm'
 import { GeneralSettingsForm } from './features/administration/components/GeneralSettingsForm';
 import Unauthorized from './pages/Unauthorized';
 import { Quotations } from './pages/Quotations';
+import { QuotationDetails } from './features/quotation/components/QuotationDetails';
 
 const AppRoutes = () => {
   return (
@@ -66,6 +67,10 @@ const AppRoutes = () => {
           <Route path={ROUTES.SUPPLIERS_EDIT} element={<SupplierForm />} />
           <Route path={ROUTES.PROFILE} element={<Profile />} />
           <Route path={ROUTES.QUOTATIONS} element={<Quotations />} />
+          <Route
+            path={ROUTES.QUOTATION_DETAILS}
+            element={<QuotationDetails />}
+          />
           <Route path={ROUTES.COST_CENTER} element={<CostCenterList />} />
           <Route
             path={ROUTES.COST_CENTER_CREATE}

@@ -15,6 +15,7 @@ import type {
   ApplyGeneralTermsDto,
   QuotationFilters,
 } from '../../types/quotation';
+import { STORAGE_KEY_TOKEN } from '../../config/constants';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/quotation`;
 
@@ -248,6 +249,23 @@ export const quotationService = {
       }
     );
     return response;
+  },
+
+  async downloadPurchaseRequestPdf(
+    quotationId: number,
+    supplierId: number
+  ): Promise<Blob> {
+    const response = await fetch(
+      `${BASE_URL}/${quotationId}/purchase-request/${supplierId}/pdf`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        },
+      }
+    );
+    if (!response.ok) throw new Error('No se pudo descargar el PDF');
+    return await response.blob();
   },
 
   // Quotation Order endpoints

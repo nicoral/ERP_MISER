@@ -47,6 +47,7 @@ export const ROUTES = {
   REQUIREMENT_EDIT: '/requirements/:id/edit',
   GENERAL_SETTINGS: '/general-settings',
   QUOTATIONS: '/quotations',
+  QUOTATION_DETAILS: '/quotations/:id/details',
 } as const;
 
 export const MODULES = [

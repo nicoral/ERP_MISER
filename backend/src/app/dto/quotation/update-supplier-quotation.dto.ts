@@ -17,6 +17,14 @@ export class UpdateSupplierQuotationItemDto {
   @IsNumber()
   unitPrice?: number;
 
+  @IsNotEmpty()
+  @IsNumber()
+  quantity: number;
+
+  @IsNotEmpty()
+  @IsString()
+  currency: string;
+
   @IsOptional()
   @IsNumber()
   deliveryTime?: number;
