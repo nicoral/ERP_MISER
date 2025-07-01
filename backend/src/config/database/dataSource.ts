@@ -12,7 +12,8 @@ export const options: DataSourceOptions & SeederOptions = {
   password: process.env.TYPEORM_PASSWORD,
   database: process.env.TYPEORM_DATABASE,
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+  logging:
+    process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
   ssl: {
     rejectUnauthorized: false,
   },

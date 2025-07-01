@@ -48,6 +48,7 @@ export const ROUTES = {
   GENERAL_SETTINGS: '/general-settings',
   QUOTATIONS: '/quotations',
   QUOTATION_DETAILS: '/quotations/:id/details',
+  QUOTATION_EDIT: '/quotations/:id/edit',
 } as const;
 
 export const MODULES = [

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, IsNull } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   QuotationRequest,
   QuotationRequestStatus,
@@ -46,6 +46,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
+import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
 
 @Injectable()
 export class QuotationService {
@@ -156,16 +157,36 @@ export class QuotationService {
   async findAllQuotationRequests(
     userId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    filters: QuotationFiltersDto
   ): Promise<{ quotationRequests: QuotationRequest[]; total: number }> {
-    const [quotationRequests, total] =
-      await this.quotationRequestRepository.findAndCount({
-        where: [{ createdBy: { id: userId } }, { createdBy: IsNull() }],
-        relations: ['requirement', 'createdBy'],
-        order: { id: 'DESC' },
-        skip: (page - 1) * limit,
-        take: limit,
+    const { status, search } = filters;
+
+    // Construir query builder para mayor control
+    const queryBuilder = this.quotationRequestRepository
+      .createQueryBuilder('quotation')
+      .leftJoinAndSelect('quotation.requirement', 'requirement')
+      .leftJoinAndSelect('quotation.createdBy', 'createdBy')
+      .where('(createdBy.id = :userId OR createdBy.id IS NULL)', { userId });
+
+    // Aplicar filtros adicionales
+    if (status) {
+      queryBuilder.andWhere('quotation.status = :status', { status });
+    }
+
+    if (search) {
+      queryBuilder.andWhere('quotation.code ILIKE :search', {
+        search: `%${search}%`,
       });
+    }
+
+    // Aplicar paginación y ordenamiento
+    queryBuilder
+      .orderBy('quotation.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [quotationRequests, total] = await queryBuilder.getManyAndCount();
 
     return { quotationRequests, total };
   }
@@ -220,7 +241,10 @@ export class QuotationService {
       });
     }
 
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
+    if (
+      quotationRequest.status !== QuotationRequestStatus.DRAFT &&
+      quotationRequest.status !== QuotationRequestStatus.PENDING
+    ) {
       throw new BadRequestException(
         'Cannot update non-draft quotation request'
       );
@@ -319,13 +343,79 @@ export class QuotationService {
   async removeQuotationRequest(id: number): Promise<void> {
     const quotationRequest = await this.getQuotationRequestOrders(id);
 
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
+    if (quotationRequest.status === QuotationRequestStatus.PENDING) {
       throw new BadRequestException(
-        'Cannot delete non-draft quotation request'
+        'Cannot reset quotation request that is already in pending status'
       );
     }
 
-    await this.quotationRequestRepository.softDelete(id);
+    // Eliminar datos avanzados en orden para evitar errores de relaciones
+
+    // 1. Eliminar final selection items (que pueden referenciar supplier_quotation_items)
+    if (quotationRequest.finalSelection) {
+      await this.finalSelectionItemRepository.delete({
+        finalSelection: { id: quotationRequest.finalSelection.id },
+      });
+      // Eliminar final selection
+      await this.finalSelectionRepository.delete({
+        id: quotationRequest.finalSelection.id,
+      });
+    }
+
+    // 2. Eliminar supplier quotation items
+    const quotationSuppliers = await this.quotationSupplierRepository.find({
+      where: { quotationRequest: { id } },
+      relations: ['supplierQuotation'],
+    });
+
+    for (const qs of quotationSuppliers) {
+      if (qs.supplierQuotation) {
+        // Primero eliminar las referencias en final_selection_item que apuntan a supplier_quotation_item
+        await this.finalSelectionItemRepository.query(
+          `UPDATE final_selection_item 
+           SET supplier_quotation_item_id = NULL 
+           WHERE supplier_quotation_item_id IN (
+             SELECT id FROM supplier_quotation_item 
+             WHERE supplier_quotation_id = $1
+           )`,
+          [qs.supplierQuotation.id]
+        );
+
+        // Luego eliminar supplier quotation items
+        await this.supplierQuotationItemRepository.delete({
+          supplierQuotation: { id: qs.supplierQuotation.id },
+        });
+
+        // Finalmente eliminar supplier quotation
+        await this.supplierQuotationRepository.delete({
+          id: qs.supplierQuotation.id,
+        });
+      }
+    }
+
+    // 3. Eliminar quotation supplier articles
+    await this.quotationSupplierArticleRepository.query(
+      `DELETE FROM quotation_supplier_article 
+       WHERE quotation_supplier_id IN (
+         SELECT id FROM quotation_supplier 
+         WHERE quotation_request_id = $1
+       )`,
+      [id]
+    );
+
+    // 4. Eliminar quotation suppliers
+    await this.quotationSupplierRepository.query(
+      `DELETE FROM quotation_supplier WHERE quotation_request_id = $1`,
+      [id]
+    );
+
+    // 5. Resetear la cotización a estado pendiente
+    await this.quotationRequestRepository.update(id, {
+      status: QuotationRequestStatus.PENDING,
+      createdBy: undefined,
+      progress: 0,
+      deadline: undefined,
+    });
   }
 
   // ========================================
@@ -630,7 +720,10 @@ export class QuotationService {
       ]
     );
 
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
+    if (
+      quotationRequest.status !== QuotationRequestStatus.DRAFT &&
+      quotationRequest.status !== QuotationRequestStatus.PENDING
+    ) {
       throw new BadRequestException(
         'Cannot update non-draft quotation request'
       );
@@ -769,7 +862,10 @@ export class QuotationService {
       ['quotationSuppliers']
     );
 
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
+    if (
+      quotationRequest.status !== QuotationRequestStatus.DRAFT &&
+      quotationRequest.status !== QuotationRequestStatus.PENDING
+    ) {
       throw new BadRequestException(
         'Cannot update non-draft quotation request'
       );
@@ -1256,15 +1352,20 @@ export class QuotationService {
     });
   }
 
-  async generatePurchaseRequestPdf(id: number, supplierId: number): Promise<Buffer> {
+  async generatePurchaseRequestPdf(
+    id: number,
+    supplierId: number
+  ): Promise<Buffer> {
     // Buscar la cotización con todas las relaciones necesarias
     const quotation = await this.findOneQuotationRequest(id);
     const { quotationSuppliers } = quotation;
-    const quotationSupplier = quotationSuppliers.find(s => s.supplier.id === supplierId);
+    const quotationSupplier = quotationSuppliers.find(
+      s => s.supplier.id === supplierId
+    );
     if (!quotationSupplier) {
       throw new NotFoundException('Supplier quotation not found');
     }
-    
+
     // Preparar datos para el template
     const data = {
       code: quotationSupplier.orderNumber || '',
@@ -1272,27 +1373,180 @@ export class QuotationService {
         ? quotation.createdAt.toISOString().slice(0, 10).replace(/-/g, '/')
         : '',
       hour: quotation.createdAt
-        ? new Date(quotation.createdAt).toLocaleTimeString('es-PE', { hour12: false })
+        ? new Date(quotation.createdAt).toLocaleTimeString('es-PE', {
+            hour12: false,
+          })
         : '',
       employee: quotation.createdBy
         ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`
         : '',
       costCenter: quotation.requirement?.costCenter?.description || '',
       observation: `Requerimiento N° ${quotation.requirement?.code || ''}`,
-      articles: (quotationSupplier.quotationSupplierArticles || []).map(article => ({
-        manufacturerCode: article.requirementArticle?.article?.code || '',
-        quantity: article.requirementArticle?.quantity,
-        unit: article.requirementArticle?.article?.unitOfMeasure || '',
-        description: article.requirementArticle?.article?.name || '',
-        brand: article.requirementArticle?.article?.brand?.name || '',
-        unitPrice: (+article.requirementArticle?.unitPrice).toFixed(2) || '',
-        image: article.requirementArticle?.article?.imageUrl || null,
-      })),
+      articles: (quotationSupplier.quotationSupplierArticles || []).map(
+        article => ({
+          manufacturerCode: article.requirementArticle?.article?.code || '',
+          quantity: article.requirementArticle?.quantity,
+          unit: article.requirementArticle?.article?.unitOfMeasure || '',
+          description: article.requirementArticle?.article?.name || '',
+          brand: article.requirementArticle?.article?.brand?.name || '',
+          unitPrice: (+article.requirementArticle?.unitPrice).toFixed(2) || '',
+          image: article.requirementArticle?.article?.imageUrl || null,
+        })
+      ),
     };
 
     // Leer y compilar el template
     const templateHtml = fs.readFileSync(
       path.join(__dirname, '../../templates/purchase-request.template.html'),
+      'utf8'
+    );
+    const template = Handlebars.compile(templateHtml);
+    const html = template(data);
+
+    // Generar el PDF con puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
+    });
+    await browser.close();
+
+    return Buffer.from(pdfBuffer);
+  }
+
+  async generateQuotationComparisonPdf(id: number): Promise<Buffer> {
+    // Buscar la cotización con todas las relaciones necesarias
+    const quotation = await this.findOneQuotationRequest(id);
+
+    // Preparar datos para el template
+    const data = {
+      // Información de la cotización
+      quotationCode: quotation.code,
+      requirementCode: quotation.requirement?.code || '',
+      project: quotation.requirement?.costCenter?.description || '',
+      emissionDate: quotation.createdAt
+        ? quotation.createdAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      requestedBy: quotation.requirement?.employee
+        ? `${quotation.requirement.employee.firstName} ${quotation.requirement.employee.lastName}`
+        : '',
+      preparedBy: quotation.createdBy
+        ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`
+        : '',
+      status: quotation.status,
+
+      // Proveedores
+      suppliers: quotation.quotationSuppliers.map(qs => ({
+        businessName: qs.supplier.businessName,
+        ruc: qs.supplier.ruc,
+        quotationNumber: qs.supplierQuotation?.quotationNumber || '',
+        receivedDate: qs.supplierQuotation?.receivedAt
+          ? qs.supplierQuotation.receivedAt.toLocaleDateString('es-PE', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            })
+          : '',
+        contact: qs.supplier.email || '',
+        location: qs.supplier.address || '',
+        totalAmount: qs.supplierQuotation?.totalAmount || 0,
+        currency:
+          qs.supplierQuotation?.supplierQuotationItems?.[0]?.currency || 'PEN',
+        deliveryTime:
+          qs.supplierQuotation?.supplierQuotationItems?.[0]?.deliveryTime || 0,
+        paymentTerms: qs.terms || '',
+        notes: qs.supplierQuotation?.notes || '',
+      })),
+
+      // Artículos
+      articles: quotation.requirement.requirementArticles.map(
+        (reqArticle, index) => {
+          const articleData = {
+            index: index + 1,
+            unit: reqArticle.article.unitOfMeasure,
+            quantity: reqArticle.quantity,
+            description: reqArticle.article.name,
+            supplierItems: quotation.quotationSuppliers.map(qs => {
+              const item = qs.supplierQuotation?.supplierQuotationItems?.find(
+                sqi =>
+                  sqi.requirementArticle.article.id === reqArticle.article.id
+              );
+              return {
+                unitPrice: item?.unitPrice || 0,
+                totalPrice: item?.totalPrice || 0,
+                currency: item?.currency || 'PEN',
+                status: item?.status || 'NOT_QUOTED',
+              };
+            }),
+          };
+          return articleData;
+        }
+      ),
+
+      // Selección final
+      finalSelection: quotation.finalSelection
+        ? {
+            notes: quotation.finalSelection.notes,
+            totalAmount: quotation.finalSelection.totalAmount,
+            items: (() => {
+              // Agrupar proveedores únicos y calcular totales por proveedor
+              const supplierMap = new Map();
+
+              quotation.finalSelection.finalSelectionItems.forEach(item => {
+                const supplierId = item.supplier.id;
+                const itemTotalPrice = Number(item.totalPrice) || 0;
+
+                if (!supplierMap.has(supplierId)) {
+                  supplierMap.set(supplierId, {
+                    supplier: item.supplier,
+                    totalPrice: 0,
+                    currency: item.currency || 'PEN',
+                  });
+                }
+                const currentSupplier = supplierMap.get(supplierId);
+                currentSupplier.totalPrice += itemTotalPrice;
+              });
+
+              const result = Array.from(supplierMap.values());
+              return result;
+            })(),
+          }
+        : null,
+    };
+
+    // Registrar helpers de Handlebars
+    Handlebars.registerHelper('add', function (a, b) {
+      return a + b;
+    });
+
+    Handlebars.registerHelper('multiply', function (a, b) {
+      return a * b;
+    });
+
+    Handlebars.registerHelper('eq', function (a, b) {
+      return a === b;
+    });
+
+    Handlebars.registerHelper('formatNumber', function (num, decimals) {
+      if (num === null || num === undefined || isNaN(num)) return '0.00';
+      const number = Number(num);
+      if (isNaN(number)) return '0.00';
+      return number.toFixed(decimals);
+    });
+
+    // Leer y compilar el template
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/quotation.template.html'),
       'utf8'
     );
     const template = Handlebars.compile(templateHtml);

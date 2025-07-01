@@ -84,13 +84,6 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
-  const cancelQuotationRequest = useCallback(
-    async (id: number) => {
-      return handleRequest(() => quotationService.cancelQuotationRequest(id));
-    },
-    [handleRequest]
-  );
-
   const deleteQuotationRequest = useCallback(
     async (id: number) => {
       return handleRequest(() => quotationService.deleteQuotationRequest(id));
@@ -241,7 +234,6 @@ export const useQuotationService = () => {
     getQuotationRequest,
     getQuotationByRequirement,
     updateQuotationRequest,
-    cancelQuotationRequest,
     deleteQuotationRequest,
     updateQuotationBasic,
     // Supplier Quotation

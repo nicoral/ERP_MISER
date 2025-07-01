@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Cuadro Comparativo de Ofertas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      font-size: 12px;
+    }
+
+    .header-table {
+      border-collapse: collapse;
+      width: 100%;
+      border: 2px solid #333;
+    }
+
+    .header-table td,
+    .header-table th {
+      border: 1px solid #333;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    .logo-cell {
+      width: 140px;
+      text-align: center;
+      vertical-align: middle;
+      background: #fff;
+    }
+
+    .logo-cell img {
+      width: 100%;
+      height: auto;
+      background: #fff;
+    }
+
+    .title-cell {
+      background: #000080;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .code-cell {
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      background: #fff;
+      width: 140px;
+    }
+
+    .subtitle-cell {
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .field-label {
+      font-weight: bold;
+      color: #000;
+      width: 80px;
+      text-align: left;
+      background: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+
+    .field-value {
+      text-align: center;
+      background: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+
+    .gray-row {
+      background: #e5e5e5;
+      border-top: none;
+      border-bottom: 2px solid #333;
+      height: 18px;
+    }
+
+    .comparison-table {
+      border: 2px solid #333;
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 10px;
+    }
+
+    .comparison-table td,
+    .comparison-table th {
+      border: 1px solid #333;
+      padding: 2px 4px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .comparison-table th {
+      color: #000;
+      font-weight: bold;
+      font-size: 9px;
+    }
+
+    .product-header {
+      background: #f0f0f0;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .supplier-header {
+      background: #000080;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .total-row {
+      background: #e5e5e5;
+      font-weight: bold;
+    }
+
+    .signature-table {
+      border: 2px solid #333;
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 16px;
+      font-size: 10px;
+    }
+
+    .signature-table td {
+      border: 1px solid #333;
+      padding: 8px;
+      text-align: center;
+      vertical-align: middle;
+      height: 60px;
+    }
+
+    .signature-header {
+      background: #000080;
+      color: #fff;
+      font-weight: bold;
+      font-size: 9px;
+    }
+
+    .signature-cell {
+      background: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header principal -->
+  <table class="header-table" border="1" cellspacing="0" cellpadding="4" style="border-collapse: collapse; width: 100%;">
+    <tr>
+      <td rowspan="4" style="width: 20%;">
+        <img style="width: 100%;" src="https://res.cloudinary.com/dgvnt5xct/image/upload/v1750026998/mixer/brands/ui6vpk7xtpcefobeq8xk.jpg" alt="Logo Myser">
+      </td>
+      <td colspan="3" style="background: #001f87; color: white; text-align: center;"><strong>CUADRO COMPARATIVO DE OFERTAS</strong></td>
+      <td rowspan="2" style="text-align: center;" colspan="1">
+        <strong>CÓDIGO<br>MYS-LG-FT-08</strong>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3" style="text-align: center;"><strong>SISTEMA INTEGRADO DE GESTIÓN</strong></td>
+    </tr>
+    <tr>
+      <td>REVISIÓN:</td>
+      <td>1</td>
+      <td>VERSIÓN:</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>FECHA:</td>
+      <td>{{emissionDate}}</td>
+      <td style="width: 20%;">PÁGINA:</td>
+      <td style="width: 20%;">1/1</td>
+    </tr>
+  </table>
+
+  <!-- Información de la cotización -->
+  <table class="header-table" style="margin-top:-2px; font-size:11px;">
+    <tr style="background:#000080; color:#fff;">
+      <th style="width:25%; text-align:left;">N° Cotización</th>
+      <th style="width:25%; text-align:left;">N° Requerimiento</th>
+      <th style="width:25%; text-align:left;">Proyecto</th>
+      <th style="width:25%; text-align:left;">Fecha de Emisión</th>
+    </tr>
+    <tr>
+      <td style="font-weight:bold;">{{quotationCode}}</td>
+      <td>{{requirementCode}}</td>
+      <td>{{project}}</td>
+      <td style="font-weight:bold;">{{emissionDate}}</td>
+    </tr>
+  </table>
+
+  <table class="header-table" style="margin-top:-2px; font-size:11px;">
+    <tr style="background:#000080; color:#fff;">
+      <th style="width:25%; text-align:left;">Requerido por</th>
+      <th style="width:25%; text-align:left;">Preparado por</th>
+      <th style="width:25%; text-align:left;">Estado</th>
+      <th style="width:25%; text-align:left;">Prioridad</th>
+    </tr>
+    <tr>
+      <td>{{requestedBy}}</td>
+      <td>{{preparedBy}}</td>
+      <td>{{status}}</td>
+      <td>-</td>
+    </tr>
+  </table>
+
+  <!-- Tabla comparativa -->
+  <div style="margin-top: 15px;">
+    <table class="comparison-table">
+      <!-- Cabecera de propuestas -->
+      <tr>
+        <th colspan="{{add suppliers.length 4}}" style="text-align: center; background: #000080; color: #fff; font-size: 11px;">PROPUESTAS</th>
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">RAZÓN SOCIAL</td>
+        {{#each suppliers}}
+        <td colspan="2">{{businessName}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">RUC</td>
+        {{#each suppliers}}
+        <td colspan="2">{{ruc}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">COTIZACIÓN N°</td>
+        {{#each suppliers}}
+        <td colspan="2">{{quotationNumber}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">FECHA</td>
+        {{#each suppliers}}
+        <td colspan="2">{{receivedDate}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">CONTACTO</td>
+        {{#each suppliers}}
+        <td colspan="2">{{contact}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">UBICACIÓN</td>
+        {{#each suppliers}}
+        <td colspan="2">{{location}}</td>
+        {{/each}}
+      </tr>
+      <!-- Cabecera de productos -->
+      <tr>
+        <th rowspan="2">#</th>
+        <th rowspan="2">UNID</th>
+        <th rowspan="2">CANT.</th>
+        <th rowspan="2">DESCRIPCIÓN</th>
+        <th class="supplier-header" style="background: #DDEBF6; color: #000;" colspan="{{multiply suppliers.length 2}}">EVALUACIÓN</th>
+      </tr>
+      <tr>
+        {{#each suppliers}}
+        <th style="text-align: center; font-weight: normal;">PRECIO UNITARIO</th>
+        <th style="text-align: center; font-weight: normal;">PRECIO PARCIAL</th>
+        {{/each}}
+      </tr>
+      <!-- Productos -->
+      {{#each articles}}
+      <tr>
+        <td style="text-align: center;">{{index}}</td>
+        <td style="text-align: center;">{{unit}}</td>
+        <td style="text-align: center;">{{quantity}}</td>
+        <td style="text-align: left;">{{description}}</td>
+        {{#each supplierItems}}
+        {{#if (eq status "NOT_AVAILABLE")}}
+        <td colspan="2" style="text-align: center; color: #999;">No disponible</td>
+        {{else}}
+        <td style="text-align: right;">{{currency}} {{formatNumber unitPrice 2}}</td>
+        <td style="text-align: right;">{{currency}} {{formatNumber totalPrice 2}}</td>
+        {{/if}}
+        {{/each}}
+      </tr>
+      {{/each}}
+      <!-- Totales y otros datos -->
+      <tr>
+        <td colspan="4" style="text-align: center; background: #757170; color: #fff; font-weight: bold;">COSTO TOTAL</td>
+        {{#each suppliers}}
+        <td></td>
+        <td style="text-align: right; font-weight: bold;">{{currency}} {{formatNumber totalAmount 2}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center;">TIEMPO DE ENTREGA</td>
+        {{#each suppliers}}
+        <td colspan="2" style="text-align: center;">
+          {{#if (eq deliveryTime 0)}}
+            Inmediato
+          {{else}}
+            {{deliveryTime}} días
+          {{/if}}
+        </td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center;">CONDICIONES DE PAGO</td>
+        {{#each suppliers}}
+        <td colspan="2" style="text-align: center;">{{paymentTerms}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="{{add suppliers.length 4}}" class="supplier-header">OBSERVACIONES</td>
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center;">OBSERVACIONES</td>
+        {{#each suppliers}}
+        <td colspan="2" style="text-align: center;">{{notes}}</td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center;">COTIZACIÓN</td>
+        {{#each suppliers}}
+        <td colspan="2" style="text-align: center;"></td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align: center;">COSTO TOTAL DE OBSERVACIONES</td>
+        {{#each suppliers}}
+        <td colspan="2" style="text-align: center;"></td>
+        {{/each}}
+      </tr>
+      <tr>
+        <td colspan="{{add suppliers.length 4}}" style="text-align: center; background: #757170; color: #fff; font-weight: bold;">ADICIONALES</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Conclusión final -->
+  <div style="margin-top: 15px;">
+    <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">
+      CONCLUSIÓN FINAL (RAZONES DE LA ADJUDICACIÓN)
+    </div>
+    <div style="border: 1px solid #333; padding: 8px; background: #f9f9f9; font-size: 10px;">
+      {{#if finalSelection}}
+        {{finalSelection.notes}}
+      {{else}}
+        Sin conclusión registrada.
+      {{/if}}
+    </div>
+  </div>
+
+  <!-- Proveedor seleccionado -->
+  <div style="margin-top: 15px;">
+    <table class="comparison-table" style="font-size: 10px;">
+      <tr>
+        <td colspan="4" class="supplier-header" style="text-align: center; font-weight: bold;">PROVEEDOR SELECCIONADO</td>
+      </tr>
+      <tr >
+        <th>RUC</th>
+        <th>RAZÓN SOCIAL</th>
+        <th>DIRECCIÓN</th>
+        <th>TOTAL</th>
+      </tr>
+      {{#if finalSelection}}
+        {{#each finalSelection.items}}
+        <tr>
+          <td>{{supplier.ruc}}</td>
+          <td>{{supplier.businessName}}</td>
+          <td>{{supplier.address}}</td>
+          <td style="text-align: center; font-weight: bold;">{{currency}} {{formatNumber totalPrice 2}}</td>
+        </tr>
+        {{/each}}
+      {{else}}
+        <tr>
+          <td colspan="4" style="text-align: center; color: #999;">Sin proveedor seleccionado</td>
+        </tr>
+      {{/if}}
+    </table>
+  </div>
+
+  <!-- Firmas -->
+  <div style="margin-top: 15px;">
+    <table class="signature-table">
+      <tr>
+        <td class="signature-cell">
+          <!-- Espacio para firma -->
+        </td>
+        <td class="signature-cell">
+          <!-- Espacio para firma -->
+        </td>
+        <td class="signature-cell">
+          <!-- Espacio para firma -->
+        </td>
+        <td class="signature-cell">
+          <!-- Espacio para firma -->
+        </td>
+      </tr>
+      <tr class="signature-header">
+        <td>V°B° LOGÍSTICA<br>ELABORA</td>
+        <td>V°B° OFICINA TÉCNICA<br>REVISA</td>
+        <td>V°B° ADMINISTRACIÓN<br>REVISIÓN</td>
+        <td>V°B° GERENCIA<br>APRUEBA</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Observaciones finales -->
+  <div style="margin-top: 15px; padding: 8px; border: 1px solid #333; background: #f9f9f9;">
+    <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">Observaciones:</div>
+    <div style="font-size: 10px;">
+      La cotización fue evaluada considerando precio, tiempo de entrega, condiciones de pago 
+      y experiencia del proveedor. Se recomienda proceder con la adjudicación a la Empresa B S.A.C.
+    </div>
+  </div>
+</body>
+
+</html> 

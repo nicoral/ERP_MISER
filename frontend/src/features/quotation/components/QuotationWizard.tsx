@@ -3,14 +3,13 @@ import {
   QuotationStep,
   type QuotationRequest as QuotationRequestType,
   type SelectedSupplier,
-  type CreateQuotationRequestDto,
   type SupplierQuotationItem,
 } from '../../../types/quotation';
 import { useQuotationService } from '../../../hooks/useQuotationService';
 import { useToast } from '../../../contexts/ToastContext';
 import type { Requirement } from '../../../types/requirement';
 import { getCurrentStepFromQuotation } from '../../../utils/quotationUtils';
-import { RequirementSelection } from './steps/RequirementSelection';
+// RequirementSelection se mantiene importado por compatibilidad pero no se usa en el nuevo flujo
 import { SupplierSelection } from './steps/SupplierSelection';
 import { GenerateOrders } from './steps/GenerateOrders';
 import { ReceiveQuotations } from './steps/ReceiveQuotations';
@@ -25,7 +24,6 @@ interface QuotationWizardProps {
 }
 
 const stepTitles = [
-  'Selección de Requerimiento',
   'Selección de Proveedores',
   'Generación de Órdenes',
   'Ingreso de Cotizaciones',
@@ -34,7 +32,6 @@ const stepTitles = [
 ];
 
 const stepDescriptions = [
-  'Selecciona el requerimiento aprobado para iniciar el proceso de cotización',
   'Selecciona los proveedores que recibirán la solicitud de cotización',
   'Genera y envía las órdenes de cotización a los proveedores seleccionados',
   'Ingresa las cotizaciones recibidas de cada proveedor',
@@ -49,20 +46,12 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
   onCancel,
 }) => {
   const { showSuccess, showError } = useToast();
-  const {
-    createQuotationRequest,
-    loading,
-    error,
-    updateQuotationRequest,
-    getQuotationByRequirement,
-  } = useQuotationService();
+  const { loading, error, updateQuotationRequest } = useQuotationService();
 
   const [currentStep, setCurrentStep] = useState<QuotationStep>(
     existingQuotation
       ? getCurrentStepFromQuotation(existingQuotation)
-      : initialRequirement
-        ? QuotationStep.SUPPLIER_SELECTION
-        : QuotationStep.REQUIREMENT_SELECTION
+      : QuotationStep.SUPPLIER_SELECTION
   );
   const [requirement, setRequirement] = useState<Requirement | null>(
     existingQuotation?.requirement || initialRequirement || null
@@ -157,15 +146,10 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
         );
         setSelectedSuppliers(suppliers);
       }
-
-      showSuccess(
-        'Cotización cargada',
-        `Continuando con la cotización ${existingQuotation.code} donde se quedó`
-      );
     }
   }, [existingQuotation, showSuccess]);
 
-  const handleRequirementSelected = async (
+  /* const handleRequirementSelected = async (
     selectedRequirement: Requirement
   ) => {
     setRequirement(selectedRequirement);
@@ -272,7 +256,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
         `Continuando con la cotización ${existingQuotation.code} donde se quedó`
       );
     }
-  };
+  }; */
 
   const handleStepComplete = async (
     stepData: Partial<QuotationRequestType> | SelectedSupplier[]
@@ -354,23 +338,19 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
   };
 
   const handleStepBack = () => {
-    if (currentStep > QuotationStep.REQUIREMENT_SELECTION) {
+    if (currentStep > QuotationStep.SUPPLIER_SELECTION) {
       setCurrentStep(currentStep - 1);
     }
   };
 
   const renderStepContent = () => {
-    // Si estamos editando una cotización existente, no necesitamos verificar el requerimiento
-    if (
-      !requirement &&
-      currentStep !== QuotationStep.REQUIREMENT_SELECTION &&
-      !existingQuotation
-    ) {
+    // En el nuevo flujo, siempre tenemos un requerimiento pre-seleccionado
+    if (!requirement && !existingQuotation) {
       return (
         <div className="p-6">
           <div className="text-center">
             <p className="text-gray-500 dark:text-gray-400">
-              Primero debes seleccionar un requerimiento
+              No se pudo cargar la cotización
             </p>
           </div>
         </div>
@@ -378,21 +358,12 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
     }
 
     switch (currentStep) {
-      case QuotationStep.REQUIREMENT_SELECTION:
-        return (
-          <RequirementSelection
-            onRequirementSelected={handleRequirementSelected}
-            onBack={onCancel}
-            isCreatingQuotation={loading}
-          />
-        );
-
       case QuotationStep.SUPPLIER_SELECTION:
         return (
           <SupplierSelection
             selectedSuppliers={selectedSuppliers}
             onComplete={handleStepComplete}
-            onBack={handleStepBack}
+            onBack={onCancel || (() => {})}
           />
         );
 
@@ -450,7 +421,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             {stepTitles.map((title, index) => (
               <div key={index} className="flex items-center">
                 <div className="flex flex-col items-center">
@@ -463,7 +434,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                   >
                     {index + 1}
                   </div>
-                  <div className="mt-2 text-xs text-center max-w-24">
+                  <div className="mt-2 text-xs text-center max-w-20">
                     <div
                       className={`font-medium ${
                         index <= currentStep
@@ -477,7 +448,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                 </div>
                 {index < stepTitles.length - 1 && (
                   <div
-                    className={`w-16 h-0.5 mx-4 ${
+                    className={`w-12 h-0.5 mx-2 ${
                       index < currentStep
                         ? 'bg-blue-600'
                         : 'bg-gray-200 dark:bg-gray-700'

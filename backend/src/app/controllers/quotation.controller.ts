@@ -10,6 +10,7 @@ import {
   Request,
   Req,
   Res,
+  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { QuotationService } from '../services/quotation.service';
@@ -29,6 +30,7 @@ import {
 import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.dto';
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
+import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
 
 @Controller('quotation')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -51,8 +53,18 @@ export class QuotationController {
   @Get()
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener todas las solicitudes de cotización')
-  findAll(@Request() req: { user: { id: number } }) {
-    return this.quotationService.findAllQuotationRequests(req.user.id);
+  findAll(
+    @Request() req: { user: { id: number } },
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query() filters: QuotationFiltersDto
+  ) {
+    return this.quotationService.findAllQuotationRequests(
+      req.user.id,
+      page,
+      limit,
+      filters
+    );
   }
 
   @Get(':id')
@@ -279,10 +291,29 @@ export class QuotationController {
     @Param('supplierId') supplierId: string,
     @Res() res: Response
   ) {
-    const pdfBuffer = await this.quotationService.generatePurchaseRequestPdf(+id, +supplierId);
+    const pdfBuffer = await this.quotationService.generatePurchaseRequestPdf(
+      +id,
+      +supplierId
+    );
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="solicitud_compra_${id}_${supplierId}.pdf"`,
+    });
+    res.end(pdfBuffer);
+  }
+
+  @Get(':id/comparison/pdf')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Descargar PDF del cuadro comparativo de cotizaciones')
+  async downloadQuotationComparisonPdf(
+    @Param('id') id: string,
+    @Res() res: Response
+  ) {
+    const pdfBuffer =
+      await this.quotationService.generateQuotationComparisonPdf(+id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="cuadro_comparativo_${id}.pdf"`,
     });
     res.end(pdfBuffer);
   }

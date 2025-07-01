@@ -37,6 +37,7 @@ import { GeneralSettingsForm } from './features/administration/components/Genera
 import Unauthorized from './pages/Unauthorized';
 import { Quotations } from './pages/Quotations';
 import { QuotationDetails } from './features/quotation/components/QuotationDetails';
+import { QuotationEdit } from './pages/QuotationEdit';
 
 const AppRoutes = () => {
   return (
@@ -71,6 +72,7 @@ const AppRoutes = () => {
             path={ROUTES.QUOTATION_DETAILS}
             element={<QuotationDetails />}
           />
+          <Route path={ROUTES.QUOTATION_EDIT} element={<QuotationEdit />} />
           <Route path={ROUTES.COST_CENTER} element={<CostCenterList />} />
           <Route
             path={ROUTES.COST_CENTER_CREATE}

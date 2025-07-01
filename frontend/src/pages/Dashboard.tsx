@@ -93,27 +93,81 @@ export const Dashboard = () => {
               <LoadingSpinner />
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={graphDistribution}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                >
-                  {graphDistribution.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
+            <>
+              <ResponsiveContainer
+                width="100%"
+                height={window.innerWidth < 768 ? 180 : 200}
+              >
+                <PieChart>
+                  <Pie
+                    data={graphDistribution.map(item => ({
+                      name: (() => {
+                        const words = item.name.split(' ');
+                        if (words.length === 1) {
+                          return (
+                            words[0].charAt(0).toUpperCase() +
+                            words[0].slice(1).toLowerCase()
+                          );
+                        } else if (words.length === 2) {
+                          return `${words[0].charAt(0).toUpperCase()}. ${words[1]}`;
+                        } else {
+                          return `${words[0].charAt(0).toUpperCase()}. ${words.slice(1).join(' ')}`;
+                        }
+                      })(),
+                      value: item.value,
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={window.innerWidth < 768 ? 60 : 70}
+                  >
+                    {graphDistribution.map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  {/* Leyenda nativa solo en desktop */}
+                  {window.innerWidth >= 768 && <Legend />}
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Leyenda custom solo para móvil */}
+              <div className="block md:hidden mt-4 overflow-x-auto">
+                <div className="flex space-x-4 min-w-max">
+                  {graphDistribution.map((item, index) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center space-x-2"
+                    >
+                      <span
+                        className="inline-block w-3 h-3 rounded-full"
+                        style={{
+                          backgroundColor: COLORS[index % COLORS.length],
+                        }}
+                      />
+                      <span className="text-xs whitespace-nowrap">
+                        {(() => {
+                          const words = item.name.split(' ');
+                          if (words.length === 1) {
+                            return (
+                              words[0].charAt(0).toUpperCase() +
+                              words[0].slice(1).toLowerCase()
+                            );
+                          } else if (words.length === 2) {
+                            return `${words[0].charAt(0).toUpperCase()}. ${words[1]}`;
+                          } else {
+                            return `${words[0].charAt(0).toUpperCase()}. ${words.slice(1).join(' ')}`;
+                          }
+                        })()}
+                      </span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

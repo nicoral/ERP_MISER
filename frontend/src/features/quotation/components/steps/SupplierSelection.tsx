@@ -92,30 +92,6 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
           isSelected: true,
         })) || [];
 
-    // Verificar si hay cambios en la selección
-    const currentSupplierIds = new Set(
-      selectedSuppliers.map(s => s.supplier.id)
-    );
-    const newSupplierIds = new Set(
-      selectedSuppliersData.map(s => s.supplier.id)
-    );
-
-    const hasChanges =
-      currentSupplierIds.size !== newSupplierIds.size ||
-      Array.from(currentSupplierIds).some(id => !newSupplierIds.has(id)) ||
-      Array.from(newSupplierIds).some(id => !currentSupplierIds.has(id));
-
-    if (hasChanges) {
-      // Mostrar confirmación si hay cambios
-      const confirmed = window.confirm(
-        'Has realizado cambios en la selección de proveedores. ¿Estás seguro de que quieres continuar? Los datos de órdenes existentes se mantendrán.'
-      );
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
     onComplete(selectedSuppliersData);
   };
 
@@ -390,7 +366,7 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
         <div>
           {onBack && (
             <Button variant="outline" onClick={onBack}>
-              ← Volver
+              Cancelar
             </Button>
           )}
         </div>

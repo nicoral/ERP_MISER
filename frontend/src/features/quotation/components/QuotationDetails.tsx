@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuotationService } from '../../../hooks/useQuotationService';
+import { quotationService } from '../../../services/api/quotationService';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
@@ -334,7 +335,6 @@ export const QuotationDetails = () => {
                 <td className="px-3 py-2 text-sm">{art.article.name}</td>
                 {suppliers.map((s, idx) => {
                   const item = getSupplierItem(s.id, art.article.id);
-                  console.log(item);
                   return (
                     <td
                       key={s.id}
@@ -523,8 +523,31 @@ export const QuotationDetails = () => {
         </div>
       </div>
 
-      {/* Botón volver */}
-      <div className="flex justify-end mt-4">
+      {/* Botones */}
+      <div className="flex justify-between mt-4">
+        <button
+          onClick={async () => {
+            try {
+              const blob =
+                await quotationService.downloadQuotationComparisonPdf(
+                  quotation.id
+                );
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `cuadro_comparativo_${quotation.id}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+            } catch (error) {
+              console.error('Error al descargar el PDF:', error);
+            }
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Descargar PDF
+        </button>
         <button
           onClick={() => navigate(ROUTES.QUOTATIONS)}
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"

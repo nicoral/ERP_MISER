@@ -250,12 +250,11 @@ export interface RequirementArticle {
 
 // Frontend specific types for wizard
 export enum QuotationStep {
-  REQUIREMENT_SELECTION = 0,
-  SUPPLIER_SELECTION = 1,
-  GENERATE_ORDERS = 2,
-  RECEIVE_QUOTATIONS = 3,
-  COMPARE_QUOTATIONS = 4,
-  FINAL_SELECTION = 5,
+  SUPPLIER_SELECTION = 0,
+  GENERATE_ORDERS = 1,
+  RECEIVE_QUOTATIONS = 2,
+  COMPARE_QUOTATIONS = 3,
+  FINAL_SELECTION = 4,
 }
 
 export interface QuotationFilters {

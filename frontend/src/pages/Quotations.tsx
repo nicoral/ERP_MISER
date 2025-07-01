@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { QuotationWizard } from '../features/quotation/components/QuotationWizard';
 import { QuotationList } from '../features/quotation/components/QuotationList';
 import { type QuotationRequest } from '../types/quotation';
-import { useQuotationService } from '../hooks/useQuotationService';
-import { useToast } from '../contexts/ToastContext';
+// Estos imports ya no se usan en el nuevo flujo
+// import { useQuotationService } from '../hooks/useQuotationService';
+// import { useToast } from '../contexts/ToastContext';
 import { ROUTES } from '../config/constants';
 
 export const Quotations: React.FC = () => {
@@ -15,8 +16,9 @@ export const Quotations: React.FC = () => {
   const [editingQuotation, setEditingQuotation] =
     useState<QuotationRequest | null>(null);
 
-  const { getQuotationRequest } = useQuotationService();
-  const { showError } = useToast();
+  // Estos hooks ya no se usan en el nuevo flujo
+  // const { getQuotationRequest } = useQuotationService();
+  // const { showError } = useToast();
 
   const handleStartQuotation = () => {
     setShowWizard(true);
@@ -38,20 +40,9 @@ export const Quotations: React.FC = () => {
     navigate(ROUTES.QUOTATION_DETAILS.replace(':id', quotation.id.toString()));
   };
 
-  const handleEditQuotation = async (quotation: QuotationRequest) => {
-    try {
-      // Cargar la cotización completa con todas las relaciones
-      const fullQuotation = await getQuotationRequest(quotation.id);
-      console.log('Cotización completa cargada:', fullQuotation);
-      if (fullQuotation) {
-        setEditingQuotation(fullQuotation);
-        setShowWizard(true);
-      } else {
-        showError('Error', 'No se pudo cargar la cotización completa');
-      }
-    } catch {
-      showError('Error', 'No se pudo cargar la cotización completa');
-    }
+  const handleEditQuotation = (quotation: QuotationRequest) => {
+    // Navegar a la página de edición
+    navigate(ROUTES.QUOTATION_EDIT.replace(':id', quotation.id.toString()));
   };
 
   const handleCreateQuotation = () => {

@@ -22,6 +22,8 @@ export const calculateQuotationTotal = (
 
 export const getQuotationStatusColor = (status: string): string => {
   switch (status) {
+    case 'PENDING':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     case 'DRAFT':
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     case 'ACTIVE':
@@ -37,6 +39,8 @@ export const getQuotationStatusColor = (status: string): string => {
 
 export const getQuotationStatusText = (status: string): string => {
   switch (status) {
+    case 'PENDING':
+      return '⏳ Pendiente';
     case 'DRAFT':
       return '📝 Borrador';
     case 'ACTIVE':

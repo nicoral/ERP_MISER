@@ -90,16 +90,6 @@ export const quotationService = {
     return response;
   },
 
-  async cancelQuotationRequest(id: number): Promise<QuotationRequest> {
-    const response = await createApiCall<QuotationRequest>(
-      `${BASE_URL}/${id}/cancel`,
-      {
-        method: 'PATCH',
-      }
-    );
-    return response;
-  },
-
   async deleteQuotationRequest(id: number): Promise<void> {
     const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
@@ -254,6 +244,17 @@ export const quotationService = {
         },
       }
     );
+    if (!response.ok) throw new Error('No se pudo descargar el PDF');
+    return await response.blob();
+  },
+
+  async downloadQuotationComparisonPdf(quotationId: number): Promise<Blob> {
+    const response = await fetch(`${BASE_URL}/${quotationId}/comparison/pdf`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
+      },
+    });
     if (!response.ok) throw new Error('No se pudo descargar el PDF');
     return await response.blob();
   },
