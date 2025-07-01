@@ -1,4 +1,4 @@
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import { createApiCall } from './httpInterceptor';
 import type {
   CreateRequirementDto,
   Requirement,
@@ -9,142 +9,92 @@ interface RequirementsResponse {
   total: number;
 }
 
-export async function getRequirements(
-  page = 1,
-  limit = 10
-): Promise<RequirementsResponse> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements?page=${page}&limit=${limit}`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+const BASE_URL = `${import.meta.env.VITE_API_URL}/requirements`;
 
-export async function getRequirement(id: number) {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+export const requirementService = {
+  async getRequirements(page = 1, limit = 10): Promise<RequirementsResponse> {
+    const response = await createApiCall<RequirementsResponse>(
+      `${BASE_URL}?page=${page}&limit=${limit}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
 
-export async function createRequirement(requirement: CreateRequirementDto) {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/requirements`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-    },
-    body: JSON.stringify(requirement),
-  });
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+  async getRequirement(id: number): Promise<Requirement> {
+    const response = await createApiCall<Requirement>(`${BASE_URL}/${id}`, {
+      method: 'GET',
+    });
+    return response;
+  },
 
-export async function updateRequirement(
-  id: number,
-  requirement: CreateRequirementDto
-) {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/${id}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+  async createRequirement(
+    requirement: CreateRequirementDto
+  ): Promise<Requirement> {
+    const response = await createApiCall<Requirement>(BASE_URL, {
+      method: 'POST',
       body: JSON.stringify(requirement),
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+    });
+    return response;
+  },
 
-export async function generateRequirementPdf(id: number) {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/generate/pdf/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
+  async updateRequirement(
+    id: number,
+    requirement: CreateRequirementDto
+  ): Promise<Requirement> {
+    const response = await createApiCall<Requirement>(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(requirement),
+    });
+    return response;
+  },
+
+  async generateRequirementPdf(id: number): Promise<Blob> {
+    const response = await createApiCall<Blob>(
+      `${BASE_URL}/generate/pdf/${id}`,
+      {
+        method: 'GET',
       },
-    }
-  );
-  if (response.status === 200) {
-    return response.blob();
-  }
-  throw new Error('Error al generar el PDF');
-}
+      true
+    );
+    return response;
+  },
 
-export async function publishRequirement(id: number) {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/publish/${id}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+  async publishRequirement(id: number): Promise<Requirement> {
+    const response = await createApiCall<Requirement>(
+      `${BASE_URL}/publish/${id}`,
+      {
+        method: 'POST',
+      }
+    );
+    return response;
+  },
 
-export async function signRequirement(id: number) {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/sign/${id}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+  async signRequirement(id: number): Promise<Requirement> {
+    const response = await createApiCall<Requirement>(
+      `${BASE_URL}/sign/${id}`,
+      {
+        method: 'POST',
+      }
+    );
+    return response;
+  },
 
-export async function deleteRequirement(id: number): Promise<void> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/${id}`,
-    {
+  async deleteRequirement(id: number): Promise<void> {
+    const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+    });
+    return response;
+  },
+};
 
-  if (response.status !== 200) {
-    const data = await response.json();
-    throw new Error(data.message || 'Error al eliminar el requerimiento');
-  }
-}
+// Legacy exports for backward compatibility
+export const getRequirements = requirementService.getRequirements;
+export const getRequirement = requirementService.getRequirement;
+export const createRequirement = requirementService.createRequirement;
+export const updateRequirement = requirementService.updateRequirement;
+export const generateRequirementPdf = requirementService.generateRequirementPdf;
+export const publishRequirement = requirementService.publishRequirement;
+export const signRequirement = requirementService.signRequirement;
+export const deleteRequirement = requirementService.deleteRequirement;

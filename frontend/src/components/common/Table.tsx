@@ -156,17 +156,26 @@ export function Table<T>({
                 <div className="flex justify-center gap-4 mt-4">
                   {actions
                     .filter(action => !action.isHidden?.(row))
-                    .map((action, aIdx) => (
-                      <button
-                        key={aIdx}
-                        onClick={() => action.onClick(row)}
-                        title={action.label}
-                        className="p-2 rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
-                        disabled={loading}
-                      >
-                        {action.icon}
-                      </button>
-                    ))}
+                    .map((action, aIdx) => {
+                      const isDisabled =
+                        typeof action.disabled === 'function'
+                          ? action.disabled(row)
+                          : (action.disabled ?? false);
+
+                      return (
+                        <button
+                          key={aIdx}
+                          onClick={() => action.onClick(row)}
+                          title={action.label}
+                          className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={loading || isDisabled}
+                        >
+                          {typeof action.icon === 'function'
+                            ? action.icon(row)
+                            : action.icon}
+                        </button>
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -254,17 +263,26 @@ export function Table<T>({
                       <div className="flex items-center space-x-2">
                         {actions
                           .filter(action => !action.isHidden?.(row))
-                          .map((action, aIdx) => (
-                            <button
-                              key={aIdx}
-                              onClick={() => action.onClick(row)}
-                              title={action.label}
-                              className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent"
-                              disabled={loading}
-                            >
-                              {action.icon}
-                            </button>
-                          ))}
+                          .map((action, aIdx) => {
+                            const isDisabled =
+                              typeof action.disabled === 'function'
+                                ? action.disabled(row)
+                                : (action.disabled ?? false);
+
+                            return (
+                              <button
+                                key={aIdx}
+                                onClick={() => action.onClick(row)}
+                                title={action.label}
+                                className="p-2 rounded transition-colors hover:bg-blue-100 dark:hover:bg-blue-900 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading || isDisabled}
+                              >
+                                {typeof action.icon === 'function'
+                                  ? action.icon(row)
+                                  : action.icon}
+                              </button>
+                            );
+                          })}
                       </div>
                     </td>
                   )}

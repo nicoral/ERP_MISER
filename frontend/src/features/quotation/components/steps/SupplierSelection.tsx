@@ -9,14 +9,12 @@ interface SupplierSelectionProps {
   // requirement: Requirement; // Eliminado porque no se usa
   selectedSuppliers: SelectedSupplier[];
   onComplete: (selectedSuppliers: SelectedSupplier[]) => void;
-  onBack: () => void;
 }
 
 export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
   // requirement, // Eliminado porque no se usa
   selectedSuppliers,
   onComplete,
-  onBack,
 }) => {
   const { suppliers, loading, error } = useSupplierService();
   const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
@@ -216,18 +214,10 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
         </div>
 
         <div className="flex items-end space-x-2">
-          <Button
-            variant="outline"
-            onClick={handleSelectAll}
-            className="text-sm"
-          >
+          <Button onClick={handleSelectAll} className="text-sm">
             Seleccionar Todos
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleDeselectAll}
-            className="text-sm"
-          >
+          <Button onClick={handleDeselectAll} className="text-sm">
             Deseleccionar
           </Button>
         </div>
@@ -362,29 +352,13 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between space-x-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <div>
-          {onBack && (
-            <Button variant="outline" onClick={onBack}>
-              Cancelar
-            </Button>
-          )}
-        </div>
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => setSelectedSupplierIds(new Set())}
-            disabled={selectedSupplierIds.size === 0}
-          >
-            Limpiar Selección
-          </Button>
-          <Button
-            onClick={handleConfirmSelection}
-            disabled={selectedSupplierIds.size < 3}
-          >
-            Confirmar Selección ({selectedSupplierIds.size} proveedores)
-          </Button>
-        </div>
+      <div className="flex justify-end space-x-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <Button
+          onClick={handleConfirmSelection}
+          disabled={selectedSupplierIds.size < 3}
+        >
+          Confirmar Selección ({selectedSupplierIds.size} proveedores)
+        </Button>
       </div>
     </div>
   );

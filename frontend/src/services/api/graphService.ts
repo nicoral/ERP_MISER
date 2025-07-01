@@ -1,37 +1,34 @@
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import type {
+  GraphDistribution,
+  GraphDistributionRequirements,
+} from '../../types/graph';
+import { createApiCall } from './httpInterceptor';
 
-export const getGraphDistribution = async () => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/roles/graph/distribution`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
+const BASE_URL = `${import.meta.env.VITE_API_URL}`;
+
+export const graphService = {
+  async getGraphDistribution() {
+    const response = await createApiCall<GraphDistribution[]>(
+      `${BASE_URL}/roles/graph/distribution`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  async getGraphDistributionRequirements() {
+    const response = await createApiCall<GraphDistributionRequirements[]>(
+      `${BASE_URL}/requirements/graph/distribution`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
 };
 
-export const getGraphDistributionRequirements = async () => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/requirements/graph/distribution`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-};
+// Legacy exports for backward compatibility
+export const getGraphDistribution = graphService.getGraphDistribution;
+export const getGraphDistributionRequirements =
+  graphService.getGraphDistributionRequirements;

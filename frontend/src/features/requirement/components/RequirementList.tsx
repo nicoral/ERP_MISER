@@ -19,7 +19,7 @@ import {
   TrashIcon,
   EditIcon,
 } from '../../../components/common/Icons';
-import { DownloadIcon } from 'lucide-react';
+import { DownloadIcon, Loader2 } from 'lucide-react';
 import { hasPermission, canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
@@ -34,6 +34,7 @@ export const RequirementList = () => {
   const signRequirementMutation = useSignRequirement();
 
   const [page, setPage] = useState(1);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   // Hook con datos y estados automáticos de React Query
   const { data, isLoading, isFetching } = useRequirements(page, 10);
@@ -50,6 +51,7 @@ export const RequirementList = () => {
   };
 
   const handleDownloadPdf = async (requirement: Requirement) => {
+    setDownloadingId(requirement.id);
     try {
       const blob = await generatePdfMutation.mutateAsync(requirement.id);
       const url = window.URL.createObjectURL(blob);
@@ -60,6 +62,8 @@ export const RequirementList = () => {
       showSuccess('Descargado', 'Requerimiento descargado correctamente');
     } catch {
       showError('Error', 'No se pudo descargar el PDF');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -205,9 +209,15 @@ export const RequirementList = () => {
       isHidden: (requirement: Requirement) => requirement.status !== 'PENDING',
     },
     {
-      icon: <DownloadIcon className="w-5 h-5 text-blue-600" />,
+      icon: (requirement: Requirement) =>
+        downloadingId === requirement.id ? (
+          <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
+        ) : (
+          <DownloadIcon className="w-5 h-5 text-blue-600" />
+        ),
       label: 'Descargar PDF',
       onClick: handleDownloadPdf,
+      disabled: (requirement: Requirement) => downloadingId === requirement.id,
     },
     {
       icon: <PublishIcon className="w-5 h-5 text-purple-600" />,
@@ -254,7 +264,6 @@ export const RequirementList = () => {
             isFetching ||
             deleteRequirementMutation.isPending ||
             publishRequirementMutation.isPending ||
-            generatePdfMutation.isPending ||
             signRequirementMutation.isPending
           }
           pagination={{

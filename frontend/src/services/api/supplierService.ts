@@ -1,110 +1,77 @@
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import { createApiCall } from './httpInterceptor';
 import type { PaginatedResponse } from '../../types/generic';
 import type { Supplier, SupplierFilters } from '../../types/supplier';
 
-export async function getSuppliers(
-  page: number = 1,
-  pageSize: number = 10,
-  filters?: SupplierFilters
-): Promise<PaginatedResponse<Supplier>> {
-  const queryParams = new URLSearchParams();
-  queryParams.append('page', page.toString());
-  queryParams.append('limit', pageSize.toString());
-  if (filters?.name) {
-    queryParams.append('name', filters.name);
-  }
+const BASE_URL = `${import.meta.env.VITE_API_URL}/suppliers`;
 
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/suppliers?${queryParams.toString()}`,
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+export const supplierService = {
+  async getSuppliers(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: SupplierFilters
+  ): Promise<PaginatedResponse<Supplier>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', pageSize.toString());
+    if (filters?.name) {
+      queryParams.append('name', filters.name);
     }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
+
+    const response = await createApiCall<{
+      data: Supplier[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`${BASE_URL}?${queryParams.toString()}`, {
+      method: 'GET',
+    });
+
     return {
-      data: data.data,
-      total: data.total,
-      page: data.page,
-      pageSize: data.limit,
-      totalPages: Math.ceil(data.total / data.limit),
+      data: response.data,
+      total: response.total,
+      page: response.page,
+      pageSize: response.limit,
+      totalPages: Math.ceil(response.total / response.limit),
     };
-  }
-  throw new Error(data.message);
-}
+  },
 
-export async function getSupplier(id: number): Promise<Supplier> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/suppliers/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+  async getSupplier(id: number): Promise<Supplier> {
+    const response = await createApiCall<Supplier>(`${BASE_URL}/${id}`, {
+      method: 'GET',
+    });
+    return response;
+  },
 
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-}
-
-export async function createSupplier(supplier: Supplier): Promise<Supplier> {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/suppliers`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-    },
-    body: JSON.stringify(supplier),
-  });
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error(data.message);
-}
-
-export async function updateSupplier(
-  id: number,
-  supplier: Omit<Supplier, 'id'>
-): Promise<Supplier> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/suppliers/${id}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+  async createSupplier(supplier: Supplier): Promise<Supplier> {
+    const response = await createApiCall<Supplier>(BASE_URL, {
+      method: 'POST',
       body: JSON.stringify(supplier),
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-}
+    });
+    return response;
+  },
 
-export async function deleteSupplier(id: number): Promise<void> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/suppliers/${id}`,
-    {
+  async updateSupplier(
+    id: number,
+    supplier: Omit<Supplier, 'id'>
+  ): Promise<Supplier> {
+    const response = await createApiCall<Supplier>(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(supplier),
+    });
+    return response;
+  },
+
+  async deleteSupplier(id: number): Promise<void> {
+    const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+    });
+    return response;
+  },
+};
 
-  if (response.status !== 200) {
-    const data = await response.json();
-    throw new Error(data.message || 'Error al eliminar el proveedor');
-  }
-}
+// Legacy exports for backward compatibility
+export const getSuppliers = supplierService.getSuppliers;
+export const getSupplier = supplierService.getSupplier;
+export const createSupplier = supplierService.createSupplier;
+export const updateSupplier = supplierService.updateSupplier;
+export const deleteSupplier = supplierService.deleteSupplier;

@@ -15,6 +15,7 @@ import { GenerateOrders } from './steps/GenerateOrders';
 import { ReceiveQuotations } from './steps/ReceiveQuotations';
 import { CompareQuotations } from './steps/CompareQuotations';
 import { FinalSelection } from './steps/FinalSelection';
+import { Button } from '../../../components/common/Button';
 
 interface QuotationWizardProps {
   requirement?: Requirement;
@@ -47,6 +48,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
 }) => {
   const { showSuccess, showError } = useToast();
   const { loading, error, updateQuotationRequest } = useQuotationService();
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<QuotationStep>(
     existingQuotation
@@ -343,6 +345,19 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
     }
   };
 
+  const handleShowExitModal = () => {
+    setShowExitModal(true);
+  };
+
+  const handleCancelExit = () => {
+    setShowExitModal(false);
+  };
+
+  const handleConfirmExit = () => {
+    setShowExitModal(false);
+    onCancel?.();
+  };
+
   const renderStepContent = () => {
     // En el nuevo flujo, siempre tenemos un requerimiento pre-seleccionado
     if (!requirement && !existingQuotation) {
@@ -363,7 +378,6 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
           <SupplierSelection
             selectedSuppliers={selectedSuppliers}
             onComplete={handleStepComplete}
-            onBack={onCancel || (() => {})}
           />
         );
 
@@ -462,12 +476,22 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
 
         {/* Step Description */}
         <div className="mb-6">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-            {stepTitles[currentStep]}
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {stepDescriptions[currentStep]}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                {stepTitles[currentStep]}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {stepDescriptions[currentStep]}
+              </p>
+            </div>
+            <Button
+              onClick={handleShowExitModal}
+              className="text-white border-red-300 hover:bg-black-50  dark:border-black-600 dark:hover:bg-red-900/20 bg-red-500"
+            >
+              🚪 Salir
+            </Button>
+          </div>
         </div>
 
         {/* Step Content */}
@@ -484,6 +508,46 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                 <span className="text-gray-700 dark:text-gray-300">
                   Creando cotización...
                 </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Exit Confirmation Modal */}
+        {showExitModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <span className="text-red-500 text-2xl">⚠️</span>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Confirmar Salida
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                <strong>¡Atención!</strong> Estás a punto de salir del proceso
+                de cotización.
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Todos los cambios no guardados se perderán. Esta acción es
+                irreversible.
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                ¿Estás seguro de que deseas salir?
+              </p>
+              <div className="flex space-x-3">
+                <Button
+                  onClick={handleCancelExit}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmExit}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Sí, Salir
+                </Button>
               </div>
             </div>
           </div>

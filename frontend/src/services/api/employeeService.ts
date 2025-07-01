@@ -1,4 +1,4 @@
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import { createApiCall } from './httpInterceptor';
 import type {
   CreateEmployee,
   Employee,
@@ -7,155 +7,117 @@ import type {
 } from '../../types/employee';
 import type { PaginatedResponse } from '../../types/generic';
 
-export const getEmployee = async (
-  id: number
-): Promise<Employee | undefined> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/${id}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  return data;
-};
+const BASE_URL = `${import.meta.env.VITE_API_URL}/employees`;
 
-export async function getEmployees(
-  page: number = 1,
-  pageSize: number = 10,
-  filters?: EmployeeFilters
-): Promise<PaginatedResponse<Employee>> {
-  const queryParams = new URLSearchParams();
-  queryParams.append('page', page.toString());
-  queryParams.append('limit', pageSize.toString());
-  if (filters?.search) {
-    queryParams.append('search', filters.search);
-  }
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees?${queryParams.toString()}`,
-    {
+export const employeeService = {
+  async getEmployee(id: number): Promise<Employee | undefined> {
+    const response = await createApiCall<Employee>(`${BASE_URL}/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+    });
+    return response;
+  },
+
+  async getEmployees(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: EmployeeFilters
+  ): Promise<PaginatedResponse<Employee>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', pageSize.toString());
+    if (filters?.search) {
+      queryParams.append('search', filters.search);
     }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
+
+    const response = await createApiCall<{
+      data: Employee[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`${BASE_URL}?${queryParams.toString()}`, {
+      method: 'GET',
+    });
+
     return {
-      data: data.data,
-      total: data.total,
-      page: data.page,
-      pageSize: data.limit,
-      totalPages: Math.ceil(data.total / data.limit),
+      data: response.data,
+      total: response.total,
+      page: response.page,
+      pageSize: response.limit,
+      totalPages: Math.ceil(response.total / response.limit),
     };
-  }
-  throw new Error(data.message);
-}
+  },
 
-export const createEmployee = async (
-  employee: CreateEmployee
-): Promise<Employee> => {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/employees`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-    },
-    body: JSON.stringify(employee),
-  });
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error(data.message);
-};
-
-export const updateEmployee = async (
-  id: number,
-  employee: UpdateEmployee
-): Promise<Employee> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/${id}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-      body: JSON.stringify(employee),
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
-};
-
-export const uploadEmployeeImage = async (
-  id: number,
-  file: File
-): Promise<Employee> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/${id}/image`,
-    {
+  async createEmployee(employee: CreateEmployee): Promise<Employee> {
+    const response = await createApiCall<Employee>(BASE_URL, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+      body: JSON.stringify(employee),
+    });
+    return response;
+  },
+
+  async updateEmployee(
+    id: number,
+    employee: UpdateEmployee
+  ): Promise<Employee> {
+    const response = await createApiCall<Employee>(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(employee),
+    });
+    return response;
+  },
+
+  async uploadEmployeeImage(id: number, file: File): Promise<Employee> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await createApiCall<Employee>(`${BASE_URL}/${id}/image`, {
+      method: 'POST',
       body: formData,
-    }
-  );
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error(data.message);
-};
+    });
+    return response;
+  },
 
-export const deleteEmployee = async (id: number): Promise<void> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/${id}`,
-    {
+  async deleteEmployee(id: number): Promise<void> {
+    const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
+    });
+    return response;
+  },
+
+  async downloadEmployeeTemplate(): Promise<Blob> {
+    const response = await createApiCall<Blob>(
+      `${BASE_URL}/import/template`,
+      {
+        method: 'GET',
       },
-    }
-  );
+      true
+    );
+    return response;
+  },
 
-  if (response.status !== 200) {
-    const data = await response.json();
-    throw new Error(data.message || 'Error al eliminar el empleado');
-  }
-};
+  async importEmployeesFromExcel(file: File): Promise<ImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
 
-export const downloadEmployeeTemplate = async (): Promise<Blob> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/import/template`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+    const response = await createApiCall<ImportResult>(
+      `${BASE_URL}/import/excel`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+    return response;
+  },
 
-  if (response.status === 200) {
-    return response.blob();
-  }
-
-  const data = await response.json();
-  throw new Error(data.message || 'Error al descargar el template');
+  async getEmployeesSimple(search?: string): Promise<Employee[]> {
+    const response = await createApiCall<Employee[]>(
+      `${BASE_URL}/list/simple?search=${search}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
 };
 
 export interface ImportResult {
@@ -165,44 +127,15 @@ export interface ImportResult {
   total: number;
 }
 
-export const importEmployeesFromExcel = async (
-  file: File
-): Promise<ImportResult> => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/import/excel`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-      body: formData,
-    }
-  );
-
-  const data = await response.json();
-
-  if (response.status === 200 || response.status === 201) {
-    return data;
-  }
-
-  throw new Error(data.message || 'Error al importar empleados');
-};
-
-export const getEmployeesSimple = async (
-  search?: string
-): Promise<Employee[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/employees/list/simple?search=${search}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  return data;
-};
+// Legacy exports for backward compatibility
+export const getEmployee = employeeService.getEmployee;
+export const getEmployees = employeeService.getEmployees;
+export const createEmployee = employeeService.createEmployee;
+export const updateEmployee = employeeService.updateEmployee;
+export const uploadEmployeeImage = employeeService.uploadEmployeeImage;
+export const deleteEmployee = employeeService.deleteEmployee;
+export const downloadEmployeeTemplate =
+  employeeService.downloadEmployeeTemplate;
+export const importEmployeesFromExcel =
+  employeeService.importEmployeesFromExcel;
+export const getEmployeesSimple = employeeService.getEmployeesSimple;

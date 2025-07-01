@@ -942,9 +942,7 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button variant="outline" onClick={onBack}>
-          ← Volver
-        </Button>
+        <Button onClick={onBack}>← Volver</Button>
         <Button
           onClick={handleContinue}
           disabled={Object.keys(quotations).length === 0 || loading}

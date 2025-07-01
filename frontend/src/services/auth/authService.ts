@@ -1,6 +1,9 @@
 import { STORAGE_KEY_TOKEN, STORAGE_KEY_USER } from '../../config/constants';
 import type { Employee } from '../../types/employee';
 import type { User } from '../../types/user';
+import { createApiCall } from '../api/httpInterceptor';
+import type { ProfileData } from '../../features/auth/hooks/useProfile';
+import type { Warehouse } from '../../types/warehouse';
 
 export async function login(email: string, password: string): Promise<User> {
   const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
@@ -33,36 +36,25 @@ export async function updatePassword(
   currentPassword: string,
   newPassword: string
 ) {
-  const response = await fetch(
+  const response = await createApiCall(
     `${import.meta.env.VITE_API_URL}/auth/update-password`,
     {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword }),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
     }
   );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
+  return response;
 }
 
 export async function getWarehousesByEmployeeId() {
-  const response = await fetch(
+  const response = await createApiCall<Warehouse[]>(
     `${import.meta.env.VITE_API_URL}/auth/me-warehouses`,
     {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+      method: 'GET',
     }
   );
 
-  const data = await response.json();
-  return data;
+  return response;
 }
 
 export const uploadEmployeeSignature = async (
@@ -71,33 +63,23 @@ export const uploadEmployeeSignature = async (
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(
+  const response = await createApiCall<Employee>(
     `${import.meta.env.VITE_API_URL}/auth/update-signature`,
     {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
       body: formData,
     }
   );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error(data.message);
+  return response;
 };
 
 export async function getProfile() {
-  const response = await fetch(
+  const response = await createApiCall<ProfileData>(
     `${import.meta.env.VITE_API_URL}/auth/profile/me`,
     {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+      method: 'GET',
     }
   );
 
-  const data = await response.json();
-  return data;
+  return response;
 }

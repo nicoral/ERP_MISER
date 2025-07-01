@@ -75,6 +75,10 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
+  const getQuotationStatistics = useCallback(async () => {
+    return handleRequest(() => quotationService.getQuotationStatistics());
+  }, [handleRequest]);
+
   const updateQuotationRequest = useCallback(
     async (id: number, data: UpdateQuotationRequestDto) => {
       return handleRequest(() =>
@@ -233,6 +237,7 @@ export const useQuotationService = () => {
     getQuotationRequests,
     getQuotationRequest,
     getQuotationByRequirement,
+    getQuotationStatistics,
     updateQuotationRequest,
     deleteQuotationRequest,
     updateQuotationBasic,

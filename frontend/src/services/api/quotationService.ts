@@ -76,6 +76,25 @@ export const quotationService = {
     return response;
   },
 
+  async getQuotationStatistics(): Promise<{
+    PENDING: number;
+    DRAFT: number;
+    ACTIVE: number;
+    COMPLETED: number;
+    CANCELLED: number;
+  }> {
+    const response = await createApiCall<{
+      PENDING: number;
+      DRAFT: number;
+      ACTIVE: number;
+      COMPLETED: number;
+      CANCELLED: number;
+    }>(`${BASE_URL}/statistics/status`, {
+      method: 'GET',
+    });
+    return response;
+  },
+
   async updateQuotationRequest(
     id: number,
     data: UpdateQuotationRequestDto

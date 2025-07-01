@@ -37,7 +37,7 @@ export interface RequirementArticle {
   quantity: number;
   unitPrice: number;
   justification: string;
-  currency: string;
+  currency: 'PEN' | 'USD';
 }
 
 export interface CreateRequirementDto {

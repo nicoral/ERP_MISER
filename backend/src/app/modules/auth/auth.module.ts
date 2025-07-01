@@ -14,7 +14,9 @@ import { EmployeeModule } from '../employee.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: '1d' },
+        signOptions: {
+          expiresIn: '1d',
+        },
       }),
     }),
     EmployeeModule,

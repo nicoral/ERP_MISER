@@ -10,6 +10,7 @@ import type {
   QuotationRequest,
   QuotationFilters,
 } from '../../../types/quotation';
+import { QuotationRequestStatus } from '../../../types/quotation';
 import { Button } from '../../../components/common/Button';
 import {
   Table,
@@ -17,9 +18,17 @@ import {
   type TableAction,
 } from '../../../components/common/Table';
 import { Card } from '../../../components/ui/card';
-import { Plus, Eye, Edit, Trash2, Download, UserCheck } from 'lucide-react';
-import { FormSelect } from '../../../components/common/FormSelect';
+import {
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  Download,
+  UserCheck,
+  Loader2,
+} from 'lucide-react';
 import { FormInput } from '../../../components/common/FormInput';
+import { ROUTES } from '../../../config/constants';
 
 interface QuotationListProps {
   onViewQuotation: (quotation: QuotationRequest) => void;
@@ -32,8 +41,13 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   onEditQuotation,
   onCreateQuotation,
 }) => {
-  const { getQuotationRequests, deleteQuotationRequest, loading, error } =
-    useQuotationService();
+  const {
+    getQuotationRequests,
+    deleteQuotationRequest,
+    getQuotationStatistics,
+    loading,
+    error,
+  } = useQuotationService();
   const { showSuccess, showError } = useToast();
 
   const [quotations, setQuotations] = useState<QuotationRequest[]>([]);
@@ -45,8 +59,28 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   const [quotationToDelete, setQuotationToDelete] =
     useState<QuotationRequest | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [statusStats, setStatusStats] = useState({
+    PENDING: 0,
+    DRAFT: 0,
+    ACTIVE: 0,
+    COMPLETED: 0,
+    CANCELLED: 0,
+  });
+
+  // Load statistics from backend
+  const loadStatistics = async () => {
+    try {
+      const stats = await getQuotationStatistics();
+      if (stats) {
+        setStatusStats(stats);
+      }
+    } catch (error) {
+      console.error('Error loading statistics:', error);
+    }
+  };
 
   const loadQuotations = async (page = 1) => {
     const result = await getQuotationRequests(page, pageSize, filters);
@@ -60,6 +94,11 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   useEffect(() => {
     loadQuotations(1);
   }, [filters]);
+
+  // Load statistics only on component mount
+  useEffect(() => {
+    loadStatistics();
+  }, []);
 
   const handleDelete = (quotation: QuotationRequest) => {
     setQuotationToDelete(quotation);
@@ -78,6 +117,8 @@ export const QuotationList: React.FC<QuotationListProps> = ({
           `Cotización ${quotationToDelete.code} reiniciada correctamente`
         );
         loadQuotations(currentPage);
+        // Reload statistics after successful deletion
+        loadStatistics();
       } else {
         showError('Error', error || 'No se pudo reiniciar la cotización');
       }
@@ -94,6 +135,7 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   };
 
   const handleDownloadPdf = async (quotation: QuotationRequest) => {
+    setDownloadingId(quotation.id);
     try {
       const blob = await quotationService.downloadQuotationComparisonPdf(
         quotation.id
@@ -110,6 +152,8 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     } catch (error) {
       console.error('Error al descargar el PDF:', error);
       showError('Error', 'No se pudo descargar el cuadro comparativo');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -141,6 +185,14 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     setCurrentPage(1);
   };
 
+  const handleStatusFilter = (status: QuotationRequestStatus) => {
+    setFilters(prev => ({
+      ...prev,
+      status: prev.status === status ? undefined : status,
+    }));
+    setCurrentPage(1);
+  };
+
   const handlePageChange = (page: number) => {
     loadQuotations(page);
   };
@@ -158,10 +210,25 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       header: 'Requerimiento',
       render: (quotation: QuotationRequest) => (
         <div>
-          <div className="font-medium">{quotation.requirement.code}</div>
-          <div className="text-sm text-gray-500">
-            {quotation.requirement.observation.substring(0, 50)}...
-          </div>
+          <button
+            onClick={() => {
+              const url = ROUTES.REQUIREMENTS_DETAILS.replace(
+                ':id',
+                quotation.requirement.id.toString()
+              );
+              window.open(url, '_blank');
+            }}
+            className="bg-transparent text-left hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors w-full"
+          >
+            <div className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer">
+              {quotation.requirement.code}
+            </div>
+            <div className="text-sm text-gray-500">
+              {quotation.requirement.observation.length > 12
+                ? quotation.requirement.observation.substring(0, 12) + '...'
+                : quotation.requirement.observation}
+            </div>
+          </button>
         </div>
       ),
     },
@@ -224,13 +291,14 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       icon: <Eye className="w-5 h-5 text-green-600" />,
       label: 'Ver detalles',
       onClick: onViewQuotation,
-      isHidden: (quotation: QuotationRequest) => quotation.status !== 'ACTIVE',
+      isHidden: (quotation: QuotationRequest) =>
+        quotation.status === 'PENDING' || quotation.status === 'DRAFT',
     },
     {
       icon: <UserCheck className="w-5 h-5 text-blue-600" />,
       label: 'Tomar Cotización',
       onClick: onEditQuotation,
-      isHidden: (quotation: QuotationRequest) => quotation.status !== 'PENDING',
+      isHidden: (quotation: QuotationRequest) => quotation.createdBy !== null,
     },
     {
       icon: <Edit className="w-5 h-5 text-blue-600" />,
@@ -239,16 +307,23 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
     },
     {
-      icon: <Download className="w-5 h-5 text-blue-600" />,
+      icon: (quotation: QuotationRequest) =>
+        downloadingId === quotation.id ? (
+          <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
+        ) : (
+          <Download className="w-5 h-5 text-blue-600" />
+        ),
       label: 'Descargar PDF',
       onClick: handleDownloadPdf,
-      isHidden: (quotation: QuotationRequest) => quotation.status !== 'ACTIVE',
+      disabled: (quotation: QuotationRequest) => downloadingId === quotation.id,
+      isHidden: (quotation: QuotationRequest) =>
+        quotation.status === 'PENDING' || quotation.status === 'DRAFT',
     },
     {
       icon: <Trash2 className="w-5 h-5 text-red-600" />,
       label: 'Reiniciar cotización',
       onClick: handleDelete,
-      isHidden: (quotation: QuotationRequest) => quotation.status === 'PENDING',
+      isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
     },
   ];
 
@@ -265,6 +340,159 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       </div>
 
       <Card className="p-6">
+        {/* Summary Statistics */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center space-x-3">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Resumen de Cotizaciones
+              </h2>
+            </div>
+            <button
+              onClick={loadStatistics}
+              className="bg-transparent text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              title="Actualizar estadísticas"
+            >
+              🔄
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {/* Pending */}
+            <div
+              onClick={() => handleStatusFilter(QuotationRequestStatus.PENDING)}
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.PENDING
+                  ? 'bg-yellow-100 dark:bg-yellow-800 border-2 border-yellow-400 dark:border-yellow-600 shadow-lg'
+                  : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Pendientes
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    {statusStats.PENDING}
+                  </p>
+                </div>
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-full">
+                  <span className="text-yellow-600 dark:text-yellow-400 text-xl">
+                    ⏳
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Draft */}
+            <div
+              onClick={() => handleStatusFilter(QuotationRequestStatus.DRAFT)}
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.DRAFT
+                  ? 'bg-blue-100 dark:bg-blue-800 border-2 border-blue-400 dark:border-blue-600 shadow-lg'
+                  : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Borradores
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {statusStats.DRAFT}
+                  </p>
+                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-full">
+                  <span className="text-blue-600 dark:text-blue-400 text-xl">
+                    📝
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Active */}
+            <div
+              onClick={() => handleStatusFilter(QuotationRequestStatus.ACTIVE)}
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.ACTIVE
+                  ? 'bg-purple-100 dark:bg-purple-800 border-2 border-purple-400 dark:border-purple-600 shadow-lg'
+                  : 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                    Activas
+                  </p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {statusStats.ACTIVE}
+                  </p>
+                </div>
+                <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-full">
+                  <span className="text-purple-600 dark:text-purple-400 text-xl">
+                    🔄
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Completed */}
+            <div
+              onClick={() =>
+                handleStatusFilter(QuotationRequestStatus.COMPLETED)
+              }
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.COMPLETED
+                  ? 'bg-green-100 dark:bg-green-800 border-2 border-green-400 dark:border-green-600 shadow-lg'
+                  : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                    Completadas
+                  </p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {statusStats.COMPLETED}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-800 rounded-full">
+                  <span className="text-green-600 dark:text-green-400 text-xl">
+                    ✅
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cancelled */}
+            <div
+              onClick={() =>
+                handleStatusFilter(QuotationRequestStatus.CANCELLED)
+              }
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.CANCELLED
+                  ? 'bg-red-100 dark:bg-red-800 border-2 border-red-400 dark:border-red-600 shadow-lg'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Canceladas
+                  </p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {statusStats.CANCELLED}
+                  </p>
+                </div>
+                <div className="p-2 bg-red-100 dark:bg-red-800 rounded-full">
+                  <span className="text-red-600 dark:text-red-400 text-xl">
+                    ❌
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Filtros */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
           <button
@@ -290,7 +518,7 @@ export const QuotationList: React.FC<QuotationListProps> = ({
           </button>
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                 <FormInput
                   id="search"
                   name="search"
@@ -299,20 +527,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
                   onChange={handleFilterChange}
                   placeholder="Buscar por código o requerimiento..."
                 />
-                <FormSelect
-                  id="status"
-                  name="status"
-                  label="Estado"
-                  value={filters.status || ''}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">Todos los estados</option>
-                  <option value="PENDING">⏳ Pendiente</option>
-                  <option value="DRAFT">📝 Borrador</option>
-                  <option value="ACTIVE">🔄 Activo</option>
-                  <option value="COMPLETED">✅ Completado</option>
-                  <option value="CANCELLED">❌ Cancelado</option>
-                </FormSelect>
               </div>
               <div className="mt-4 flex justify-end space-x-3">
                 <Button

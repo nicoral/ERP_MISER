@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -38,8 +39,16 @@ import Unauthorized from './pages/Unauthorized';
 import { Quotations } from './pages/Quotations';
 import { QuotationDetails } from './features/quotation/components/QuotationDetails';
 import { QuotationEdit } from './pages/QuotationEdit';
+import { setNavigate } from './services/api/httpInterceptor';
+import { useEffect } from 'react';
 
 const AppRoutes = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate]);
+
   return (
     <Routes>
       <Route path={ROUTES.LOGIN} element={<Login />} />

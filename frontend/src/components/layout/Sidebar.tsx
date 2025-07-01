@@ -183,14 +183,14 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'w-16' : 'w-64'}`}
       >
-        <button
+        <div
           onClick={handleCollapse}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 z-10 hidden lg:block"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 z-10 hidden lg:block cursor-pointer"
         >
           <ChevronLeftIcon
             className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
           />
-        </button>
+        </div>
         <nav className="p-4 space-y-2">
           {menuItemsAllowed.map(item => (
             <div key={item.path || item.label}>
@@ -219,23 +219,22 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
                     {!isCollapsed && <span>{item.label}</span>}
                   </div>
                   {item.subItems && !isCollapsed && (
-                    <button
+                    <div
                       onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
                         toggleSubmenu(item.path!);
                       }}
-                      className="p-1 rounded-md bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                      className="p-1 rounded-md bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                     >
                       <ChevronDownIcon
                         className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${expandedItems.includes(item.path!) ? 'rotate-180' : ''}`}
                       />
-                    </button>
+                    </div>
                   )}
                 </NavLink>
               ) : (
-                <button
-                  type="button"
+                <div
                   className={`flex items-center justify-between w-full px-4 py-2 rounded-lg cursor-pointer transition-colors duration-200 bg-transparent ${
                     expandedItems.includes(item.label)
                       ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
@@ -256,7 +255,7 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
                       className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${expandedItems.includes(item.label) ? 'rotate-180' : ''}`}
                     />
                   )}
-                </button>
+                </div>
               )}
               {item.subItems &&
                 ((item.path && expandedItems.includes(item.path)) ||

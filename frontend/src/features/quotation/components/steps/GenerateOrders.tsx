@@ -12,6 +12,7 @@ import { Button } from '../../../../components/common/Button';
 import { FormInput } from '../../../../components/common/FormInput';
 import type { Requirement } from '../../../../types/requirement';
 import { quotationService } from '../../../../services/api/quotationService';
+import { Loader2 } from 'lucide-react';
 
 interface GenerateOrdersProps {
   requirement: Requirement;
@@ -42,6 +43,10 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
   const [generalTerms, setGeneralTerms] = useState<string>(
     'Términos estándar de cotización'
   );
+  const [exportingPdfId, setExportingPdfId] = useState<number | null>(null);
+  const [savingOrderId, setSavingOrderId] = useState<number | null>(null);
+  const [savingTermsId, setSavingTermsId] = useState<number | null>(null);
+  const [sendingOrderId, setSendingOrderId] = useState<number | null>(null);
 
   const {
     updateQuotationOrder,
@@ -130,52 +135,58 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
   };
 
   const handleSaveTerms = async (supplierId: number, terms: string) => {
-    const existingOrder = orders[supplierId];
-    const orderNumber =
-      existingOrder?.orderNumber ||
-      `OC-${requirement.code}-${supplierId}-${Date.now()}`;
-    const selectedArticles = Array.from(selectedProducts[supplierId] || []);
+    setSavingTermsId(supplierId);
+    try {
+      const existingOrder = orders[supplierId];
+      const orderNumber =
+        existingOrder?.orderNumber ||
+        `OC-${requirement.code}-${supplierId}-${Date.now()}`;
+      const selectedArticles = Array.from(selectedProducts[supplierId] || []);
 
-    const updateData: UpdateQuotationOrderDto = {
-      supplierId,
-      orderNumber,
-      terms,
-      selectedArticles,
-    };
+      const updateData: UpdateQuotationOrderDto = {
+        supplierId,
+        orderNumber,
+        terms,
+        selectedArticles,
+      };
 
-    const result = await updateQuotationOrder(quotationRequestId, updateData);
-    if (result) {
-      setOrders(prev => ({
-        ...prev,
-        [supplierId]: {
-          ...(existingOrder || {
-            id: Date.now(),
-            supplierId,
-            requirementId: requirement.id,
-            orderNumber,
-            deadline: new Date(deadline),
-            status: QuotationSupplierStatus.PENDING,
-            createdAt: new Date(),
-          }),
-          terms,
-          updatedAt: new Date(),
-        },
-      }));
+      const result = await updateQuotationOrder(quotationRequestId, updateData);
+      if (result) {
+        setOrders(prev => ({
+          ...prev,
+          [supplierId]: {
+            ...(existingOrder || {
+              id: Date.now(),
+              supplierId,
+              requirementId: requirement.id,
+              orderNumber,
+              deadline: new Date(deadline),
+              status: QuotationSupplierStatus.PENDING,
+              createdAt: new Date(),
+            }),
+            terms,
+            updatedAt: new Date(),
+          },
+        }));
 
-      showSuccess(
-        'Términos actualizados',
-        `Términos para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} actualizados exitosamente`
-      );
-      setEditingOrder(null);
-    } else {
-      showError(
-        'Error al actualizar términos',
-        error || 'No se pudieron actualizar los términos. Inténtalo de nuevo.'
-      );
+        showSuccess(
+          'Términos actualizados',
+          `Términos para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} actualizados exitosamente`
+        );
+        setEditingOrder(null);
+      } else {
+        showError(
+          'Error al actualizar términos',
+          error || 'No se pudieron actualizar los términos. Inténtalo de nuevo.'
+        );
+      }
+    } finally {
+      setSavingTermsId(null);
     }
   };
 
   const handleExportPDF = async (supplierId: number) => {
+    setExportingPdfId(supplierId);
     try {
       const blob = await quotationService.downloadPurchaseRequestPdf(
         quotationRequestId,
@@ -192,73 +203,85 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
       );
     } catch (error) {
       showError('Error al generar PDF', (error as Error).message);
+    } finally {
+      setExportingPdfId(null);
     }
   };
 
   const handleSaveOrder = async (supplierId: number) => {
-    const order = orders[supplierId];
-    if (!order) return;
+    setSavingOrderId(supplierId);
+    try {
+      const order = orders[supplierId];
+      if (!order) return;
 
-    const updateData: UpdateQuotationOrderDto = {
-      supplierId,
-      orderNumber: order.orderNumber,
-      terms: order.terms,
-      selectedArticles: Array.from(selectedProducts[supplierId] || []),
-    };
+      const updateData: UpdateQuotationOrderDto = {
+        supplierId,
+        orderNumber: order.orderNumber,
+        terms: order.terms,
+        selectedArticles: Array.from(selectedProducts[supplierId] || []),
+      };
 
-    const result = await updateQuotationOrder(quotationRequestId, updateData);
-    if (result) {
-      setOrders(prev => ({
-        ...prev,
-        [supplierId]: {
-          ...prev[supplierId]!,
-          status: QuotationSupplierStatus.PENDING,
-          updatedAt: new Date(),
-        },
-      }));
+      const result = await updateQuotationOrder(quotationRequestId, updateData);
+      if (result) {
+        setOrders(prev => ({
+          ...prev,
+          [supplierId]: {
+            ...prev[supplierId]!,
+            status: QuotationSupplierStatus.PENDING,
+            updatedAt: new Date(),
+          },
+        }));
 
-      showSuccess(
-        'Orden guardada',
-        `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} guardada exitosamente`
-      );
-    } else {
-      showError(
-        'Error al guardar orden',
-        error || 'No se pudo guardar la orden. Inténtalo de nuevo.'
-      );
+        showSuccess(
+          'Orden guardada',
+          `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} guardada exitosamente`
+        );
+      } else {
+        showError(
+          'Error al guardar orden',
+          error || 'No se pudo guardar la orden. Inténtalo de nuevo.'
+        );
+      }
+    } finally {
+      setSavingOrderId(null);
     }
   };
 
   const handleSendOrder = async (supplierId: number) => {
-    const order = orders[supplierId];
-    if (!order) return;
+    setSendingOrderId(supplierId);
+    try {
+      const order = orders[supplierId];
+      if (!order) return;
 
-    const sendData: SendQuotationOrderDto = {
-      supplierId,
-      orderNumber: order.orderNumber,
-      terms: order.terms,
-    };
+      const sendData: SendQuotationOrderDto = {
+        supplierId,
+        orderNumber: order.orderNumber,
+        terms: order.terms,
+      };
 
-    const result = await sendQuotationOrder(quotationRequestId, sendData);
-    if (result) {
-      setOrders(prev => ({
-        ...prev,
-        [supplierId]: {
-          ...prev[supplierId]!,
-          status: QuotationSupplierStatus.SENT,
-          updatedAt: new Date(),
-        },
-      }));
+      const result = await sendQuotationOrder(quotationRequestId, sendData);
+      if (result) {
+        setOrders(prev => ({
+          ...prev,
+          [supplierId]: {
+            ...prev[supplierId]!,
+            status: QuotationSupplierStatus.SENT,
+            updatedAt: new Date(),
+          },
+        }));
 
-      showSuccess(
-        'Orden enviada',
-        `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} enviada exitosamente`
-      );
-    } else {
-      showError(
-        'Error al enviar orden',
-        error || 'No se pudo enviar la orden. Inténtalo de nuevo.'
-      );
+        showSuccess(
+          'Orden enviada',
+          `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} enviada exitosamente`
+        );
+      } else {
+        showError(
+          'Error al enviar orden',
+          error || 'No se pudo enviar la orden. Inténtalo de nuevo.'
+        );
+      }
+    } finally {
+      setSendingOrderId(null);
     }
   };
 
@@ -548,13 +571,22 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                           handleSaveTerms(supplier.id, editingTerms)
                         }
                         className="text-sm"
+                        disabled={savingTermsId === supplier.id}
                       >
-                        Guardar
+                        {savingTermsId === supplier.id ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          'Guardar'
+                        )}
                       </Button>
                       <Button
                         variant="outline"
                         onClick={() => setEditingOrder(null)}
                         className="text-sm"
+                        disabled={savingTermsId === supplier.id}
                       >
                         Cancelar
                       </Button>
@@ -659,22 +691,45 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                       <Button
                         onClick={() => handleEditTerms(supplier.id)}
                         className="text-xs"
+                        disabled={savingTermsId === supplier.id}
                       >
                         ✏️ Editar términos
                       </Button>
                       <Button
                         onClick={() => handleExportPDF(supplier.id)}
                         className="text-xs"
-                        disabled={!order || selectedCount === 0}
+                        disabled={
+                          !order ||
+                          selectedCount === 0 ||
+                          exportingPdfId === supplier.id
+                        }
                       >
-                        📄 Exportar PDF
+                        {exportingPdfId === supplier.id ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Generando PDF...
+                          </>
+                        ) : (
+                          '📄 Exportar PDF'
+                        )}
                       </Button>
                       <Button
                         onClick={() => handleSaveOrder(supplier.id)}
                         className="text-xs"
-                        disabled={!order || selectedCount === 0}
+                        disabled={
+                          !order ||
+                          selectedCount === 0 ||
+                          savingOrderId === supplier.id
+                        }
                       >
-                        💾 Guardar
+                        {savingOrderId === supplier.id ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          '💾 Guardar'
+                        )}
                       </Button>
                       <Button
                         onClick={() => handleSendOrder(supplier.id)}
@@ -682,13 +737,23 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                         disabled={
                           !order ||
                           selectedCount === 0 ||
-                          order.status === 'SENT'
+                          order.status === 'SENT' ||
+                          sendingOrderId === supplier.id
                         }
                         variant={
                           order?.status === 'SENT' ? 'outline' : 'primary'
                         }
                       >
-                        {order?.status === 'SENT' ? '✅ Enviada' : '📤 Enviar'}
+                        {sendingOrderId === supplier.id ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : order?.status === 'SENT' ? (
+                          '✅ Enviada'
+                        ) : (
+                          '📤 Enviar'
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -775,9 +840,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button variant="outline" onClick={onBack}>
-          ← Volver
-        </Button>
+        <Button onClick={onBack}>← Volver</Button>
         <Button
           onClick={handleContinue}
           disabled={Object.keys(orders).length === 0}

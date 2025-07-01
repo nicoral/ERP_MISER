@@ -1,35 +1,42 @@
 import type { NavigateFunction } from 'react-router-dom';
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import { ROUTES, STORAGE_KEY_TOKEN } from '../../config/constants';
+import { logout } from '../auth/authService';
 
 let navigate: NavigateFunction | null = null;
+let onLogout: (() => void) | null = null;
 
 export const setNavigate = (nav: NavigateFunction) => {
   navigate = nav;
 };
 
+export const setOnLogout = (callback: () => void) => {
+  onLogout = callback;
+};
+
 export const handleApiError = (error: { response?: { status: number } }) => {
   console.log('handleApiError called with:', error);
 
-  if (error.response?.status === 403) {
-    console.log('Handling 403 error - redirecting to unauthorized');
+  if (error.response?.status === 401) {
+    console.log('Handling 401 error - redirecting to login');
     if (navigate) {
-      navigate('/unauthorized');
+      navigate(ROUTES.LOGIN);
     } else {
-      // Fallback si navigate no está disponible
-      window.location.href = '/unauthorized';
+      window.location.href = ROUTES.LOGIN;
+    }
+    logout();
+    if (onLogout) {
+      onLogout();
     }
     return;
   }
 
-  // Para otros errores, puedes manejarlos aquí
-  if (error.response?.status === 401) {
-    console.log('Handling 401 error - redirecting to login');
-    // Token expirado o inválido
-    localStorage.removeItem('token');
+  if (error.response?.status === 403) {
+    console.log('Handling 403 error - redirecting to unauthorized');
     if (navigate) {
-      navigate('/login');
+      navigate(ROUTES.UNAUTHORIZED);
     } else {
-      window.location.href = '/login';
+      // Fallback si navigate no está disponible
+      window.location.href = ROUTES.UNAUTHORIZED;
     }
     return;
   }
@@ -55,9 +62,24 @@ export const createApiCall = async <T>(
         ...options.headers,
       },
     });
+
     if (response.status >= 400) {
-      const error = await response.json();
-      throw error.message || null;
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: 'Unknown error' };
+      }
+
+      const error = new Error(errorData.message || 'API Error');
+      (error as { response?: { status: number } }).response = {
+        status: response.status,
+      };
+      throw error;
+    }
+
+    if (isBlob) {
+      return response.blob() as T;
     }
 
     let data;
@@ -70,7 +92,15 @@ export const createApiCall = async <T>(
     return data;
   } catch (error) {
     console.error('API Call Error:', error);
-    handleApiError(error as { response?: { status: number } });
+
+    // Si el error ya tiene la estructura correcta, usarlo directamente
+    if ((error as { response?: { status: number } }).response?.status) {
+      handleApiError(error as { response?: { status: number } });
+    } else {
+      // Si no tiene la estructura correcta, re-lanzar el error original
+      throw error;
+    }
+
     throw error;
   }
 };

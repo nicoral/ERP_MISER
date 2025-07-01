@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types/user';
 import type { AuthContextProps } from '../types/auth';
 import * as authService from '../services/auth/authService';
+import { setOnLogout } from '../services/api/httpInterceptor';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
@@ -16,6 +17,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const current = authService.getCurrentUser();
     setUser(current);
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // Registrar la función de logout con el httpInterceptor
+    setOnLogout(() => {
+      setUser(null);
+    });
   }, []);
 
   const login = async (email: string, password: string) => {

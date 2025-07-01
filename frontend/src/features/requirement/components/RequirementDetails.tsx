@@ -23,20 +23,24 @@ export const RequirementDetails = () => {
   const signRequirementMutation = useSignRequirement();
 
   const subtotals = {
-    PEN: requirement?.requirementArticles
-      .filter((article: RequirementArticle) => article.currency === 'PEN')
-      .reduce(
-        (sum: number, article: RequirementArticle) =>
-          sum + article.quantity * article.unitPrice,
-        0
-      ),
-    USD: requirement?.requirementArticles
-      .filter((article: RequirementArticle) => article.currency === 'USD')
-      .reduce(
-        (sum: number, article: RequirementArticle) =>
-          sum + article.quantity * article.unitPrice,
-        0
-      ),
+    PEN: requirement
+      ? requirement.requirementArticles
+          .filter((article: RequirementArticle) => article.currency === 'PEN')
+          .reduce(
+            (sum: number, article: RequirementArticle) =>
+              sum + article.quantity * article.unitPrice,
+            0
+          )
+      : 0,
+    USD: requirement
+      ? requirement.requirementArticles
+          .filter((article: RequirementArticle) => article.currency === 'USD')
+          .reduce(
+            (sum: number, article: RequirementArticle) =>
+              sum + article.quantity * article.unitPrice,
+            0
+          )
+      : 0,
   };
 
   const handleSign = async () => {

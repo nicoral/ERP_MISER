@@ -83,6 +83,13 @@ export class QuotationController {
     );
   }
 
+  @Get('statistics/status')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Obtener estadísticas de cotizaciones')
+  getStatistics(@Req() req) {
+    return this.quotationService.getQuotationStatistics(req.user.id);
+  }
+
   @Patch(':id')
   @RequirePermissions('update_quotation')
   @AuditDescription('Actualizar solicitud de cotización')

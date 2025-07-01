@@ -1,142 +1,91 @@
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import { createApiCall } from './httpInterceptor';
 import type {
   Warehouse,
   WarehouseCreate,
   WarehouseFilters,
 } from '../../types/warehouse';
 
-export async function getWarehouses(
-  page: number = 1,
-  pageSize: number = 10,
-  filters?: WarehouseFilters
-): Promise<{
-  data: Warehouse[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}> {
-  const queryParams = new URLSearchParams();
-  queryParams.append('page', page.toString());
-  queryParams.append('limit', pageSize.toString());
+const BASE_URL = `${import.meta.env.VITE_API_URL}/warehouses`;
 
-  if (filters?.search) {
-    queryParams.append('search', filters.search);
-  }
+export const warehouseService = {
+  async getWarehouses(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: WarehouseFilters
+  ): Promise<{
+    data: Warehouse[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', pageSize.toString());
 
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/warehouses?${queryParams.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+    if (filters?.search) {
+      queryParams.append('search', filters.search);
     }
-  );
 
-  const data = await response.json();
+    const response = await createApiCall<{
+      data: Warehouse[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`${BASE_URL}?${queryParams.toString()}`, {
+      method: 'GET',
+    });
 
-  if (response.status === 200) {
     return {
-      data: data.data,
-      total: data.total,
-      page: data.page,
-      pageSize: data.limit,
-      totalPages: Math.ceil(data.total / data.limit),
+      data: response.data,
+      total: response.total,
+      page: response.page,
+      pageSize: response.limit,
+      totalPages: Math.ceil(response.total / response.limit),
     };
-  }
+  },
 
-  throw new Error(data.message);
-}
+  async getWarehouseById(id: number | undefined): Promise<Warehouse | null> {
+    if (!id) {
+      return null;
+    }
 
-export async function getWarehouseById(
-  id: number | undefined
-): Promise<Warehouse | null> {
-  if (!id) {
-    return null;
-  }
-
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/warehouses/${id}`,
-    {
+    const response = await createApiCall<Warehouse>(`${BASE_URL}/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+    });
+    return response;
+  },
 
-  const data = await response.json();
-
-  if (response.status === 200) {
-    return data;
-  }
-
-  throw new Error(data.message);
-}
-
-export async function createWarehouse(
-  warehouse: WarehouseCreate
-): Promise<Warehouse> {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/warehouses`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-    },
-    body: JSON.stringify(warehouse),
-  });
-
-  const data = await response.json();
-
-  if (response.status === 201) {
-    return data;
-  }
-
-  throw new Error(data.message);
-}
-
-export async function updateWarehouse(
-  id: number,
-  warehouse: Partial<WarehouseCreate>
-): Promise<Warehouse> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/warehouses/${id}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+  async createWarehouse(warehouse: WarehouseCreate): Promise<Warehouse> {
+    const response = await createApiCall<Warehouse>(BASE_URL, {
+      method: 'POST',
       body: JSON.stringify(warehouse),
-    }
-  );
+    });
+    return response;
+  },
 
-  const data = await response.json();
+  async updateWarehouse(
+    id: number,
+    warehouse: Partial<WarehouseCreate>
+  ): Promise<Warehouse> {
+    const response = await createApiCall<Warehouse>(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(warehouse),
+    });
+    return response;
+  },
 
-  if (response.status === 200) {
-    return data;
-  }
-
-  throw new Error(data.message);
-}
-
-export async function deleteWarehouse(id: number): Promise<void> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/warehouses/${id}`,
-    {
+  async deleteWarehouse(id: number): Promise<void> {
+    const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+    });
+    return response;
+  },
+};
 
-  if (response.status !== 204) {
-    const data = await response.json();
-    throw new Error(data.message);
-  }
-}
+// Legacy exports for backward compatibility
+export const getWarehouses = warehouseService.getWarehouses;
+export const getWarehouseById = warehouseService.getWarehouseById;
+export const createWarehouse = warehouseService.createWarehouse;
+export const updateWarehouse = warehouseService.updateWarehouse;
+export const deleteWarehouse = warehouseService.deleteWarehouse;

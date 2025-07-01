@@ -1,4 +1,4 @@
-import { STORAGE_KEY_TOKEN } from '../../config/constants';
+import { createApiCall } from './httpInterceptor';
 import type {
   CostCenter,
   CreateCostCenter,
@@ -13,112 +13,76 @@ interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-export async function getCostCenters(
-  page: number = 1,
-  pageSize: number = 10,
-  search?: string
-): Promise<PaginatedResponse<CostCenter>> {
-  const queryParams = new URLSearchParams();
-  queryParams.append('page', page.toString());
-  queryParams.append('limit', pageSize.toString());
-  if (search) {
-    queryParams.append('search', search);
-  }
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/cost-centers?${queryParams.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+const BASE_URL = `${import.meta.env.VITE_API_URL}/cost-centers`;
+
+export const costCenterService = {
+  async getCostCenters(
+    page: number = 1,
+    pageSize: number = 10,
+    search?: string
+  ): Promise<PaginatedResponse<CostCenter>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', pageSize.toString());
+    if (search) {
+      queryParams.append('search', search);
     }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
+
+    const response = await createApiCall<{
+      data: CostCenter[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`${BASE_URL}?${queryParams.toString()}`, {
+      method: 'GET',
+    });
+
     return {
-      data: data.data,
-      total: data.total,
-      page: data.page,
-      pageSize: data.limit,
-      totalPages: Math.ceil(data.total / data.limit),
+      data: response.data,
+      total: response.total,
+      page: response.page,
+      pageSize: response.limit,
+      totalPages: Math.ceil(response.total / response.limit),
     };
-  }
-  throw new Error('Failed to fetch cost centers');
-}
+  },
 
-export async function getCostCenter(id: number): Promise<CostCenter> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/cost-centers/${id}`,
-    {
+  async getCostCenter(id: number): Promise<CostCenter> {
+    const response = await createApiCall<CostCenter>(`${BASE_URL}/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error('Failed to fetch cost center');
-}
+    });
+    return response;
+  },
 
-export async function createCostCenter(
-  costCenter: CreateCostCenter
-): Promise<CostCenter> {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/cost-centers`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-    },
-    body: JSON.stringify(costCenter),
-  });
-  const data = await response.json();
-  if (response.status === 201) {
-    return data;
-  }
-  throw new Error('Failed to create cost center');
-}
-
-export async function updateCostCenter(
-  id: number,
-  costCenter: UpdateCostCenter
-): Promise<CostCenter> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/cost-centers/${id}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
+  async createCostCenter(costCenter: CreateCostCenter): Promise<CostCenter> {
+    const response = await createApiCall<CostCenter>(BASE_URL, {
+      method: 'POST',
       body: JSON.stringify(costCenter),
-    }
-  );
-  const data = await response.json();
-  if (response.status === 200) {
-    return data;
-  }
-  throw new Error('Failed to update cost center');
-}
+    });
+    return response;
+  },
 
-export async function deleteCostCenter(id: number): Promise<void> {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/cost-centers/${id}`,
-    {
+  async updateCostCenter(
+    id: number,
+    costCenter: UpdateCostCenter
+  ): Promise<CostCenter> {
+    const response = await createApiCall<CostCenter>(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(costCenter),
+    });
+    return response;
+  },
+
+  async deleteCostCenter(id: number): Promise<void> {
+    const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    }
-  );
+    });
+    return response;
+  },
+};
 
-  if (response.status !== 200) {
-    const data = await response.json();
-    throw new Error(data.message || 'Error al eliminar el centro de costo');
-  }
-}
+// Legacy exports for backward compatibility
+export const getCostCenters = costCenterService.getCostCenters;
+export const getCostCenter = costCenterService.getCostCenter;
+export const createCostCenter = costCenterService.createCostCenter;
+export const updateCostCenter = costCenterService.updateCostCenter;
+export const deleteCostCenter = costCenterService.deleteCostCenter;

@@ -250,6 +250,12 @@ export class QuotationService {
       );
     }
 
+    if (quotationRequest.status === QuotationRequestStatus.PENDING) {
+      await this.quotationRequestRepository.update(id, {
+        status: QuotationRequestStatus.DRAFT,
+      });
+    }
+
     const { suppliers, supplierArticles, ...quotationData } =
       updateQuotationRequestDto;
 
@@ -1350,6 +1356,39 @@ export class QuotationService {
         'finalSelection.finalSelectionItems.requirementArticle.article',
       ],
     });
+  }
+
+  async getQuotationStatistics(userId: number): Promise<{
+    PENDING: number;
+    DRAFT: number;
+    ACTIVE: number;
+    COMPLETED: number;
+    CANCELLED: number;
+  }> {
+    const stats = await this.quotationRequestRepository
+      .createQueryBuilder('quotation')
+      .leftJoin('quotation.createdBy', 'createdBy')
+      .where('(createdBy.id = :userId OR createdBy.id IS NULL)', { userId })
+      .select('quotation.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('quotation.status')
+      .getRawMany();
+
+    const result = {
+      PENDING: 0,
+      DRAFT: 0,
+      ACTIVE: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+    };
+
+    stats.forEach(stat => {
+      if (Object.prototype.hasOwnProperty.call(result, stat.status)) {
+        result[stat.status as keyof typeof result] = parseInt(stat.count);
+      }
+    });
+
+    return result;
   }
 
   async generatePurchaseRequestPdf(

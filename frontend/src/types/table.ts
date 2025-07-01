@@ -10,10 +10,11 @@ export type TableColumn<T> = {
 };
 
 export type TableAction<T> = {
-  icon: ReactNode;
+  icon: ReactNode | ((row: T) => ReactNode);
   label: string;
   onClick: (row: T) => void;
   isHidden?: (row: T) => boolean;
+  disabled?: boolean | ((row: T) => boolean);
 };
 
 export type TablePaginationProps = {

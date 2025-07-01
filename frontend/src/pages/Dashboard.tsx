@@ -17,6 +17,10 @@ import {
   getGraphDistributionRequirements,
 } from '../services/api/graphService';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type {
+  GraphDistribution,
+  GraphDistributionRequirements,
+} from '../types/graph';
 
 const COLORS = [
   '#3b82f6',
@@ -33,10 +37,10 @@ const COLORS = [
 
 export const Dashboard = () => {
   const [graphDistribution, setGraphDistribution] = useState<
-    { name: string; value: number }[]
+    GraphDistribution[]
   >([]);
   const [graphDistributionRequirements, setGraphDistributionRequirements] =
-    useState<{ month: string; PEN: number; USD: number }[]>([]);
+    useState<GraphDistributionRequirements[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [loadingRequirements, setLoadingRequirements] = useState(true);
 
