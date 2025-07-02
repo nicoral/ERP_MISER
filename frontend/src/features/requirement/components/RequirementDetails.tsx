@@ -1,26 +1,40 @@
-import { useRequirement, useSignRequirement } from '../hooks/useRequirements';
+import {
+  useRejectRequirement,
+  useRequirement,
+  useSignRequirement,
+} from '../hooks/useRequirements';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
-import type { RequirementArticle } from '../../../types/requirement';
+import type {
+  Requirement,
+  RequirementArticle,
+} from '../../../types/requirement';
 import { canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
+import { useState } from 'react';
+import { RequirementStatus } from '../../../../../backend/src/app/common/enum';
+import { RejectModal } from './modals/RejectModal';
 
 export const RequirementDetails = () => {
   const params = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const {
     data: requirement,
     isLoading: loading,
     error,
+    refetch,
   } = useRequirement(params.id ? Number(params.id) : 0);
   const { data: exchangeRate, isLoading: loadingExchangeRate } =
     useCurrentExchangeRate();
   const signRequirementMutation = useSignRequirement();
+  const rejectRequirementMutation = useRejectRequirement();
 
   const subtotals = {
     PEN: requirement
@@ -52,6 +66,37 @@ export const RequirementDetails = () => {
     } catch {
       showError('Error', 'No se pudo firmar el requerimiento');
     }
+  };
+
+  const handleReject = async () => {
+    if (!requirement) return;
+
+    if (!rejectReason.trim()) {
+      showError('Error', 'Debe proporcionar un motivo para el rechazo');
+      return;
+    }
+
+    try {
+      await rejectRequirementMutation.mutateAsync({
+        id: requirement.id,
+        reason: rejectReason.trim(),
+      });
+      showSuccess('Rechazado', 'Requerimiento rechazado correctamente');
+      setShowRejectModal(false);
+      setRejectReason('');
+      refetch();
+    } catch {
+      showError('Error', 'No se pudo rechazar el requerimiento');
+    }
+  };
+
+  const handleRejectClick = () => {
+    setShowRejectModal(true);
+  };
+
+  const handleCloseRejectModal = () => {
+    setShowRejectModal(false);
+    setRejectReason('');
   };
 
   if (loading || loadingExchangeRate) return <LoadingSpinner />;
@@ -242,6 +287,16 @@ export const RequirementDetails = () => {
         </p>
       </div>
 
+      {/* Rechazo */}
+      {requirement?.rejectedReason && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 text-red-500">Rechazo:</h3>
+          <p className="text-sm bg-red-50 dark:bg-red-700 p-3 rounded">
+            {requirement?.rejectedReason || 'Sin motivo de rechazo'}
+          </p>
+        </div>
+      )}
+
       {/* Firmas */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">Firmas</h3>
@@ -281,17 +336,42 @@ export const RequirementDetails = () => {
         >
           Volver
         </button>
+        <div className="flex space-x-2">
+          {requirement && canSignRequirement(requirement) && (
+            <button
+              onClick={handleSign}
+              disabled={signRequirementMutation.isPending}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {signRequirementMutation.isPending ? 'Firmando...' : 'Firmar'}
+            </button>
+          )}
 
-        {requirement && canSignRequirement(requirement) && (
-          <button
-            onClick={handleSign}
-            disabled={signRequirementMutation.isPending}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {signRequirementMutation.isPending ? 'Firmando...' : 'Firmar'}
-          </button>
-        )}
+          {requirement &&
+            canSignRequirement(requirement) &&
+            requirement.status !== RequirementStatus.REJECTED && (
+              <button
+                onClick={handleRejectClick}
+                disabled={rejectRequirementMutation.isPending}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {rejectRequirementMutation.isPending
+                  ? 'Rechazando...'
+                  : 'Rechazar'}
+              </button>
+            )}
+        </div>
       </div>
+
+      <RejectModal
+        isOpen={showRejectModal}
+        onClose={handleCloseRejectModal}
+        requirement={requirement as Requirement}
+        rejectReason={rejectReason}
+        setRejectReason={setRejectReason}
+        handleReject={handleReject}
+        rejectRequirementMutation={rejectRequirementMutation}
+      />
     </div>
   );
 };

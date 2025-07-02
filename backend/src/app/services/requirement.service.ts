@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { Requirement } from '../entities/Requirement.entity';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
@@ -89,32 +89,30 @@ export class RequirementService {
     const role = await this.roleService.findById(employee.role.id);
     const userPermissions = role.permissions.map(p => p.name);
 
-    let whereConditions: Array<
-      Partial<Requirement> | { employee: { id: number } }
-    > = [];
-
-    whereConditions.push({ employee: { id: userId } });
+    let whereConditions: FindOptionsWhere<Requirement> | FindOptionsWhere<Requirement>[] = {
+      employee: { id: userId }
+    };
 
     if (userPermissions.includes('requirement-view-all')) {
-      whereConditions = [];
+      whereConditions = {};
     } else if (userPermissions.includes('requirement-view-signed3')) {
-      whereConditions.push(
+      whereConditions = [
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED }
-      );
+      ];
     } else if (userPermissions.includes('requirement-view-signed2')) {
-      whereConditions.push(
+      whereConditions = [
         { status: RequirementStatus.SIGNED_2 },
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED }
-      );
+      ];
     } else if (userPermissions.includes('requirement-view-signed1')) {
-      whereConditions.push(
+      whereConditions = [
         { status: RequirementStatus.SIGNED_1 },
         { status: RequirementStatus.SIGNED_2 },
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED }
-      );
+      ];
     }
 
     const [requirements, total] = await this.requirementRepository.findAndCount(
@@ -177,6 +175,27 @@ export class RequirementService {
         ? { id: Number(costCenterId) }
         : requirement.costCenter,
     });
+
+    if (updatedRequirement.status === RequirementStatus.REJECTED) {
+      await this.requirementRepository.update(id, {
+        rejectedReason: null,
+        rejectedBy: null,
+        rejectedAt: null,
+        firstSignature: null,
+        firstSignedBy: null,
+        firstSignedAt: null,
+        secondSignature: null,
+        secondSignedBy: null,
+        secondSignedAt: null,
+        thirdSignature: null,
+        thirdSignedBy: null,
+        thirdSignedAt: null,
+        fourthSignature: null,
+        fourthSignedBy: null,
+        fourthSignedAt: null,
+        status: RequirementStatus.PENDING,
+      });
+    }
 
     if (requirementArticles && requirementArticles.length > 0) {
       // Delete existing requirement articles
@@ -438,6 +457,18 @@ export class RequirementService {
     }
 
     return { canSign, requiredPermission };
+  }
+
+  async reject(id: number, userId: number, reason: string): Promise<Requirement> {
+    const requirement = await this.findOne(id);
+    if (requirement.status === RequirementStatus.APPROVED) {
+      throw new ForbiddenException('No se puede rechazar un requerimiento aprobado');
+    }
+    requirement.rejectedReason = reason;
+    requirement.rejectedBy = userId;
+    requirement.rejectedAt = new Date();
+    requirement.status = RequirementStatus.REJECTED;
+    return this.requirementRepository.save(requirement);
   }
 
   async sign(id: number, userId: number): Promise<Requirement> {

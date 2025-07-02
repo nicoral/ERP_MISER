@@ -9,6 +9,7 @@ import {
   usePublishRequirement,
   useGenerateRequirementPdf,
   useSignRequirement,
+  useRejectRequirement,
 } from '../hooks/useRequirements';
 import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
@@ -18,12 +19,14 @@ import {
   PublishIcon,
   TrashIcon,
   EditIcon,
+  RejectIcon,
 } from '../../../components/common/Icons';
 import { DownloadIcon, Loader2 } from 'lucide-react';
 import { hasPermission, canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
 import { REQUIREMENT_STATUS_LABELS } from '../../../utils/requirementStatus';
+import { RejectModal } from './modals/RejectModal';
 
 export const RequirementList = () => {
   const navigate = useNavigate();
@@ -32,10 +35,14 @@ export const RequirementList = () => {
   const publishRequirementMutation = usePublishRequirement();
   const generatePdfMutation = useGenerateRequirementPdf();
   const signRequirementMutation = useSignRequirement();
+  const rejectRequirementMutation = useRejectRequirement();
 
   const [page, setPage] = useState(1);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
-
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [selectedRequirement, setSelectedRequirement] =
+    useState<Requirement | null>(null);
   // Hook con datos y estados automáticos de React Query
   const { data, isLoading, isFetching } = useRequirements(page, 10);
 
@@ -82,6 +89,37 @@ export const RequirementList = () => {
       showSuccess('Firmado', 'Requerimiento firmado correctamente');
     } catch {
       showError('Error', 'No se pudo firmar el requerimiento');
+    }
+  };
+
+  const handleOpenRejectModal = (requirement: Requirement) => {
+    setSelectedRequirement(requirement);
+    setShowRejectModal(true);
+  };
+
+  const handleCloseRejectModal = () => {
+    setShowRejectModal(false);
+    setRejectReason('');
+    setSelectedRequirement(null);
+  };
+
+  const handleReject = async () => {
+    if (!selectedRequirement) return;
+
+    if (!rejectReason.trim()) {
+      showError('Error', 'Debe proporcionar un motivo para el rechazo');
+      return;
+    }
+
+    try {
+      await rejectRequirementMutation.mutateAsync({
+        id: selectedRequirement.id,
+        reason: rejectReason.trim(),
+      });
+      showSuccess('Rechazado', 'Requerimiento rechazado correctamente');
+      handleCloseRejectModal();
+    } catch {
+      showError('Error', 'No se pudo rechazar el requerimiento');
     }
   };
 
@@ -198,7 +236,8 @@ export const RequirementList = () => {
             label: 'Editar',
             onClick: handleEdit,
             isHidden: (requirement: Requirement) =>
-              requirement.status !== 'PENDING',
+              requirement.status !== 'PENDING' &&
+              requirement.status !== 'REJECTED',
           },
         ]
       : []),
@@ -223,6 +262,12 @@ export const RequirementList = () => {
       icon: <PublishIcon className="w-5 h-5 text-purple-600" />,
       label: 'Firmar',
       onClick: handleSign,
+      isHidden: (requirement: Requirement) => !canSignRequirement(requirement),
+    },
+    {
+      icon: <RejectIcon className="w-5 h-5 text-red-600" />,
+      label: 'Rechazar',
+      onClick: handleOpenRejectModal,
       isHidden: (requirement: Requirement) => !canSignRequirement(requirement),
     },
     ...(hasPermission('delete_requirement')
@@ -275,6 +320,16 @@ export const RequirementList = () => {
           pageSize={10}
         />
       </div>
+
+      <RejectModal
+        isOpen={showRejectModal}
+        onClose={handleCloseRejectModal}
+        requirement={selectedRequirement as Requirement}
+        rejectReason={rejectReason}
+        setRejectReason={setRejectReason}
+        handleReject={handleReject}
+        rejectRequirementMutation={rejectRequirementMutation}
+      />
     </div>
   );
 };

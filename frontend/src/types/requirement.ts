@@ -29,6 +29,9 @@ export interface Requirement {
   fourthSignature?: string;
   fourthSignedBy?: number;
   fourthSignedAt?: string;
+  rejectedReason?: string;
+  rejectedBy?: number;
+  rejectedAt?: string;
 }
 
 export interface RequirementArticle {

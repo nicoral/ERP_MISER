@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   UseGuards,
+  Res
 } from '@nestjs/common';
 import { RequirementService } from '../services/requirement.service';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
@@ -19,7 +20,6 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { UpdateRequirementDto } from '../dto/requirement/update-requirement.dto';
 import { Response } from 'express';
-import { Res } from '@nestjs/common';
 
 @Controller('requirements')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -100,5 +100,11 @@ export class RequirementController {
   @AuditDescription('Firma de requerimiento')
   async sign(@Req() req, @Param('id') id: number): Promise<Requirement> {
     return this.requirementService.sign(id, req.user.id);
+  }
+
+  @Post('reject/:id')
+  @AuditDescription('Rechazo de requerimiento')
+  async reject(@Req() req, @Param('id') id: number, @Body('reason') reason: string): Promise<Requirement> {
+    return this.requirementService.reject(id, req.user.id, reason);
   }
 }

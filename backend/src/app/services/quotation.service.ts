@@ -29,7 +29,6 @@ import {
 import { FinalSelectionItem } from '../entities/FinalSelectionItem.entity';
 import { RequirementService } from './requirement.service';
 import { SupplierService } from './supplier.service';
-import { EmployeeService } from './employee.service';
 import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-request.dto';
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { formatNumber } from '../utils/transformer';
@@ -68,8 +67,7 @@ export class QuotationService {
     @InjectRepository(RequirementArticle)
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     private readonly requirementService: RequirementService,
-    private readonly supplierService: SupplierService,
-    private readonly employeeService: EmployeeService
+    private readonly supplierService: SupplierService
   ) {}
 
   // ========================================
@@ -98,7 +96,7 @@ export class QuotationService {
           ? new Date(quotationData.deadline)
           : undefined,
         requirement: { id: requirementId },
-        status: QuotationRequestStatus.DRAFT,
+        status: userId ? QuotationRequestStatus.DRAFT : QuotationRequestStatus.PENDING,
       });
     if (userId) {
       quotationRequest.createdBy = Object.assign(new Employee(), {

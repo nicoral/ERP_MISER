@@ -81,6 +81,17 @@ export const requirementService = {
     return response;
   },
 
+  async rejectRequirement(id: number, reason: string): Promise<Requirement> {
+    const response = await createApiCall<Requirement>(
+      `${BASE_URL}/reject/${id}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }
+    );
+    return response;
+  },
+
   async deleteRequirement(id: number): Promise<void> {
     const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
       method: 'DELETE',
@@ -98,3 +109,4 @@ export const generateRequirementPdf = requirementService.generateRequirementPdf;
 export const publishRequirement = requirementService.publishRequirement;
 export const signRequirement = requirementService.signRequirement;
 export const deleteRequirement = requirementService.deleteRequirement;
+export const rejectRequirement = requirementService.rejectRequirement;
