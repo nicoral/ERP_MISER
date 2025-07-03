@@ -107,14 +107,6 @@ export const Login = () => {
             </button>
           </div>
         </form>
-        <div className="mt-6 text-center">
-          <a
-            href="#"
-            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            {LOGIN_TEXTS.forgotPassword}
-          </a>
-        </div>
       </div>
     </div>
   );

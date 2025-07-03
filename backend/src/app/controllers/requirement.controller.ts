@@ -97,12 +97,14 @@ export class RequirementController {
   }
 
   @Post('sign/:id')
+  @RequirePermissions('view_requirements')
   @AuditDescription('Firma de requerimiento')
   async sign(@Req() req, @Param('id') id: number): Promise<Requirement> {
     return this.requirementService.sign(id, req.user.id);
   }
 
   @Post('reject/:id')
+  @RequirePermissions('view_requirements')
   @AuditDescription('Rechazo de requerimiento')
   async reject(@Req() req, @Param('id') id: number, @Body('reason') reason: string): Promise<Requirement> {
     return this.requirementService.reject(id, req.user.id, reason);

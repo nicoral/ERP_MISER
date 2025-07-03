@@ -1574,6 +1574,10 @@ export class QuotationService {
       return a === b;
     });
 
+    Handlebars.registerHelper('calculateHeaderSpacing', function (suppliers, b) {
+      return suppliers * 2 + b;
+    });
+
     Handlebars.registerHelper('formatNumber', function (num, decimals) {
       if (num === null || num === undefined || isNaN(num)) return '0.00';
       const number = Number(num);

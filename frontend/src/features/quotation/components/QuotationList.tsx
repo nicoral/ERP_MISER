@@ -304,7 +304,10 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       icon: <Edit className="w-5 h-5 text-blue-600" />,
       label: 'Editar',
       onClick: onEditQuotation,
-      isHidden: (quotation: QuotationRequest) => quotation.status !== 'DRAFT',
+      isHidden: (quotation: QuotationRequest) =>
+        quotation.status !== 'DRAFT' &&
+        quotation.status !== 'PENDING' &&
+        quotation.status !== 'CANCELLED',
     },
     {
       icon: (quotation: QuotationRequest) =>

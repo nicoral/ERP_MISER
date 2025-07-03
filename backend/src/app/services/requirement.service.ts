@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -480,7 +481,7 @@ export class RequirementService {
     }
 
     if (!employee.signature) {
-      throw new ForbiddenException('El usuario no tiene firma registrada');
+      throw new BadRequestException('El usuario no tiene firma registrada');
     }
 
     // Obtener el rol del empleado con sus permisos

@@ -218,7 +218,7 @@
     <table class="comparison-table">
       <!-- Cabecera de propuestas -->
       <tr>
-        <th colspan="{{add suppliers.length 4}}" style="text-align: center; background: #000080; color: #fff; font-size: 11px;">PROPUESTAS</th>
+        <th colspan="{{calculateHeaderSpacing suppliers.length 4}}" style="text-align: center; background: #000080; color: #fff; font-size: 11px;">PROPUESTAS</th>
       </tr>
       <tr>
         <td colspan="4" style="text-align: center; font-weight: bold; font-size: 9px;">RAZÓN SOCIAL</td>
@@ -314,7 +314,7 @@
         {{/each}}
       </tr>
       <tr>
-        <td colspan="{{add suppliers.length 4}}" class="supplier-header">OBSERVACIONES</td>
+        <td colspan="{{calculateHeaderSpacing suppliers.length 4}}" class="supplier-header">OBSERVACIONES</td>
       </tr>
       <tr>
         <td colspan="4" style="text-align: center;">OBSERVACIONES</td>
@@ -335,7 +335,7 @@
         {{/each}}
       </tr>
       <tr>
-        <td colspan="{{add suppliers.length 4}}" style="text-align: center; background: #757170; color: #fff; font-weight: bold;">ADICIONALES</td>
+        <td colspan="{{calculateHeaderSpacing suppliers.length 4}}" style="text-align: center; background: #757170; color: #fff; font-weight: bold;">ADICIONALES</td>
       </tr>
     </table>
   </div>

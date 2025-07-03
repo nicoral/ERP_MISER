@@ -27,6 +27,10 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    if (!employee.active) {
+      throw new UnauthorizedException('El usuario no está activo');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, employee.password);
 
     if (!isPasswordValid) {
