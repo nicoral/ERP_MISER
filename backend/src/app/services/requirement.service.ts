@@ -320,8 +320,8 @@ export class RequirementService {
     } else {
       tableItems.push(...requirementServices.map((reqService, index) => ({
         index: index + 1,
-        id: reqService.service.id.toString().padStart(6, '0'),
-        code: reqService.service.code,
+        id: reqService.service.code,
+        code: '-',
         name: reqService.service.name,
         quantity: reqService.duration || 0,
         unit: reqService.durationType || '-',
