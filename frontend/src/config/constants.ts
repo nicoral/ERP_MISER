@@ -74,6 +74,10 @@ export const MODULES = [
     label: 'Artículos',
   },
   {
+    key: 'services',
+    label: 'Servicios',
+  },
+  {
     key: 'cost_centers',
     label: 'Centros de costo',
   },
@@ -86,8 +90,8 @@ export const MODULES = [
     label: 'Requerimientos',
   },
   {
-    key: 'services',
-    label: 'Servicios',
+    key: 'quotation',
+    label: 'Cotizaciones',
   },
 ];
 

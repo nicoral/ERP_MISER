@@ -464,8 +464,20 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
             >
               <div className="font-medium text-sm mb-1">{firma.label}</div>
               {firma.signed ? (
-                <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
-                  Firmado
+                <div className="text-center">
+                  <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
+                    Firmado
+                  </div>
+                  {firma.signedBy && (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {firma.signedBy.firstName} {firma.signedBy.lastName}
+                    </div>
+                  )}
+                  {firma.signedAt && (
+                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {formatDate(firma.signedAt.toString())}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-xs text-gray-400 italic">Pendiente</div>

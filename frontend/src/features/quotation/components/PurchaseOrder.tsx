@@ -8,6 +8,7 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
   quotation,
   selectedSupplierId,
   selectedArticles,
+  signatures,
 }) => {
   // Estado local para forma de pago
   const [paymentMethod, setPaymentMethod] = useState('DEPOSITO A CUENTA');
@@ -259,26 +260,25 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
         </div>
       </div>
 
-      {/* Firmas para Orden de Compra */}
+      {/* Firmas */}
       <div className="mb-4">
         <div className="font-semibold text-xs mb-1">FIRMAS</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow">
-            <div className="font-medium text-sm mb-1">Administración</div>
-            <div className="text-xs text-gray-400 italic">Pendiente</div>
-          </div>
-          <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow">
-            <div className="font-medium text-sm mb-1">Residencia</div>
-            <div className="text-xs text-gray-400 italic">Pendiente</div>
-          </div>
-          <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow">
-            <div className="font-medium text-sm mb-1">Oficina Técnica</div>
-            <div className="text-xs text-gray-400 italic">Pendiente</div>
-          </div>
-          <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow">
-            <div className="font-medium text-sm mb-1">Gerencia</div>
-            <div className="text-xs text-gray-400 italic">Pendiente</div>
-          </div>
+          {signatures.map((firma, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow"
+            >
+              <div className="font-medium text-sm mb-1">{firma.label}</div>
+              {firma.signed ? (
+                <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
+                  Firmado
+                </div>
+              ) : (
+                <div className="text-xs text-gray-400 italic">Pendiente</div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </>

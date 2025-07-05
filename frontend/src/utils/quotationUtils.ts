@@ -32,6 +32,16 @@ export const getQuotationStatusColor = (status: string): string => {
       return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'CANCELLED':
       return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+    case 'SIGNED_1':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    case 'SIGNED_2':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    case 'SIGNED_3':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    case 'APPROVED':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    case 'REJECTED':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
@@ -49,6 +59,16 @@ export const getQuotationStatusText = (status: string): string => {
       return '✅ Completado';
     case 'CANCELLED':
       return '❌ Cancelado';
+    case 'SIGNED_1':
+      return '✍️ Firmado (Logística)';
+    case 'SIGNED_2':
+      return '✍️ Firmado (Of. Técnica)';
+    case 'SIGNED_3':
+      return '✍️ Firmado (Administración)';
+    case 'APPROVED':
+      return '✅ Aprobado';
+    case 'REJECTED':
+      return '❌ Rechazado';
     default:
       return status;
   }

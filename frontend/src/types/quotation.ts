@@ -10,6 +10,11 @@ export enum QuotationRequestStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  SIGNED_1 = 'SIGNED_1',
+  SIGNED_2 = 'SIGNED_2',
+  SIGNED_3 = 'SIGNED_3',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }
 
 export enum QuotationSupplierStatus {
@@ -50,6 +55,18 @@ export interface QuotationRequest {
   createdBy: Employee;
   quotationSuppliers: QuotationSupplier[];
   finalSelection: FinalSelection;
+  // Approval flow fields
+  firstSignedBy?: Employee;
+  secondSignedBy?: Employee;
+  thirdSignedBy?: Employee;
+  fourthSignedBy?: Employee;
+  firstSignedAt?: Date;
+  secondSignedAt?: Date;
+  thirdSignedAt?: Date;
+  fourthSignedAt?: Date;
+  rejectedBy?: Employee;
+  rejectedAt?: Date;
+  rejectedReason?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

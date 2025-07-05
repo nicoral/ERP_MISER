@@ -1,5 +1,6 @@
 import { getCurrentUser } from '../services/auth/authService';
 import type { Requirement } from '../types/requirement';
+import type { QuotationRequest } from '../types/quotation';
 
 /**
  * Verifica si el usuario actual tiene el permiso especificado
@@ -99,5 +100,60 @@ export const getSignButtonText = (requirement: Requirement): string => {
       return 'Firmar (4ta Firma)';
     default:
       return 'Firmar';
+  }
+};
+
+/**
+ * Verifica si el usuario puede firmar una cotización según su estado y permisos
+ * @param quotation - La cotización a verificar
+ * @returns true si el usuario puede firmar, false en caso contrario
+ */
+export const canSignQuotation = (quotation: QuotationRequest): boolean => {
+  const user = getCurrentUser();
+  if (!user || !user.role || !user.role.permissions) {
+    return false;
+  }
+
+  // Verificar que la cotización esté en estado COMPLETED
+  if (quotation.status !== 'COMPLETED') {
+    return false;
+  }
+
+  // Verificar según el estado de las firmas
+  if (!quotation.firstSignedBy) {
+    // Primera firma - solo el createdBy puede firmar
+    return user.id === quotation.createdBy.id;
+  } else if (!quotation.secondSignedBy) {
+    // Segunda firma - necesita quotation-view-signed1
+    return hasPermission('quotation-view-signed1');
+  } else if (!quotation.thirdSignedBy) {
+    // Tercera firma - necesita quotation-view-signed2
+    return hasPermission('quotation-view-signed2');
+  } else if (!quotation.fourthSignedBy) {
+    // Cuarta firma - necesita quotation-view-signed3
+    return hasPermission('quotation-view-signed3');
+  }
+
+  return false;
+};
+
+/**
+ * Obtiene el texto del botón de firma según el estado de la cotización
+ * @param quotation - La cotización
+ * @returns El texto del botón
+ */
+export const getQuotationSignButtonText = (
+  quotation: QuotationRequest
+): string => {
+  if (!quotation.firstSignedBy) {
+    return 'Firmar (Logística)';
+  } else if (!quotation.secondSignedBy) {
+    return 'Firmar (Of. Técnica)';
+  } else if (!quotation.thirdSignedBy) {
+    return 'Firmar (Administración)';
+  } else if (!quotation.fourthSignedBy) {
+    return 'Firmar (Gerencia)';
+  } else {
+    return 'Aprobado';
   }
 };

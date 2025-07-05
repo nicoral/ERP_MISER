@@ -16,6 +16,7 @@ import { Warehouse } from './Warehouse.entity';
 import { Requirement } from './Requirement.entity';
 import { QuotationRequest } from './QuotationRequest.entity';
 import { FinalSelection } from './FinalSelection.entity';
+import { Payment } from './Payment.entity';
 
 @Entity()
 export class Employee {
@@ -103,6 +104,9 @@ export class Employee {
   @ManyToMany(() => Warehouse, warehouse => warehouse.employees)
   @JoinTable()
   warehousesAssigned: Warehouse[];
+
+  @OneToMany(() => Payment, payment => payment.createdBy)
+  payments: Payment[];
 
   @CreateDateColumn({
     name: 'created_at',

@@ -105,13 +105,6 @@ export class QuotationController {
     );
   }
 
-  @Patch(':id/activate')
-  @RequirePermissions('update_quotation')
-  @AuditDescription('Activar solicitud de cotización')
-  activate(@Param('id') id: string) {
-    return this.quotationService.activateQuotationRequest(+id);
-  }
-
   @Patch(':id/cancel')
   @RequirePermissions('update_quotation')
   @AuditDescription('Cancelar solicitud de cotización')
@@ -124,6 +117,27 @@ export class QuotationController {
   @AuditDescription('Eliminar solicitud de cotización')
   remove(@Param('id') id: string) {
     return this.quotationService.removeQuotationRequest(+id);
+  }
+
+  @Post(':id/sign')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Firmar solicitud de cotización')
+  sign(
+    @Req() req: { user: { id: number } },
+    @Param('id') id: string
+  ) {
+    return this.quotationService.signQuotationRequest(+id, req.user.id);
+  }
+
+  @Post(':id/reject')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Rechazar solicitud de cotización')
+  reject(
+    @Req() req: { user: { id: number } },
+    @Param('id') id: string,
+    @Body() body: { reason: string }
+  ) {
+    return this.quotationService.rejectQuotationRequest(+id, req.user.id, body.reason);
   }
 
   // Supplier Quotations

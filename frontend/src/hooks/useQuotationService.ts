@@ -186,6 +186,23 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
+  // Approval flow methods
+  const signQuotationRequest = useCallback(
+    async (id: number) => {
+      return handleRequest(() => quotationService.signQuotationRequest(id));
+    },
+    [handleRequest]
+  );
+
+  const rejectQuotationRequest = useCallback(
+    async (id: number, reason: string) => {
+      return handleRequest(() =>
+        quotationService.rejectQuotationRequest(id, reason)
+      );
+    },
+    [handleRequest]
+  );
+
   // Quotation Order methods
   const updateQuotationOrder = useCallback(
     async (quotationRequestId: number, data: UpdateQuotationOrderDto) => {
@@ -253,6 +270,9 @@ export const useQuotationService = () => {
     getFinalSelectionByRequest,
     updateFinalSelection,
     approveFinalSelection,
+    // Approval flow
+    signQuotationRequest,
+    rejectQuotationRequest,
     // Quotation Orders
     updateQuotationOrder,
     sendQuotationOrder,

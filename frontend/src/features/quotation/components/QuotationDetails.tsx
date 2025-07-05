@@ -11,12 +11,23 @@ import { type QuotationRequest } from '../../../types/quotation';
 import { useToast } from '../../../contexts/ToastContext';
 import { ComparisonTable } from './ComparisonTable';
 import { PurchaseOrder } from './PurchaseOrder';
+import {
+  hasPermission,
+  canSignQuotation,
+  getQuotationSignButtonText,
+} from '../../../utils/permissions';
+import type { Signature } from '../types';
 
 export const QuotationDetails = () => {
   const params = useParams();
   const navigate = useNavigate();
-  const { showError } = useToast();
-  const { getQuotationRequest, loading, error } = useQuotationService();
+  const { showError, showSuccess } = useToast();
+  const {
+    getQuotationRequest,
+    signQuotationRequest,
+    rejectQuotationRequest,
+    loading,
+  } = useQuotationService();
 
   const [quotation, setQuotation] = React.useState<QuotationRequest | null>(
     null
@@ -28,6 +39,10 @@ export const QuotationDetails = () => {
     'comparison' | 'purchase-order'
   >('comparison');
   const [isDownloading, setIsDownloading] = React.useState(false);
+  const [isSigning, setIsSigning] = React.useState(false);
+  const [isRejecting, setIsRejecting] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState('');
+  const [showRejectModal, setShowRejectModal] = React.useState(false);
 
   React.useEffect(() => {
     const loadQuotation = async () => {
@@ -53,8 +68,60 @@ export const QuotationDetails = () => {
     loadQuotation();
   }, [params.id, getQuotationRequest]);
 
+  // Función para firmar la cotización
+  const handleSignQuotation = async () => {
+    if (!quotation) return;
+
+    setIsSigning(true);
+    try {
+      const updatedQuotation = await signQuotationRequest(quotation.id);
+      if (updatedQuotation) {
+        setQuotation(updatedQuotation);
+        showSuccess('Cotización firmada exitosamente');
+      }
+    } catch (error) {
+      showError('Error al firmar la cotización');
+      console.error('Error signing quotation:', error);
+    } finally {
+      setIsSigning(false);
+    }
+  };
+
+  // Función para rechazar la cotización
+  const handleRejectQuotation = async () => {
+    if (!quotation || !rejectReason.trim()) return;
+
+    setIsRejecting(true);
+    try {
+      const updatedQuotation = await rejectQuotationRequest(
+        quotation.id,
+        rejectReason
+      );
+      if (updatedQuotation) {
+        setQuotation(updatedQuotation);
+        setShowRejectModal(false);
+        setRejectReason('');
+        showSuccess('Cotización rechazada exitosamente');
+      }
+    } catch (error) {
+      showError('Error al rechazar la cotización');
+      console.error('Error rejecting quotation:', error);
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  // Verificar si el usuario puede firmar
+  const canSign = quotation && canSignQuotation(quotation);
+  const canReject = quotation && hasPermission('quotation:reject');
+  const isCompleted = quotation?.status === 'COMPLETED';
+  const isSigned =
+    quotation?.status?.startsWith('SIGNED_') ||
+    quotation?.status === 'APPROVED';
+
+  const isRejected = quotation?.status === 'REJECTED';
+
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="text-red-500">{error}</div>;
   if (!quotation)
     return <div className="text-red-500">Cotización no encontrada</div>;
 
@@ -109,12 +176,32 @@ export const QuotationDetails = () => {
   // Proveedores seleccionados (de la selección final)
   const finalSelection = quotation.finalSelection;
 
-  // Firmas (similares a requerimiento)
-  const signatures = [
-    { label: 'Logística', signed: !!quotation.finalSelection?.createdAt },
-    { label: 'Of. Técnica', signed: false },
-    { label: 'Administración', signed: false },
-    { label: 'Gerencia', signed: false },
+  // Firmas basadas en el estado real de la cotización
+  const signatures: Signature[] = [
+    {
+      label: 'Logística',
+      signed: !!quotation.firstSignedBy,
+      signedBy: quotation.firstSignedBy,
+      signedAt: quotation.firstSignedAt,
+    },
+    {
+      label: 'Of. Técnica',
+      signed: !!quotation.secondSignedBy,
+      signedBy: quotation.secondSignedBy,
+      signedAt: quotation.secondSignedAt,
+    },
+    {
+      label: 'Administración',
+      signed: !!quotation.thirdSignedBy,
+      signedBy: quotation.thirdSignedBy,
+      signedAt: quotation.thirdSignedAt,
+    },
+    {
+      label: 'Gerencia',
+      signed: !!quotation.fourthSignedBy,
+      signedBy: quotation.fourthSignedBy,
+      signedAt: quotation.fourthSignedAt,
+    },
   ];
 
   // Obtener proveedores que tienen artículos en la selección final
@@ -184,6 +271,7 @@ export const QuotationDetails = () => {
           quotation={quotation}
           selectedSupplierId={selectedSupplierId}
           selectedArticles={selectedArticles}
+          signatures={signatures}
         />
       );
     }
@@ -324,20 +412,50 @@ export const QuotationDetails = () => {
 
       {/* Botones fuera del bloque enmarcado */}
       <div className="flex justify-between mt-4">
-        <button
-          onClick={handleDownloadPdf}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[140px]"
-          disabled={!selectedSupplierId || isDownloading}
-        >
-          {isDownloading ? (
-            <span className="flex items-center gap-2">
-              <LoadingSpinner size="sm" />
-              Descargando...
-            </span>
-          ) : (
-            'Descargar Cotización'
+        <div className="flex gap-2">
+          <button
+            onClick={handleDownloadPdf}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[140px]"
+            disabled={!selectedSupplierId || isDownloading}
+          >
+            {isDownloading ? (
+              <span className="flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                Descargando...
+              </span>
+            ) : (
+              'Descargar Cotización'
+            )}
+          </button>
+
+          {/* Botones de aprobación */}
+          {isCompleted && canSign && !isSigned && !isRejected && (
+            <button
+              onClick={handleSignQuotation}
+              disabled={isSigning}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center justify-center min-w-[140px]"
+            >
+              {isSigning ? (
+                <span className="flex items-center gap-2">
+                  <LoadingSpinner size="sm" />
+                  Firmando...
+                </span>
+              ) : (
+                getQuotationSignButtonText(quotation)
+              )}
+            </button>
           )}
-        </button>
+
+          {isCompleted && canReject && !isSigned && !isRejected && (
+            <button
+              onClick={() => setShowRejectModal(true)}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            >
+              Rechazar
+            </button>
+          )}
+        </div>
+
         <button
           onClick={() => navigate(ROUTES.QUOTATIONS)}
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
@@ -345,6 +463,49 @@ export const QuotationDetails = () => {
           Volver
         </button>
       </div>
+
+      {/* Modal de rechazo */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              Rechazar Cotización
+            </h3>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Ingrese el motivo del rechazo..."
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700 dark:text-white"
+              rows={4}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRejectQuotation}
+                disabled={!rejectReason.trim() || isRejecting}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                {isRejecting ? (
+                  <span className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Rechazando...
+                  </span>
+                ) : (
+                  'Rechazar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

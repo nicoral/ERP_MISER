@@ -24,6 +24,7 @@ import { FinalSelection } from '../../app/entities/FinalSelection.entity';
 import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity';
 import { Service } from '../../app/entities/Service.entity';
 import { RequirementService } from '../../app/entities/RequirementService.entity';
+import { Payment } from '../../app/entities/Payment.entity';
 
 @Global()
 @Module({
@@ -53,6 +54,7 @@ import { RequirementService } from '../../app/entities/RequirementService.entity
         FinalSelectionItem,
         Service,
         RequirementService,
+        Payment,
       ],
     }),
   ],

@@ -29,6 +29,7 @@ import {
 import { FinalSelectionItem } from '../entities/FinalSelectionItem.entity';
 import { RequirementService } from './requirement.service';
 import { SupplierService } from './supplier.service';
+import { calculateApprovalProgress } from '../utils/approvalFlow.utils';
 import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-request.dto';
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { formatNumber } from '../utils/transformer';
@@ -238,6 +239,7 @@ export class QuotationService {
     if (quotationRequest.createdBy === undefined) {
       await this.quotationRequestRepository.update(id, {
         createdBy: { id: userId },
+        status: QuotationRequestStatus.ACTIVE,
       });
     }
 
@@ -304,29 +306,7 @@ export class QuotationService {
     return this.findOneQuotationRequest(id);
   }
 
-  async activateQuotationRequest(id: number): Promise<QuotationRequest> {
-    const quotationRequest = await this.getQuotationRequestOrders(id, [
-      'quotationSuppliers',
-    ]);
 
-    if (quotationRequest.status !== QuotationRequestStatus.DRAFT) {
-      throw new BadRequestException(
-        'Only draft quotation requests can be activated'
-      );
-    }
-
-    if (quotationRequest.quotationSuppliers.length === 0) {
-      throw new BadRequestException(
-        'Cannot activate quotation request without suppliers'
-      );
-    }
-
-    await this.quotationRequestRepository.update(id, {
-      status: QuotationRequestStatus.ACTIVE,
-    });
-
-    return this.findOneQuotationRequest(id);
-  }
 
   async cancelQuotationRequest(id: number): Promise<QuotationRequest> {
     const quotationRequest = await this.getQuotationRequestOrders(id, [
@@ -1297,11 +1277,11 @@ export class QuotationService {
       status: FinalSelectionStatus.APPROVED,
     });
 
-    // Update quotation request status to ACTIVE
+    // Update quotation request status to COMPLETED
     await this.quotationRequestRepository.update(
       finalSelection.quotationRequest.id,
       {
-        status: QuotationRequestStatus.ACTIVE,
+        status: QuotationRequestStatus.COMPLETED,
       }
     );
 
@@ -1321,6 +1301,95 @@ export class QuotationService {
   }
 
   // ========================================
+  // APPROVAL FLOW METHODS
+  // ========================================
+
+  async signQuotationRequest(id: number, userId: number): Promise<QuotationRequest> {
+    const quotationRequest = await this.findOneQuotationRequest(id);
+    
+    // Verificar que tenga selección final
+    if (!quotationRequest.finalSelection) {
+      throw new BadRequestException('No se puede firmar una cotización sin selección final');
+    }
+
+    // Importar utilidades
+    const { canUserSign, processSignature, isLowAmount } = await import('../utils/approvalFlow.utils');
+    
+    // Obtener empleado y permisos
+    const employee = await this.requirementService['employeeService'].findOne(userId);
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
+    if (!employee.signature) {
+      throw new BadRequestException('El usuario no tiene firma registrada');
+    }
+
+    const role = await this.requirementService['roleService'].findById(employee.role.id);
+    const userPermissions = role.permissions.map(p => p.name);
+
+    // Verificar permisos
+    const { canSign } = canUserSign(quotationRequest, userPermissions, quotationRequest.createdBy.id, userId, 'quotation');
+    
+    // Para la primera firma, verificar que sea el creador de la cotización
+    if (!quotationRequest.firstSignedBy && userId !== quotationRequest.createdBy.id) {
+      throw new BadRequestException('Solo el creador de la cotización puede realizar la primera firma');
+    }
+    
+    if (!canSign) {
+      throw new BadRequestException('No tienes permisos para firmar esta cotización');
+    }
+
+    // Calcular monto total para determinar si es de monto bajo
+    const totalAmount = quotationRequest.finalSelection.finalSelectionItems.reduce(
+      (sum, item) => sum + (item.unitPrice * item.quantity),
+      0
+    );
+    const isLowAmountQuotation = isLowAmount(totalAmount);
+
+    // Procesar firma
+    const { updatedEntity } = processSignature(
+      quotationRequest,
+      userId,
+      employee.signature,
+      isLowAmountQuotation
+    );
+
+    // Actualizar entidad
+    Object.assign(quotationRequest, updatedEntity);
+    const savedQuotationRequest = await this.quotationRequestRepository.save(quotationRequest);
+
+    // Actualizar progreso
+    await this.updateQuotationProgress(id);
+
+    return savedQuotationRequest;
+  }
+
+  async rejectQuotationRequest(
+    id: number,
+    userId: number,
+    reason: string
+  ): Promise<QuotationRequest> {
+    const quotationRequest = await this.findOneQuotationRequest(id);
+    
+    if (quotationRequest.status === QuotationRequestStatus.APPROVED) {
+      throw new BadRequestException('No se puede rechazar una cotización aprobada');
+    }
+
+    quotationRequest.rejectedReason = reason;
+    quotationRequest.rejectedBy = userId;
+    quotationRequest.rejectedAt = new Date();
+    quotationRequest.status = QuotationRequestStatus.REJECTED;
+
+    const savedQuotationRequest = await this.quotationRequestRepository.save(quotationRequest);
+    
+    // Actualizar progreso
+    await this.updateQuotationProgress(id);
+
+    return savedQuotationRequest;
+  }
+
+  // ========================================
   // UTILITY METHODS
   // ========================================
 
@@ -1328,6 +1397,7 @@ export class QuotationService {
   private calculateQuotationProgress(
     quotationRequest: QuotationRequest
   ): number {
+    // Calcular progreso base del proceso de cotización (hasta 80%)
     const steps = [
       quotationRequest.quotationSuppliers.length > 0, // Step 1: Suppliers selected
       quotationRequest.quotationSuppliers.some(qs => qs.status === 'SENT'), // Step 2: Orders sent
@@ -1339,7 +1409,19 @@ export class QuotationService {
     ];
 
     const completedSteps = steps.filter(Boolean).length;
-    return Math.round((completedSteps / 5) * 100);
+    const baseProgress = Math.round((completedSteps / 5) * 80);
+
+    // Si hay selección final, calcular progreso de aprobación
+    if (quotationRequest.finalSelection) {
+      const approvalProgress = calculateApprovalProgress(quotationRequest, {
+        baseProgress: 80,
+        maxProgress: 100,
+        approvalSteps: 4
+      });
+      return approvalProgress;
+    }
+
+    return baseProgress;
   }
 
   // Private method to update quotation progress asynchronously
@@ -1461,6 +1543,11 @@ export class QuotationService {
     ACTIVE: number;
     COMPLETED: number;
     CANCELLED: number;
+    SIGNED_1: number;
+    SIGNED_2: number;
+    SIGNED_3: number;
+    APPROVED: number;
+    REJECTED: number;
   }> {
     const stats = await this.quotationRequestRepository
       .createQueryBuilder('quotation')
@@ -1477,6 +1564,11 @@ export class QuotationService {
       ACTIVE: 0,
       COMPLETED: 0,
       CANCELLED: 0,
+      SIGNED_1: 0,
+      SIGNED_2: 0,
+      SIGNED_3: 0,
+      APPROVED: 0,
+      REJECTED: 0,
     };
 
     stats.forEach(stat => {

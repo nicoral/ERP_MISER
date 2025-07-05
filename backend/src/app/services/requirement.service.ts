@@ -17,6 +17,7 @@ import {
   RequirementStatus,
 } from '../common/enum';
 import { formatNumber } from '../utils/transformer';
+import { canUserSign, processSignature, isLowAmount } from '../utils/approvalFlow.utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';
@@ -531,45 +532,6 @@ export class RequirementService {
     await this.requirementRepository.softRemove(requirement);
   }
 
-  /**
-   * Verifica si un usuario puede firmar un requerimiento según su estado y permisos
-   * @param requirement - El requerimiento a verificar
-   * @param userPermissions - Los permisos del usuario
-   * @returns { canSign: boolean, requiredPermission: string }
-   */
-  private canUserSignRequirement(
-    requirement: Requirement,
-    userPermissions: string[]
-  ): { canSign: boolean; requiredPermission: string } {
-    let canSign = false;
-    let requiredPermission = '';
-
-    switch (requirement.status) {
-      case RequirementStatus.SIGNED_1:
-        requiredPermission = 'requirement-view-signed1';
-        canSign =
-          userPermissions.includes(requiredPermission) &&
-          !requirement.secondSignedAt;
-        break;
-      case RequirementStatus.SIGNED_2:
-        requiredPermission = 'requirement-view-signed2';
-        canSign =
-          userPermissions.includes(requiredPermission) &&
-          !requirement.thirdSignedAt;
-        break;
-      case RequirementStatus.SIGNED_3:
-        requiredPermission = 'requirement-view-signed3';
-        canSign =
-          userPermissions.includes(requiredPermission) &&
-          !requirement.fourthSignedAt;
-        break;
-      default:
-        return { canSign: false, requiredPermission: '' };
-    }
-
-    return { canSign, requiredPermission };
-  }
-
   async reject(
     id: number,
     userId: number,
@@ -605,10 +567,7 @@ export class RequirementService {
     const userPermissions = role.permissions.map(p => p.name);
 
     // Verificar permisos según el estado del requerimiento
-    const { canSign } = this.canUserSignRequirement(
-      requirement,
-      userPermissions
-    );
+    const { canSign } = canUserSign(requirement, userPermissions, requirement.employee.id, userId, 'requirement');
 
     if (!canSign) {
       throw new ForbiddenException(
@@ -616,37 +575,24 @@ export class RequirementService {
       );
     }
 
-    // Proceder con la firma según el estado
-    let becameApproved = false;
-    switch (requirement.status) {
-      case RequirementStatus.SIGNED_1:
-        requirement.secondSignature = employee.signature;
-        requirement.secondSignedBy = userId;
-        requirement.secondSignedAt = new Date();
-        requirement.status = RequirementStatus.SIGNED_2;
-        break;
-      case RequirementStatus.SIGNED_2:
-        requirement.thirdSignature = employee.signature;
-        requirement.thirdSignedBy = userId;
-        requirement.thirdSignedAt = new Date();
-        if (this.isLowAmount(requirement)) {
-          requirement.status = RequirementStatus.APPROVED;
-          becameApproved = true;
-        } else {
-          requirement.status = RequirementStatus.SIGNED_3;
-        }
-        break;
-      case RequirementStatus.SIGNED_3:
-        requirement.fourthSignature = employee.signature;
-        requirement.fourthSignedBy = userId;
-        requirement.fourthSignedAt = new Date();
-        requirement.status = RequirementStatus.APPROVED;
-        becameApproved = true;
-        break;
-      default:
-        throw new ForbiddenException('No se puede firmar en este estado');
-    }
+    // Calcular monto total para determinar si es de monto bajo
+    const totalAmount = (requirement.requirementArticles || []).reduce(
+      (acc, reqArticle) =>
+        acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
+      0
+    );
+    const isLowAmountRequirement = isLowAmount(totalAmount);
 
+    // Procesar firma usando utilidades unificadas
+    const { updatedEntity, becameApproved } = processSignature(
+      requirement,
+      userId,
+      employee.signature,
+      isLowAmountRequirement
+    );
+
+    // Actualizar entidad
+    Object.assign(requirement, updatedEntity);
     const savedRequirement = await this.requirementRepository.save(requirement);
 
     // Si el requerimiento fue aprobado, crear cotización automáticamente si no existe
@@ -666,12 +612,5 @@ export class RequirementService {
     return savedRequirement;
   }
 
-  private isLowAmount(requirement: Requirement): boolean {
-    const total = (requirement.requirementArticles || []).reduce(
-      (acc, reqArticle) =>
-        acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
-      0
-    );
-    return total < 10000;
-  }
+
 }

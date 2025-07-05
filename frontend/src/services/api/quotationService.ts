@@ -82,6 +82,11 @@ export const quotationService = {
     ACTIVE: number;
     COMPLETED: number;
     CANCELLED: number;
+    SIGNED_1: number;
+    SIGNED_2: number;
+    SIGNED_3: number;
+    APPROVED: number;
+    REJECTED: number;
   }> {
     const response = await createApiCall<{
       PENDING: number;
@@ -89,6 +94,11 @@ export const quotationService = {
       ACTIVE: number;
       COMPLETED: number;
       CANCELLED: number;
+      SIGNED_1: number;
+      SIGNED_2: number;
+      SIGNED_3: number;
+      APPROVED: number;
+      REJECTED: number;
     }>(`${BASE_URL}/statistics/status`, {
       method: 'GET',
     });
@@ -334,6 +344,31 @@ export const quotationService = {
       {
         method: 'PATCH',
         body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  // Approval flow endpoints
+  async signQuotationRequest(id: number): Promise<QuotationRequest> {
+    const response = await createApiCall<QuotationRequest>(
+      `${BASE_URL}/${id}/sign`,
+      {
+        method: 'POST',
+      }
+    );
+    return response;
+  },
+
+  async rejectQuotationRequest(
+    id: number,
+    reason: string
+  ): Promise<QuotationRequest> {
+    const response = await createApiCall<QuotationRequest>(
+      `${BASE_URL}/${id}/reject`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
       }
     );
     return response;

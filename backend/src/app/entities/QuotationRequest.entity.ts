@@ -14,6 +14,8 @@ import { Requirement } from './Requirement.entity';
 import { Employee } from './Employee.entity';
 import { QuotationSupplier } from './QuotationSupplier.entity';
 import { FinalSelection } from './FinalSelection.entity';
+import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
+import { Payment } from './Payment.entity';
 
 export enum QuotationRequestStatus {
   PENDING = 'PENDING',
@@ -21,10 +23,15 @@ export enum QuotationRequestStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  SIGNED_1 = 'SIGNED_1',
+  SIGNED_2 = 'SIGNED_2',
+  SIGNED_3 = 'SIGNED_3',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }
 
 @Entity()
-export class QuotationRequest {
+export class QuotationRequest extends ApprovalFlowBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -66,6 +73,9 @@ export class QuotationRequest {
     finalSelection => finalSelection.quotationRequest
   )
   finalSelection: FinalSelection;
+
+  @OneToMany(() => Payment, payment => payment.quotationRequest)
+  payments: Payment[];
 
   @CreateDateColumn({
     name: 'created_at',
