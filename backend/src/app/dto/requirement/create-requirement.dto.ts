@@ -9,6 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Currency, RequirementPriority } from '../../common/enum';
+import { ServiceDurationType } from '../../entities/RequirementService.entity';
 
 export class CreateRequirementArticleDto {
   @IsNotEmpty()
@@ -23,13 +24,39 @@ export class CreateRequirementArticleDto {
   @IsNumber()
   unitPrice: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   justification: string;
 
   @IsNotEmpty()
   @IsEnum(Currency)
   currency: Currency;
+}
+
+export class CreateRequirementServiceDto {
+  @IsNotEmpty()
+  @IsString()
+  serviceId: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  unitPrice: number;
+
+  @IsOptional()
+  @IsString()
+  justification: string;
+
+  @IsNotEmpty()
+  @IsEnum(Currency)
+  currency: Currency;
+
+  @IsOptional()
+  @IsEnum(ServiceDurationType)
+  durationType?: ServiceDurationType;
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
 }
 
 export class CreateRequirementDto {
@@ -53,9 +80,19 @@ export class CreateRequirementDto {
   @IsString()
   warehouseId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
+  @IsString()
+  type?: 'ARTICLE' | 'SERVICE';
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateRequirementArticleDto)
-  requirementArticles: CreateRequirementArticleDto[];
+  requirementArticles?: CreateRequirementArticleDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateRequirementServiceDto)
+  requirementServices?: CreateRequirementServiceDto[];
 }

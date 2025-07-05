@@ -80,34 +80,55 @@ export default class PermissionSeeder implements Seeder {
             },
             {
                 id: 11,
+                name: 'create_service',
+                endpoint: '/services',
+                method: 'POST',
+                description: 'Crear servicios'
+            },
+            {
+                id: 12,
+                name: 'update_service',
+                endpoint: '/services/:id',
+                method: 'PUT',
+                description: 'Actualizar servicios'
+            },
+            {
+                id: 13,
+                name: 'delete_service',
+                endpoint: '/services/:id',
+                method: 'DELETE',
+                description: 'Eliminar servicios'
+            },
+            {
+                id: 14,
                 name: 'view_articles',
                 endpoint: '/articles',
                 method: 'GET',
                 description: 'Ver lista de artículos'
             },
             {
-                id: 12,
+                id: 15,
                 name: 'view_suppliers',
                 endpoint: '/suppliers',
                 method: 'GET',
                 description: 'Ver lista de proveedores'
             },
             {
-                id: 13,
+                id: 16,
                 name: 'create_articles',
                 endpoint: '/articles',
                 method: 'POST',
                 description: 'Crear artículos'
             },
             {
-                id: 14,
+                id: 17,
                 name: 'update_articles',
                 endpoint: '/articles/:id',
                 method: 'PUT',
                 description: 'Actualizar artículos'
             },
             {
-                id: 15,
+                id: 18,
                 name: 'delete_articles',
                 endpoint: '/articles/:id',
                 method: 'DELETE',
@@ -115,35 +136,35 @@ export default class PermissionSeeder implements Seeder {
             },
             // Permisos para el flujo de firmas de requerimientos
             {
-                id: 16,
+                id: 19,
                 name: 'requirement.view.all',
                 endpoint: '/requirements',
                 method: 'GET',
                 description: 'Ver todos los requerimientos (Admin)'
             },
             {
-                id: 17,
+                id: 20,
                 name: 'requirement.view.signed1',
                 endpoint: '/requirements',
                 method: 'GET',
                 description: 'Ver requerimientos con 1 firma o más'
             },
             {
-                id: 18,
+                id: 21,
                 name: 'requirement.view.signed2',
                 endpoint: '/requirements',
                 method: 'GET',
                 description: 'Ver requerimientos con 2 firmas o más'
             },
             {
-                id: 19,
+                id: 22,
                 name: 'requirement.view.signed3',
                 endpoint: '/requirements',
                 method: 'GET',
                 description: 'Ver requerimientos con 3 firmas o más'
             },
             {
-                id: 20,
+                id: 23,
                 name: 'requirement.sign',
                 endpoint: '/requirements/sign/:id',
                 method: 'POST',
@@ -151,7 +172,7 @@ export default class PermissionSeeder implements Seeder {
             },
             // Permisos avanzados
             {
-                id: 21,
+                id: 24,
                 name: 'advanced.system_config',
                 module: 'advanced',
                 endpoint: '/system/config',
@@ -159,7 +180,7 @@ export default class PermissionSeeder implements Seeder {
                 description: 'Configuración del sistema'
             },
             {
-                id: 22,
+                id: 25,
                 name: 'advanced.audit_logs',
                 module: 'advanced',
                 endpoint: '/audit-logs',
@@ -167,7 +188,7 @@ export default class PermissionSeeder implements Seeder {
                 description: 'Ver logs de auditoría'
             },
             {
-                id: 23,
+                id: 26,
                 name: 'advanced.data_export',
                 module: 'advanced',
                 endpoint: '/export',
@@ -175,7 +196,7 @@ export default class PermissionSeeder implements Seeder {
                 description: 'Exportar datos del sistema'
             },
             {
-                id: 24,
+                id: 27,
                 name: 'advanced.backup_restore',
                 module: 'advanced',
                 endpoint: '/backup',
@@ -183,7 +204,7 @@ export default class PermissionSeeder implements Seeder {
                 description: 'Backup y restauración'
             },
             {
-                id: 25,
+                id: 28,
                 name: 'advanced.user_management',
                 module: 'advanced',
                 endpoint: '/users',

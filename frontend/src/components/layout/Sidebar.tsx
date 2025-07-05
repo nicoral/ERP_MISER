@@ -18,6 +18,7 @@ import {
   RolesIcon,
   AuditIcon,
   CalculatorIcon,
+  ServicesIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
 import { CreditCardIcon } from 'lucide-react';
@@ -86,8 +87,8 @@ const menuItems: MenuItem[] = [
       {
         label: SIDEBAR_TEXTS.warehouseServices,
         path: ROUTES.SERVICES,
-        permission: [],
-        icon: <WarehouseIcon className="w-4 h-4" />,
+        permission: ['view_services'],
+        icon: <ServicesIcon className="w-4 h-4" />,
       },
       {
         label: SIDEBAR_TEXTS.warehouseSuppliers,

@@ -5,7 +5,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { RequirementService } from './RequirementService.entity';
 
 @Entity()
 export class Service {
@@ -20,6 +22,12 @@ export class Service {
 
   @Column('boolean', { name: 'active', nullable: false, default: true })
   active: boolean;
+
+  @OneToMany(
+    () => RequirementService,
+    requirementService => requirementService.service
+  )
+  requirementServices: RequirementService[];
 
   @CreateDateColumn({
     name: 'created_at',

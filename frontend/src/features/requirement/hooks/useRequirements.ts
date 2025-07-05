@@ -25,6 +25,22 @@ export const useRequirements = (page: number = 1, pageSize: number = 10) => {
 };
 
 /**
+ * Lista de requerimientos filtrados por tipo con paginación.
+ */
+export const useRequirementsByType = (
+  type: 'ARTICLE' | 'SERVICE',
+  page: number = 1,
+  pageSize: number = 10
+) => {
+  return useQuery({
+    queryKey: ['requirements', { type, page, pageSize }],
+    queryFn: () => getRequirements(page, pageSize, type),
+    placeholderData: prev => prev,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+};
+
+/**
  * Obtiene un requerimiento por ID.
  */
 export const useRequirement = (id: number | undefined) => {

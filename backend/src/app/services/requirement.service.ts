@@ -9,6 +9,7 @@ import { Repository, FindOptionsWhere } from 'typeorm';
 import { Requirement } from '../entities/Requirement.entity';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
+import { RequirementService as RequirementServiceEntity } from '../entities/RequirementService.entity';
 import { UpdateRequirementDto } from '../dto/requirement/update-requirement.dto';
 import {
   Currency,
@@ -32,6 +33,8 @@ export class RequirementService {
     private readonly requirementRepository: Repository<Requirement>,
     @InjectRepository(RequirementArticle)
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
+    @InjectRepository(RequirementServiceEntity)
+    private readonly requirementServiceRepository: Repository<RequirementServiceEntity>,
     private readonly employeeService: EmployeeService,
     private readonly roleService: RoleService,
     @Inject(forwardRef(() => QuotationService))
@@ -47,10 +50,17 @@ export class RequirementService {
       costCenterSecondaryId,
       warehouseId,
       requirementArticles,
+      requirementServices,
+      type,
       ...requirementData
     } = createRequirementDto;
+
+    // Determine type based on provided data
+    const requirementType = type || (requirementServices && requirementServices.length > 0 ? 'SERVICE' : 'ARTICLE');
+
     const requirement = this.requirementRepository.create({
       ...requirementData,
+      type: requirementType,
       employee: { id: userId },
       costCenter: { id: Number(costCenterId) },
       costCenterSecondary: { id: Number(costCenterSecondaryId) },
@@ -67,21 +77,41 @@ export class RequirementService {
         '-' +
         formatNumber(savedRequirement.id, 10),
     });
-    const articles = requirementArticles.map(article => ({
-      requirement: { id: savedRequirement.id },
-      article: { id: Number(article.articleId) },
-      quantity: Number(article.quantity),
-      unitPrice: Number(article.unitPrice),
-      justification: article.justification,
-      currency: article.currency,
-    }));
 
-    await this.requirementArticleRepository.save(articles);
+    // Handle articles if provided
+    if (requirementArticles && requirementArticles.length > 0) {
+      const articles = requirementArticles.map(article => ({
+        requirement: { id: savedRequirement.id },
+        article: { id: Number(article.articleId) },
+        quantity: Number(article.quantity),
+        unitPrice: Number(article.unitPrice),
+        justification: article.justification,
+        currency: article.currency,
+      }));
+
+      await this.requirementArticleRepository.save(articles);
+    }
+
+    // Handle services if provided
+    if (requirementServices && requirementServices.length > 0) {
+      const services = requirementServices.map(service => ({
+        requirement: { id: savedRequirement.id },
+        service: { id: Number(service.serviceId) },
+        unitPrice: Number(service.unitPrice),
+        justification: service.justification,
+        currency: service.currency,
+        durationType: service.durationType,
+        duration: service.duration,
+      }));
+
+      await this.requirementServiceRepository.save(services);
+    }
 
     return this.findOne(savedRequirement.id);
   }
 
   async findAll(
+    type: 'ARTICLE' | 'SERVICE',
     userId: number,
     page: number,
     limit: number
@@ -94,20 +124,23 @@ export class RequirementService {
       | FindOptionsWhere<Requirement>
       | FindOptionsWhere<Requirement>[] = {
       employee: { id: userId },
+      type: type,
     };
 
     if (userPermissions.includes('requirement-view-all')) {
-      whereConditions = {};
+      whereConditions = { type: type };
     } else if (userPermissions.includes('requirement-view-signed3')) {
       whereConditions = [
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED },
+        { type: type },
       ];
     } else if (userPermissions.includes('requirement-view-signed2')) {
       whereConditions = [
         { status: RequirementStatus.SIGNED_2 },
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED },
+        { type: type },
       ];
     } else if (userPermissions.includes('requirement-view-signed1')) {
       whereConditions = [
@@ -115,6 +148,7 @@ export class RequirementService {
         { status: RequirementStatus.SIGNED_2 },
         { status: RequirementStatus.SIGNED_3 },
         { status: RequirementStatus.APPROVED },
+        { type: type },
       ];
     }
 
@@ -139,6 +173,8 @@ export class RequirementService {
       relations: [
         'requirementArticles',
         'requirementArticles.article',
+        'requirementServices',
+        'requirementServices.service',
         'employee',
         'costCenter',
         'requirementArticles.article.brand',
@@ -157,13 +193,13 @@ export class RequirementService {
     id: number,
     updateRequirementDto: UpdateRequirementDto
   ): Promise<Requirement> {
-    const { costCenterId, requirementArticles, ...requirementData } =
+    const { costCenterId, requirementArticles, requirementServices, ...requirementData } =
       updateRequirementDto;
 
-    // Find existing requirement with its articles
+    // Find existing requirement with its articles and services
     const requirement = await this.requirementRepository.findOne({
       where: { id },
-      relations: ['requirementArticles'],
+      relations: ['requirementArticles', 'requirementServices'],
     });
 
     if (!requirement) {
@@ -200,6 +236,7 @@ export class RequirementService {
       });
     }
 
+    // Handle articles if provided
     if (requirementArticles && requirementArticles.length > 0) {
       // Delete existing requirement articles
       await this.requirementArticleRepository.delete({ requirement: { id } });
@@ -217,6 +254,25 @@ export class RequirementService {
       await this.requirementArticleRepository.save(articles);
     }
 
+    // Handle services if provided
+    if (requirementServices && requirementServices.length > 0) {
+      // Delete existing requirement services
+      await this.requirementServiceRepository.delete({ requirement: { id } });
+
+      // Create new requirement services
+      const services = requirementServices.map(service => ({
+        requirement: { id: updatedRequirement.id },
+        service: { id: Number(service.serviceId) },
+        unitPrice: Number(service.unitPrice),
+        justification: service.justification,
+        currency: service.currency,
+        durationType: service.durationType,
+        duration: service.duration,
+      }));
+
+      await this.requirementServiceRepository.save(services);
+    }
+
     // Return updated requirement with all relations
     return this.findOne(id);
   }
@@ -227,23 +283,67 @@ export class RequirementService {
       'utf8'
     );
     const requirement = await this.findOne(id);
-    const { requirementArticles } = requirement;
-    const subtotalPEN = requirementArticles
-      .filter(reqArticle => reqArticle.currency === Currency.PEN)
-      .reduce(
-        (acc, reqArticle) => acc + reqArticle.unitPrice * reqArticle.quantity,
-        0
-      );
-    const subtotalUSD = requirementArticles
-      .filter(reqArticle => reqArticle.currency === Currency.USD)
-      .reduce(
-        (acc, reqArticle) => acc + reqArticle.unitPrice * reqArticle.quantity,
-        0
-      );
+    const { requirementArticles, requirementServices, type } = requirement;
+    
+    // Mapear datos según el tipo de requerimiento
+    interface TableItem {
+      index: number;
+      id: string;
+      code: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      justification: string;
+      currency: string;
+      unitPrice: number;
+      total: number;
+      brand?: string;
+    }
+
+    const tableItems: TableItem[] = [];
+    
+    if (type === 'ARTICLE') {
+      tableItems.push(...requirementArticles.map((reqArticle, index) => ({
+        index: index + 1,
+        id: reqArticle.article.id.toString().padStart(6, '0'),
+        code: reqArticle.article.code,
+        name: reqArticle.article.name,
+        quantity: reqArticle.quantity,
+        unit: reqArticle.article.unitOfMeasure,
+        justification: reqArticle.justification,
+        currency: reqArticle.currency,
+        unitPrice: reqArticle.unitPrice,
+        total: reqArticle.unitPrice * reqArticle.quantity,
+        brand: reqArticle.article.brand.name,
+      })));
+    } else {
+      tableItems.push(...requirementServices.map((reqService, index) => ({
+        index: index + 1,
+        id: reqService.service.id.toString().padStart(6, '0'),
+        code: reqService.service.code,
+        name: reqService.service.name,
+        quantity: reqService.duration || 0,
+        unit: reqService.durationType || '-',
+        justification: reqService.justification,
+        currency: reqService.currency,
+        unitPrice: reqService.unitPrice,
+        total: reqService.unitPrice,
+      })));
+    }
+
+    // Calculate totals using mapped data
+    const totalPEN = tableItems
+      .filter(item => item.currency === Currency.PEN)
+      .reduce((sum, item) => sum + (+item.total), 0);
+    
+    const totalUSD = tableItems
+      .filter(item => item.currency === Currency.USD)
+      .reduce((sum, item) => sum + (+item.total), 0);
 
     const data = {
       id: '01',
       code: requirement.code,
+      type: type === 'SERVICE' ? 'SERVICIO' : 'ARTÍCULO',
       employee:
         requirement.employee.firstName + ' ' + requirement.employee.lastName,
       area: requirement.employee.area,
@@ -261,22 +361,19 @@ export class RequirementService {
             ? 'MEDIA'
             : 'BAJA',
       observation: requirement.observation,
-      articles: requirementArticles.map((reqArticle, index) => ({
-        index: index + 1,
-        articleId: reqArticle.article.id.toString().padStart(6, '0'),
-        code: reqArticle.article.code,
-        name: reqArticle.article.name,
-        unitOfMeasure: reqArticle.article.unitOfMeasure,
-        quantity: reqArticle.quantity,
-        totalPrice:
-          reqArticle.currency +
-          ' ' +
-          (reqArticle.unitPrice * reqArticle.quantity).toFixed(2),
-        brand: reqArticle.article.brand.name,
-        justification: reqArticle.justification,
+      items: tableItems.map(item => ({
+        index: item.index,
+        articleId: item.id,
+        code: item.code,
+        name: item.name,
+        unitOfMeasure: item.unit,
+        quantity: item.quantity,
+        totalPrice: item.currency + ' ' + (+item.total).toFixed(2),
+        brand: item.brand || '-',
+        justification: item.justification,
       })),
-      subtotalPEN: subtotalPEN.toFixed(2),
-      subtotalUSD: subtotalUSD.toFixed(2),
+      subtotalPEN: (+totalPEN).toFixed(2),
+      subtotalUSD: (+totalUSD).toFixed(2),
       firstSignature: requirement.firstSignature,
       firstSignedAt: requirement.firstSignedAt
         ? requirement.firstSignedAt.toLocaleDateString('es-PE', {
@@ -360,7 +457,7 @@ export class RequirementService {
   > {
     const requirements = await this.requirementRepository.find({
       where: { status: RequirementStatus.APPROVED },
-      relations: ['requirementArticles'],
+      relations: ['requirementArticles', 'requirementServices'],
     });
 
     const groupedByMonthAndCurrency = requirements.reduce(
@@ -374,11 +471,22 @@ export class RequirementService {
           acc[monthName] = { month: monthName, PEN: 0, USD: 0 };
         }
 
+        // Calculate totals for articles
         requirement.requirementArticles.forEach(article => {
           const total = article.unitPrice * article.quantity;
           if (article.currency === Currency.PEN) {
             acc[monthName].PEN += total;
           } else if (article.currency === Currency.USD) {
+            acc[monthName].USD += total;
+          }
+        });
+
+        // Calculate totals for services
+        requirement.requirementServices.forEach(service => {
+          const total = service.unitPrice;
+          if (service.currency === Currency.PEN) {
+            acc[monthName].PEN += total;
+          } else if (service.currency === Currency.USD) {
             acc[monthName].USD += total;
           }
         });

@@ -4,7 +4,7 @@ import {
   type TableAction,
 } from '../../../components/common/Table';
 import {
-  useRequirements,
+  useRequirementsByType,
   useDeleteRequirement,
   usePublishRequirement,
   useGenerateRequirementPdf,
@@ -28,6 +28,8 @@ import { useState } from 'react';
 import { REQUIREMENT_STATUS_LABELS } from '../../../utils/requirementStatus';
 import { RejectModal } from './modals/RejectModal';
 
+type RequirementType = 'ARTICLE' | 'SERVICE';
+
 export const RequirementList = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
@@ -38,17 +40,28 @@ export const RequirementList = () => {
   const rejectRequirementMutation = useRejectRequirement();
 
   const [page, setPage] = useState(1);
+  const [selectedType, setSelectedType] = useState<RequirementType>('ARTICLE');
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [selectedRequirement, setSelectedRequirement] =
     useState<Requirement | null>(null);
-  // Hook con datos y estados automáticos de React Query
-  const { data, isLoading, isFetching } = useRequirements(page, 10);
+
+  // Hook con datos filtrados por tipo
+  const { data, isLoading, isFetching } = useRequirementsByType(
+    selectedType,
+    page,
+    10
+  );
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > Math.ceil((data?.total ?? 0) / 10)) return;
     setPage(newPage);
+  };
+
+  const handleTypeChange = (type: RequirementType) => {
+    setSelectedType(type);
+    setPage(1); // Reset to first page when changing type
   };
 
   const handleViewDetails = (requirement: Requirement) => {
@@ -285,40 +298,88 @@ export const RequirementList = () => {
 
   return (
     <div className="sm:p-8 p-2">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Requerimientos
         </h2>
         {hasPermission('create_requirement') && (
           <button
-            onClick={() => navigate(ROUTES.REQUIREMENTS_CREATE)}
+            onClick={() =>
+              navigate(
+                ROUTES.REQUIREMENTS_CREATE.replace(
+                  ':type',
+                  selectedType.toLowerCase()
+                )
+              )
+            }
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
           >
-            Crear Requerimiento
+            {selectedType === 'ARTICLE'
+              ? 'Crear Requerimiento de Compra'
+              : 'Crear Requerimiento de Servicio'}
           </button>
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <Table<Requirement>
-          columns={columns}
-          data={data?.requirements ?? []}
-          keyField="id"
-          loading={
-            isLoading ||
-            isFetching ||
-            deleteRequirementMutation.isPending ||
-            publishRequirementMutation.isPending ||
-            signRequirementMutation.isPending
-          }
-          pagination={{
-            page: page,
-            totalPages: Math.ceil((data?.total ?? 0) / 10),
-            onPageChange: handlePageChange,
-          }}
-          actions={actions}
-          pageSize={10}
-        />
+      {/* Tabs que ocupan todo el espacio con contenido enmarcado */}
+      <div className="w-full bg-gray-200 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-xl p-2 shadow-sm">
+        {/* Tabs principales */}
+        <div className="border-b border-gray-300 dark:border-gray-800 w-full">
+          <nav className="-mb-px flex w-full">
+            <div
+              onClick={() => handleTypeChange('ARTICLE')}
+              className={`flex-1 text-center cursor-pointer py-3 px-4 transition-all duration-200 rounded-t-lg
+                ${
+                  selectedType === 'ARTICLE'
+                    ? 'bg-blue-100 dark:bg-blue-900 border-b-4 border-blue-500 dark:border-blue-400 text-blue-700 dark:text-blue-300 font-bold shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-800 border-b-4 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }
+              `}
+              style={{ minWidth: 0 }}
+            >
+              <span className="truncate block">Artículos</span>
+            </div>
+            <div
+              onClick={() => handleTypeChange('SERVICE')}
+              className={`flex-1 text-center cursor-pointer py-3 px-4 transition-all duration-200 rounded-t-lg
+                ${
+                  selectedType === 'SERVICE'
+                    ? 'bg-blue-100 dark:bg-blue-900 border-b-4 border-blue-500 dark:border-blue-400 text-blue-700 dark:text-blue-300 font-bold shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-800 border-b-4 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }
+              `}
+              style={{ minWidth: 0 }}
+            >
+              <span className="truncate block">Servicios</span>
+            </div>
+          </nav>
+        </div>
+
+        {/* Contenido del tab seleccionado */}
+        <div className="p-4">
+          {/* Tabla */}
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+            <Table<Requirement>
+              columns={columns}
+              data={data?.requirements ?? []}
+              keyField="id"
+              loading={
+                isLoading ||
+                isFetching ||
+                deleteRequirementMutation.isPending ||
+                publishRequirementMutation.isPending ||
+                signRequirementMutation.isPending
+              }
+              pagination={{
+                page: page,
+                totalPages: Math.ceil((data?.total ?? 0) / 10),
+                onPageChange: handlePageChange,
+              }}
+              actions={actions}
+              pageSize={10}
+            />
+          </div>
+        </div>
       </div>
 
       <RejectModal

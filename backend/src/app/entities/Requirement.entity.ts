@@ -12,6 +12,7 @@ import { RequirementPriority, RequirementStatus } from '../common/enum';
 import { Employee } from './Employee.entity';
 import { CostCenter } from './CostCenter.entity';
 import { RequirementArticle } from './RequirementArticle.entity';
+import { RequirementService } from './RequirementService.entity';
 import { Warehouse } from './Warehouse.entity';
 import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
 import { QuotationRequest } from './QuotationRequest.entity';
@@ -33,6 +34,13 @@ export class Requirement extends ApprovalFlowBase {
   @Column({ enum: RequirementStatus, default: RequirementStatus.PENDING })
   status: RequirementStatus;
 
+  @Column({ 
+    type: 'enum', 
+    enum: ['ARTICLE', 'SERVICE'], 
+    default: 'ARTICLE' 
+  })
+  type: 'ARTICLE' | 'SERVICE';
+
   @ManyToOne(() => Employee, employee => employee.requirements)
   employee: Employee;
 
@@ -50,6 +58,12 @@ export class Requirement extends ApprovalFlowBase {
     requirementArticle => requirementArticle.requirement
   )
   requirementArticles: RequirementArticle[];
+
+  @OneToMany(
+    () => RequirementService,
+    requirementService => requirementService.requirement
+  )
+  requirementServices: RequirementService[];
 
   @OneToMany(
     () => QuotationRequest,

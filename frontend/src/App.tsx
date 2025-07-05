@@ -18,6 +18,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { PrivateRoute } from './components/common/PrivateRoute';
 import { ArticleList } from './features/article/components/ArticleList';
 import { ServiceList } from './features/service/components/ServiceList';
+import { ServiceForm } from './features/service/components/ServiceForm';
+import { ServiceDetails } from './features/service/components/ServiceDetails';
 import { SupplierList } from './features/supplier/components/SupplierList';
 import { Employees } from './pages/Employees';
 import { RoleForm } from './features/administration/components/RoleForm';
@@ -74,6 +76,12 @@ const AppRoutes = () => {
           <Route path={ROUTES.ARTICLE_CREATE} element={<ArticleForm />} />
           <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
           <Route path={ROUTES.SERVICES} element={<ServiceList />} />
+          <Route path={`${ROUTES.SERVICES}/create`} element={<ServiceForm />} />
+          <Route
+            path={`${ROUTES.SERVICES}/edit/:id`}
+            element={<ServiceForm />}
+          />
+          <Route path={`${ROUTES.SERVICES}/:id`} element={<ServiceDetails />} />
           <Route path={ROUTES.SUPPLIERS} element={<SupplierList />} />
           <Route path={ROUTES.SUPPLIERS_CREATE} element={<SupplierForm />} />
           <Route path={ROUTES.SUPPLIERS_EDIT} element={<SupplierForm />} />

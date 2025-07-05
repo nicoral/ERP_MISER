@@ -1,93 +1,78 @@
-import type { Service, ServiceFilters } from '../../types/service';
+import { createApiCall } from './httpInterceptor';
+import type { Service } from '../../types/service';
+import type { PaginatedResponse } from '../../types/generic';
 
-const serviceNames = [
-  'Transporte',
-  'Mantenimiento',
-  'Limpieza',
-  'Consultoría',
-  'Reparación',
-  'Instalación',
-  'Capacitación',
-  'Supervisión',
-  'Auditoría',
-  'Soporte',
-  'Alquiler',
-  'Logística',
-  'Desinfección',
-  'Seguridad',
-  'Montaje',
-  'Desmontaje',
-  'Revisión',
-  'Certificación',
-  'Asesoría',
-  'Entrega',
-];
-const types = [
-  'Interno',
-  'Externo',
-  'Tercerizado',
-  'Especializado',
-  'General',
-  'Técnico',
-  'Administrativo',
-  'Operativo',
-  'Profesional',
-  'Temporal',
-];
+const BASE_URL = `${import.meta.env.VITE_API_URL}/services`;
 
-function generateMockServices(): Service[] {
-  return Array.from({ length: 50 }, (_, i) => ({
-    code: `SER${(i + 1).toString().padStart(3, '0')}`,
-    name: serviceNames[i % serviceNames.length],
-    type: types[i % types.length],
-    active: Math.random() > 0.2,
-  }));
-}
+export const serviceService = {
+  async getServices(
+    page: number = 1,
+    pageSize: number = 10,
+    search?: string
+  ): Promise<PaginatedResponse<Service>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', pageSize.toString());
+    if (search) {
+      queryParams.append('search', search);
+    }
 
-const mockServices: Service[] = generateMockServices();
+    const response = await createApiCall<{
+      data: Service[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`${BASE_URL}?${queryParams.toString()}`, {
+      method: 'GET',
+    });
 
-export async function getServices(
-  page: number = 1,
-  pageSize: number = 10,
-  filters?: ServiceFilters
-) {
-  return new Promise<{
-    data: Service[];
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  }>(resolve => {
-    setTimeout(() => {
-      let filtered = [...mockServices];
-      if (filters) {
-        if (filters.code) {
-          filtered = filtered.filter(s =>
-            s.code.toLowerCase().includes(filters.code!.toLowerCase())
-          );
-        }
-        if (filters.name) {
-          filtered = filtered.filter(s =>
-            s.name.toLowerCase().includes(filters.name!.toLowerCase())
-          );
-        }
-        if (filters.type) {
-          filtered = filtered.filter(s =>
-            s.type.toLowerCase().includes(filters.type!.toLowerCase())
-          );
-        }
-      }
-      const start = (page - 1) * pageSize;
-      const end = start + pageSize;
-      const paginated = filtered.slice(start, end);
-      const totalPages = Math.ceil(filtered.length / pageSize);
-      resolve({
-        data: paginated,
-        total: filtered.length,
-        page,
-        pageSize,
-        totalPages,
-      });
-    }, 600);
-  });
-}
+    return {
+      data: response.data,
+      total: response.total,
+      page: response.page,
+      pageSize: response.limit,
+      totalPages: Math.ceil(response.total / response.limit),
+    };
+  },
+
+  async getService(id: number | undefined): Promise<Service | null> {
+    if (!id) {
+      return null;
+    }
+
+    const response = await createApiCall<Service>(`${BASE_URL}/${id}`, {
+      method: 'GET',
+    });
+    return response;
+  },
+
+  async createService(service: Partial<Service>): Promise<Service> {
+    const response = await createApiCall<Service>(BASE_URL, {
+      method: 'POST',
+      body: JSON.stringify(service),
+    });
+    return response;
+  },
+
+  async updateService(id: number, service: Partial<Service>): Promise<Service> {
+    const response = await createApiCall<Service>(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(service),
+    });
+    return response;
+  },
+
+  async deleteService(id: number): Promise<void> {
+    const response = await createApiCall<void>(`${BASE_URL}/${id}`, {
+      method: 'DELETE',
+    });
+    return response;
+  },
+};
+
+// Legacy exports for backward compatibility
+export const getServices = serviceService.getServices;
+export const getService = serviceService.getService;
+export const createService = serviceService.createService;
+export const updateService = serviceService.updateService;
+export const deleteService = serviceService.deleteService;

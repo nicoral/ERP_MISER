@@ -1,103 +1,77 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WAREHOUSE_TEXTS } from '../../../config/texts';
 import { EyeIcon, EditIcon, TrashIcon } from '../../../components/common/Icons';
-import { getServices } from '../../../services/api/serviceService';
 import { FormInput } from '../../../components/common/FormInput';
 import {
   Table,
   type TableAction,
   type TableColumn,
 } from '../../../components/common/Table';
+import { useServices, useDeleteService } from '../hooks/useServices';
+import { ROUTES } from '../../../config/constants';
+import { useToast } from '../../../contexts/ToastContext';
+import { hasPermission } from '../../../utils/permissions';
 import type { Service } from '../../../types/service';
 
 export const ServiceList = () => {
-  const [services, setServices] = useState<Service[]>([]);
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+  const deleteServiceMutation = useDeleteService();
+
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 10,
-    total: 0,
-    totalPages: 0,
   });
-  const [filters, setFilters] = useState({
-    code: '',
-    name: '',
-    type: '',
-  });
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      setIsFiltering(true);
-      const response = await getServices(1, pagination.pageSize);
-      setServices(response.data);
-      setPagination({
-        page: response.page,
-        pageSize: response.pageSize,
-        total: response.total,
-        totalPages: response.totalPages,
-      });
-      setIsFiltering(false);
-    })();
-    // eslint-disable-next-line
-  }, []);
+  // React Query hook para obtener servicios
+  const { data: servicesResponse, isLoading } = useServices(
+    pagination.page,
+    pagination.pageSize,
+    search || undefined
+  );
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
   };
 
-  const applyFilters = async () => {
-    setIsFiltering(true);
+  const applySearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
-    const response = await getServices(1, pagination.pageSize, filters);
-    setServices(response.data);
-    setPagination(prev => ({
-      ...prev,
-      total: response.total,
-      totalPages: response.totalPages,
-    }));
-    setIsFiltering(false);
   };
 
-  const clearFilters = async () => {
-    setFilters({ code: '', name: '', type: '' });
-    setIsFiltering(true);
-    const response = await getServices(1, pagination.pageSize);
-    setServices(response.data);
-    setPagination({
-      page: response.page,
-      pageSize: response.pageSize,
-      total: response.total,
-      totalPages: response.totalPages,
-    });
-    setIsFiltering(false);
+  const clearSearch = () => {
+    setSearch('');
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handlePageChange = async (newPage: number) => {
-    if (newPage < 1 || newPage > pagination.totalPages) return;
-    setIsFiltering(true);
-    if (filters.code || filters.name || filters.type) {
-      newPage = 1;
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleDelete = async (service: Service) => {
+    if (
+      !window.confirm('¿Estás seguro de que quieres eliminar este servicio?')
+    ) {
+      return;
     }
-    const response = await getServices(newPage, pagination.pageSize, filters);
-    setServices(response.data);
-    setPagination(prev => ({
-      ...prev,
-      page: newPage,
-    }));
-    setIsFiltering(false);
+
+    try {
+      await deleteServiceMutation.mutateAsync(service.id);
+      showSuccess(
+        'Eliminado',
+        `Servicio ${service.name} eliminado correctamente`
+      );
+    } catch {
+      showError('Error', 'No se pudo eliminar el servicio');
+    }
   };
 
   const columns: TableColumn<Service>[] = [
-    { header: 'id', accessor: 'id' },
+    { header: 'ID', accessor: 'id' },
     { header: WAREHOUSE_TEXTS.services.table.columns.code, accessor: 'code' },
     { header: WAREHOUSE_TEXTS.services.table.columns.name, accessor: 'name' },
-    //{ header: 'tipo(hora, contrato, dia, jornada)', accessor: 'type' },
-    //{ header: 'proyecto(duracion)', accessor: 'project' },
     {
       header: WAREHOUSE_TEXTS.services.table.columns.status,
       render: (srv: Service) => (
@@ -120,18 +94,28 @@ export const ServiceList = () => {
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: WAREHOUSE_TEXTS.services.table.actions.view,
-      onClick: () => {},
+      onClick: (service: Service) =>
+        navigate(`${ROUTES.SERVICES}/${service.id}`),
     },
-    {
-      icon: <EditIcon className="w-5 h-5 text-blue-600" />,
-      label: WAREHOUSE_TEXTS.services.table.actions.edit,
-      onClick: () => {},
-    },
-    {
-      icon: <TrashIcon className="w-5 h-5 text-red-600" />,
-      label: WAREHOUSE_TEXTS.services.table.actions.delete,
-      onClick: () => {},
-    },
+    ...(hasPermission('update_service')
+      ? [
+          {
+            icon: <EditIcon className="w-5 h-5 text-blue-600" />,
+            label: WAREHOUSE_TEXTS.services.table.actions.edit,
+            onClick: (service: Service) =>
+              navigate(`${ROUTES.SERVICES}/edit/${service.id}`),
+          },
+        ]
+      : []),
+    ...(hasPermission('delete_service')
+      ? [
+          {
+            icon: <TrashIcon className="w-5 h-5 text-red-600" />,
+            label: WAREHOUSE_TEXTS.services.table.actions.delete,
+            onClick: handleDelete,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -140,10 +124,16 @@ export const ServiceList = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.services.title}
         </h2>
-        <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          {WAREHOUSE_TEXTS.services.buttons.create}
-        </button>
+        {hasPermission('create_service') && (
+          <button
+            onClick={() => navigate(`${ROUTES.SERVICES}/create`)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            {WAREHOUSE_TEXTS.services.buttons.create}
+          </button>
+        )}
       </div>
+
       {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
         <button
@@ -169,45 +159,29 @@ export const ServiceList = () => {
         </button>
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInput
-                id="code"
-                name="code"
-                label={WAREHOUSE_TEXTS.services.filters.code}
-                value={filters.code}
-                onChange={handleFilterChange}
-                placeholder={WAREHOUSE_TEXTS.services.filters.codePlaceholder}
-              />
-              <FormInput
-                id="name"
-                name="name"
-                label={WAREHOUSE_TEXTS.services.filters.name}
-                value={filters.name}
-                onChange={handleFilterChange}
-                placeholder={WAREHOUSE_TEXTS.services.filters.namePlaceholder}
-              />
-              <FormInput
-                id="type"
-                name="type"
-                label={WAREHOUSE_TEXTS.services.filters.type}
-                value={filters.type}
-                onChange={handleFilterChange}
-                placeholder={WAREHOUSE_TEXTS.services.filters.typePlaceholder}
+                id="search"
+                name="search"
+                label="Buscar"
+                value={search}
+                onChange={handleSearchChange}
+                placeholder="Buscar por código o nombre..."
               />
             </div>
             <div className="mt-4 flex justify-end space-x-3">
               <button
-                onClick={clearFilters}
+                onClick={clearSearch}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
               >
                 {WAREHOUSE_TEXTS.services.filters.clear}
               </button>
               <button
-                onClick={applyFilters}
-                disabled={isFiltering}
+                onClick={applySearch}
+                disabled={isLoading}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                {isFiltering
+                {isLoading
                   ? WAREHOUSE_TEXTS.services.filters.filtering
                   : WAREHOUSE_TEXTS.services.filters.apply}
               </button>
@@ -215,17 +189,18 @@ export const ServiceList = () => {
           </div>
         )}
       </div>
+
       {/* Tabla reutilizable */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table<Service>
           columns={columns}
-          data={services}
-          keyField="code"
-          loading={isFiltering}
+          data={servicesResponse?.data || []}
+          keyField="id"
+          loading={isLoading}
           pagination={{
             page: pagination.page,
-            totalPages: pagination.totalPages,
-            onPageChange: (newPage: number) => handlePageChange(newPage),
+            totalPages: servicesResponse?.totalPages || 0,
+            onPageChange: handlePageChange,
           }}
           actions={actions}
           pageSize={pagination.pageSize}

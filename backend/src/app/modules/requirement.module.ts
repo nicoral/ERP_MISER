@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { RequirementController } from '../controllers/requirement.controller';
 import { RequirementService } from '../services/requirement.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Requirement } from '../entities/Requirement.entity';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
+import { RequirementService as RequirementServiceEntity } from '../entities/RequirementService.entity';
 import { EmployeeModule } from './employee.module';
 import { RoleModule } from './role.module';
 import { QuotationModule } from './quotation.module';
-import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Requirement, RequirementArticle]),
+    TypeOrmModule.forFeature([Requirement, RequirementArticle, RequirementServiceEntity]),
     EmployeeModule,
     RoleModule,
     forwardRef(() => QuotationModule),

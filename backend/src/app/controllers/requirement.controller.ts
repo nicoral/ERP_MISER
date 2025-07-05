@@ -42,9 +42,10 @@ export class RequirementController {
   async findAll(
     @Req() req,
     @Query('page') page: number,
-    @Query('limit') limit: number
+    @Query('limit') limit: number,
+    @Query('type') type: 'ARTICLE' | 'SERVICE'
   ): Promise<{ requirements: Requirement[]; total: number }> {
-    return this.requirementService.findAll(req.user.id, page, limit);
+    return this.requirementService.findAll(type, req.user.id, page, limit);
   }
 
   @Get(':id')

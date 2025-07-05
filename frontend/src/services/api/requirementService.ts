@@ -12,9 +12,22 @@ interface RequirementsResponse {
 const BASE_URL = `${import.meta.env.VITE_API_URL}/requirements`;
 
 export const requirementService = {
-  async getRequirements(page = 1, limit = 10): Promise<RequirementsResponse> {
+  async getRequirements(
+    page = 1,
+    limit = 10,
+    type?: 'ARTICLE' | 'SERVICE'
+  ): Promise<RequirementsResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+
+    if (type) {
+      params.append('type', type);
+    }
+
     const response = await createApiCall<RequirementsResponse>(
-      `${BASE_URL}?page=${page}&limit=${limit}`,
+      `${BASE_URL}?${params.toString()}`,
       {
         method: 'GET',
       }

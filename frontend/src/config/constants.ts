@@ -44,7 +44,7 @@ export const ROUTES = {
   COST_CENTER_DETAILS: '/cost-center/:id/details',
   REQUIREMENTS: '/requirements',
   REQUIREMENTS_DETAILS: '/requirements/:id/details',
-  REQUIREMENTS_CREATE: '/requirements/create',
+  REQUIREMENTS_CREATE: '/requirements/create/:type',
   REQUIREMENT_EDIT: '/requirements/:id/edit',
   GENERAL_SETTINGS: '/general-settings',
   QUOTATIONS: '/quotations',
@@ -84,6 +84,10 @@ export const MODULES = [
   {
     key: 'requirements',
     label: 'Requerimientos',
+  },
+  {
+    key: 'services',
+    label: 'Servicios',
   },
 ];
 

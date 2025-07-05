@@ -5,7 +5,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { Service } from '../entities/Service.entity';
-import { CreateServiceDto } from '../dto/service/creae-service.dto';
+import { CreateServiceDto } from '../dto/service/create-service.dto';
 import { UpdateServiceDto } from '../dto/service/update-service.dto';
 
 @Controller('services')
