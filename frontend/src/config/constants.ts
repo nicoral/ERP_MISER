@@ -13,6 +13,7 @@ export const APP_CONFIG = {
 export const ROUTES = {
   HOME: '/',
   WELCOME: '/welcome',
+  COMING_SOON: '/coming-soon',
   LOGIN: '/login',
   UNAUTHORIZED: '/unauthorized',
   DASHBOARD: '/dashboard',

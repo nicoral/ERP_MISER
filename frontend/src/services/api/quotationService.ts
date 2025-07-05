@@ -267,13 +267,19 @@ export const quotationService = {
     return await response.blob();
   },
 
-  async downloadQuotationComparisonPdf(quotationId: number): Promise<Blob> {
-    const response = await fetch(`${BASE_URL}/${quotationId}/comparison/pdf`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-      },
-    });
+  async downloadQuotationComparisonPdf(
+    quotationId: number,
+    supplierId: number
+  ): Promise<Blob> {
+    const response = await fetch(
+      `${BASE_URL}/${quotationId}/supplier/${supplierId}/comparison/pdf`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        },
+      }
+    );
     if (!response.ok) throw new Error('No se pudo descargar el PDF');
     return await response.blob();
   },

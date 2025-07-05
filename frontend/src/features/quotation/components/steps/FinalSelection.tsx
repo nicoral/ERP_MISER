@@ -31,8 +31,11 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
   const [finalSelectionData, setFinalSelectionData] =
     useState<FinalSelectionType | null>(null);
 
-  const { getFinalSelectionByRequest, approveFinalSelection } =
-    useQuotationService();
+  const {
+    getFinalSelectionByRequest,
+    approveFinalSelection,
+    updateFinalSelection,
+  } = useQuotationService();
   const { showSuccess, showError } = useToast();
 
   // Helper function to safely format numbers
@@ -98,11 +101,34 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
     }
   };
 
-  const handleApproveFinalSelection = async () => {
+  const handleShowApprovalWarning = () => {
+    setShowApprovalWarning(true);
+  };
+
+  const handleCancelApproval = () => {
+    setShowApprovalWarning(false);
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInternalNotes(e.target.value.toUpperCase());
+  };
+
+  // Función para manejar la aprobación con notas
+  const handleApproveWithNotes = async () => {
     if (!finalSelectionData) return;
 
     setApproving(true);
     try {
+      // Primero guardar las notas si han cambiado
+      if (internalNotes.trim() !== (finalSelectionData.notes || '')) {
+        const updatedNotes = internalNotes.toUpperCase();
+        await updateFinalSelection(finalSelectionData.id, {
+          notes: updatedNotes,
+        });
+        setInternalNotes(updatedNotes);
+      }
+
+      // Luego aprobar la selección final
       const approvedFinalSelection = await approveFinalSelection(
         finalSelectionData.id
       );
@@ -111,7 +137,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
         setFinalSelectionData(approvedFinalSelection);
         showSuccess(
           'Selección final aprobada',
-          'La selección final ha sido aprobada exitosamente. No se permitirán más ediciones.'
+          'La selección final ha sido aprobada exitosamente con las notas guardadas.'
         );
         setShowApprovalWarning(false);
       }
@@ -124,14 +150,6 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
     } finally {
       setApproving(false);
     }
-  };
-
-  const handleShowApprovalWarning = () => {
-    setShowApprovalWarning(true);
-  };
-
-  const handleCancelApproval = () => {
-    setShowApprovalWarning(false);
   };
 
   // Si no hay datos de selección final, mostrar mensaje
@@ -242,7 +260,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                 Cancelar
               </Button>
               <Button
-                onClick={handleApproveFinalSelection}
+                onClick={handleApproveWithNotes}
                 disabled={approving}
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
               >
@@ -405,9 +423,20 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
           Notas de la Selección
         </h4>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {internalNotes || 'No hay notas adicionales'}
-        </div>
+
+        {finalSelectionData.status === 'DRAFT' ? (
+          <input
+            type="text"
+            value={internalNotes}
+            onChange={handleNotesChange}
+            placeholder="Escribe tus observaciones aquí..."
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          />
+        ) : (
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {internalNotes || 'No hay notas adicionales'}
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}

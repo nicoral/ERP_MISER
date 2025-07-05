@@ -13,6 +13,10 @@ export class UpdateFinalSelectionItemDto {
   @IsString()
   id: string;
 
+  @IsNotEmpty()
+  @IsNumber()
+  supplierId: number;
+
   @IsOptional()
   @IsNumber()
   selectedPrice?: number;
@@ -27,8 +31,9 @@ export class UpdateFinalSelectionDto {
   @IsString()
   notes?: string;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateFinalSelectionItemDto)
-  items: UpdateFinalSelectionItemDto[];
+  items?: UpdateFinalSelectionItemDto[];
 }

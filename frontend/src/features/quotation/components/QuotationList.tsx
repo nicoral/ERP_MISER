@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useQuotationService } from '../../../hooks/useQuotationService';
-import { quotationService } from '../../../services/api/quotationService';
 import { useToast } from '../../../contexts/ToastContext';
 import {
   getQuotationStatusColor,
@@ -18,15 +17,7 @@ import {
   type TableAction,
 } from '../../../components/common/Table';
 import { Card } from '../../../components/ui/card';
-import {
-  Plus,
-  Eye,
-  Edit,
-  Trash2,
-  Download,
-  UserCheck,
-  Loader2,
-} from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, UserCheck } from 'lucide-react';
 import { FormInput } from '../../../components/common/FormInput';
 import { ROUTES } from '../../../config/constants';
 
@@ -59,7 +50,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   const [quotationToDelete, setQuotationToDelete] =
     useState<QuotationRequest | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [statusStats, setStatusStats] = useState({
@@ -132,29 +122,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
     setQuotationToDelete(null);
-  };
-
-  const handleDownloadPdf = async (quotation: QuotationRequest) => {
-    setDownloadingId(quotation.id);
-    try {
-      const blob = await quotationService.downloadQuotationComparisonPdf(
-        quotation.id
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cuadro_comparativo_${quotation.code}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showSuccess('Descargado', 'Cuadro comparativo descargado correctamente');
-    } catch (error) {
-      console.error('Error al descargar el PDF:', error);
-      showError('Error', 'No se pudo descargar el cuadro comparativo');
-    } finally {
-      setDownloadingId(null);
-    }
   };
 
   // Debounce effect for search
@@ -308,19 +275,6 @@ export const QuotationList: React.FC<QuotationListProps> = ({
         quotation.status !== 'DRAFT' &&
         quotation.status !== 'PENDING' &&
         quotation.status !== 'CANCELLED',
-    },
-    {
-      icon: (quotation: QuotationRequest) =>
-        downloadingId === quotation.id ? (
-          <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
-        ) : (
-          <Download className="w-5 h-5 text-blue-600" />
-        ),
-      label: 'Descargar PDF',
-      onClick: handleDownloadPdf,
-      disabled: (quotation: QuotationRequest) => downloadingId === quotation.id,
-      isHidden: (quotation: QuotationRequest) =>
-        quotation.status === 'PENDING' || quotation.status === 'DRAFT',
     },
     {
       icon: <Trash2 className="w-5 h-5 text-red-600" />,

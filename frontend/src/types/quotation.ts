@@ -204,8 +204,9 @@ export interface CreateFinalSelectionDto {
 
 export interface UpdateFinalSelectionDto {
   notes?: string;
-  items: Array<{
+  items?: Array<{
     id: string;
+    supplierId: number;
     selectedPrice?: number;
     notes?: string;
   }>;

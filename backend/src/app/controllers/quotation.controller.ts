@@ -309,15 +309,16 @@ export class QuotationController {
     res.end(pdfBuffer);
   }
 
-  @Get(':id/comparison/pdf')
+  @Get(':id/supplier/:supplierId/comparison/pdf')
   @RequirePermissions('view_quotations')
   @AuditDescription('Descargar PDF del cuadro comparativo de cotizaciones')
   async downloadQuotationComparisonPdf(
     @Param('id') id: string,
+    @Param('supplierId') supplierId: string,
     @Res() res: Response
   ) {
     const pdfBuffer =
-      await this.quotationService.generateQuotationComparisonPdf(+id);
+      await this.quotationService.generateQuotationComparisonPdf(+id, +supplierId);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="cuadro_comparativo_${id}.pdf"`,

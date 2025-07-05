@@ -90,8 +90,10 @@ export class RequirementService {
     const role = await this.roleService.findById(employee.role.id);
     const userPermissions = role.permissions.map(p => p.name);
 
-    let whereConditions: FindOptionsWhere<Requirement> | FindOptionsWhere<Requirement>[] = {
-      employee: { id: userId }
+    let whereConditions:
+      | FindOptionsWhere<Requirement>
+      | FindOptionsWhere<Requirement>[] = {
+      employee: { id: userId },
     };
 
     if (userPermissions.includes('requirement-view-all')) {
@@ -99,20 +101,20 @@ export class RequirementService {
     } else if (userPermissions.includes('requirement-view-signed3')) {
       whereConditions = [
         { status: RequirementStatus.SIGNED_3 },
-        { status: RequirementStatus.APPROVED }
+        { status: RequirementStatus.APPROVED },
       ];
     } else if (userPermissions.includes('requirement-view-signed2')) {
       whereConditions = [
         { status: RequirementStatus.SIGNED_2 },
         { status: RequirementStatus.SIGNED_3 },
-        { status: RequirementStatus.APPROVED }
+        { status: RequirementStatus.APPROVED },
       ];
     } else if (userPermissions.includes('requirement-view-signed1')) {
       whereConditions = [
         { status: RequirementStatus.SIGNED_1 },
         { status: RequirementStatus.SIGNED_2 },
         { status: RequirementStatus.SIGNED_3 },
-        { status: RequirementStatus.APPROVED }
+        { status: RequirementStatus.APPROVED },
       ];
     }
 
@@ -460,10 +462,16 @@ export class RequirementService {
     return { canSign, requiredPermission };
   }
 
-  async reject(id: number, userId: number, reason: string): Promise<Requirement> {
+  async reject(
+    id: number,
+    userId: number,
+    reason: string
+  ): Promise<Requirement> {
     const requirement = await this.findOne(id);
     if (requirement.status === RequirementStatus.APPROVED) {
-      throw new ForbiddenException('No se puede rechazar un requerimiento aprobado');
+      throw new ForbiddenException(
+        'No se puede rechazar un requerimiento aprobado'
+      );
     }
     requirement.rejectedReason = reason;
     requirement.rejectedBy = userId;

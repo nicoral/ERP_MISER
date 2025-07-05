@@ -20,6 +20,7 @@ import {
   CalculatorIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
+import { CreditCardIcon } from 'lucide-react';
 
 const menuItems: MenuItem[] = [
   {
@@ -82,12 +83,12 @@ const menuItems: MenuItem[] = [
         permission: ['view_articles'],
         icon: <WarehouseIcon className="w-4 h-4" />,
       },
-      /* {
+      {
         label: SIDEBAR_TEXTS.warehouseServices,
         path: ROUTES.SERVICES,
-        permission: ['view_services'],
-        icon: <ServicesIcon className="w-4 h-4" />,
-      }, */
+        permission: [],
+        icon: <WarehouseIcon className="w-4 h-4" />,
+      },
       {
         label: SIDEBAR_TEXTS.warehouseSuppliers,
         path: ROUTES.SUPPLIERS,
@@ -113,8 +114,39 @@ const menuItems: MenuItem[] = [
         permission: ['view_quotations'],
         icon: <CalculatorIcon className="w-4 h-4" />,
       },
+      {
+        label: SIDEBAR_TEXTS.payments,
+        path: ROUTES.COMING_SOON,
+        permission: [],
+        icon: <CreditCardIcon className="w-4 h-4" />,
+      },
     ],
   },
+  /* {
+    label: SIDEBAR_TEXTS.processService,
+    permission: ['view_requirements'],
+    icon: <ProcessIcon className="w-5 h-5" />,
+    subItems: [
+      {
+        label: SIDEBAR_TEXTS.processRequirement,
+        path: ROUTES.REQUIREMENTS,
+        permission: ['view_requirements'],
+        icon: <DocumentIcon className="w-4 h-4" />,
+      },
+      {
+        label: SIDEBAR_TEXTS.quotation,
+        path: ROUTES.QUOTATIONS,
+        permission: ['view_quotations'],
+        icon: <CalculatorIcon className="w-4 h-4" />,
+      },
+      {
+        label: SIDEBAR_TEXTS.payments,
+        path: ROUTES.COMING_SOON,
+        permission: [],
+        icon: <CreditCardIcon className="w-4 h-4" />,
+      },
+    ],
+  }, */
 ];
 
 interface SidebarProps {

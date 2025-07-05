@@ -24,6 +24,7 @@ import { SunatModule } from './app/modules/sunat.module';
 import { GeneralSettingsModule } from './app/modules/generalSettings.module';
 import { ScheduledTasksService } from './app/services/scheduledTasks.service';
 import { TestModule } from './app/modules/test.module';
+import { ServiceModule } from './app/modules/service.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { TestModule } from './app/modules/test.module';
     SunatModule,
     GeneralSettingsModule,
     TestModule,
+    ServiceModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],

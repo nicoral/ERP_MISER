@@ -41,6 +41,7 @@ import { QuotationDetails } from './features/quotation/components/QuotationDetai
 import { QuotationEdit } from './pages/QuotationEdit';
 import { setNavigate } from './services/api/httpInterceptor';
 import { useEffect } from 'react';
+import ComingSoon from './pages/ComingSoon';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ const AppRoutes = () => {
         <Route element={<MainLayout />}>
           <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
           <Route path={ROUTES.WELCOME} element={<WelcomePage />} />
+          <Route path={ROUTES.COMING_SOON} element={<ComingSoon />} />
           <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
           <Route path={ROUTES.ADMINISTRATION} element={<Administration />} />
           <Route path={ROUTES.ROLES} element={<UserRolesForm />} />

@@ -93,9 +93,11 @@ export const ServiceList = () => {
   };
 
   const columns: TableColumn<Service>[] = [
+    { header: 'id', accessor: 'id' },
     { header: WAREHOUSE_TEXTS.services.table.columns.code, accessor: 'code' },
     { header: WAREHOUSE_TEXTS.services.table.columns.name, accessor: 'name' },
-    { header: WAREHOUSE_TEXTS.services.table.columns.type, accessor: 'type' },
+    //{ header: 'tipo(hora, contrato, dia, jornada)', accessor: 'type' },
+    //{ header: 'proyecto(duracion)', accessor: 'project' },
     {
       header: WAREHOUSE_TEXTS.services.table.columns.status,
       render: (srv: Service) => (

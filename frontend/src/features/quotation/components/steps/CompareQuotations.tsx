@@ -283,7 +283,6 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
 
       const finalSelectionData = {
         quotationRequestId: String(quotationRequestId),
-        notes: `Selección final completada con ${filteredSuppliers.length} proveedores`,
         items: finalSelectionItems,
       };
 

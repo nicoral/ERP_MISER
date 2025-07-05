@@ -9,7 +9,7 @@ import {
   Query,
   Req,
   UseGuards,
-  Res
+  Res,
 } from '@nestjs/common';
 import { RequirementService } from '../services/requirement.service';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
@@ -106,7 +106,11 @@ export class RequirementController {
   @Post('reject/:id')
   @RequirePermissions('view_requirements')
   @AuditDescription('Rechazo de requerimiento')
-  async reject(@Req() req, @Param('id') id: number, @Body('reason') reason: string): Promise<Requirement> {
+  async reject(
+    @Req() req,
+    @Param('id') id: number,
+    @Body('reason') reason: string
+  ): Promise<Requirement> {
     return this.requirementService.reject(id, req.user.id, reason);
   }
 }

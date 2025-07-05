@@ -102,7 +102,8 @@ export const SIDEBAR_TEXTS = {
   generalSettings: 'Conf. general',
   administration: 'Administración',
   employees: 'Empleados',
-  process: 'Procesos',
+  process: 'Procesos', //Icono de carrito
+  processService: 'Procesos de S.', //Icono de herramienta
   processRequirement: 'Requerimiento',
   warehouse: 'Almacenes',
   warehouseArticles: 'Artículos',
@@ -115,6 +116,7 @@ export const SIDEBAR_TEXTS = {
   roles: 'Roles',
   auditLogs: 'Auditorías',
   quotation: 'Cotización',
+  payments: 'Pagos',
 };
 
 export const HEADER_TEXTS = {

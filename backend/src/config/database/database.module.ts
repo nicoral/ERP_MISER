@@ -22,6 +22,7 @@ import { SupplierQuotation } from '../../app/entities/SupplierQuotation.entity';
 import { SupplierQuotationItem } from '../../app/entities/SupplierQuotationItem.entity';
 import { FinalSelection } from '../../app/entities/FinalSelection.entity';
 import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity';
+import { Service } from '../../app/entities/Service.entity';
 
 @Global()
 @Module({
@@ -49,6 +50,7 @@ import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity
         SupplierQuotationItem,
         FinalSelection,
         FinalSelectionItem,
+        Service,
       ],
     }),
   ],
