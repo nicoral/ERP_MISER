@@ -224,7 +224,7 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
             className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
           />
         </div>
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 h-full overflow-y-auto">
           {menuItemsAllowed.map(item => (
             <div key={item.path || item.label}>
               {item.path ? (
