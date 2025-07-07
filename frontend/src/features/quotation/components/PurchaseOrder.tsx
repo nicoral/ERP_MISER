@@ -10,6 +10,7 @@ import {
 import { useQuotationService } from '../../../hooks/useQuotationService';
 import { Button } from '../../../components/common/Button';
 import quotationService from '../../../services/api/quotationService';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
   quotation,
@@ -17,6 +18,7 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
   selectedArticles,
   signatures,
 }) => {
+  const { showError, showSuccess } = useToast();
   const supplierSelected = quotation.quotationSuppliers.find(
     qs => qs.supplier.id === selectedSupplierId
   );
@@ -120,9 +122,9 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      showSuccess('PDF descargado correctamente');
     } catch (error) {
-      console.error('Error al descargar el PDF:', error);
-      alert('Error al descargar el PDF');
+      showError('Error al descargar el PDF', error as string);
     } finally {
       setIsDownloading(false);
     }

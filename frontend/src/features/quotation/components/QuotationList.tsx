@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuotationService } from '../../../hooks/useQuotationService';
 import { useToast } from '../../../contexts/ToastContext';
 import {
@@ -64,7 +64,8 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     REJECTED: 0,
   });
 
-  // Load statistics from backend
+  const isInitialMount = useRef(true);
+
   const loadStatistics = async () => {
     try {
       const stats = await getQuotationStatistics();
@@ -85,7 +86,12 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     }
   };
 
+  // Load quotations when filters change
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return; // Skip the first execution
+    }
     loadQuotations(1);
   }, [filters]);
 

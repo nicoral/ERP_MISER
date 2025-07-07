@@ -2118,7 +2118,7 @@ export class QuotationService {
             ? `€${(+item.unitPrice).toFixed(2)}`
             : `S/. ${(+item.unitPrice).toFixed(2)}`,
           amount: item.currency === 'USD' 
-            ? `$${item.totalPrice.toFixed(2)}`
+            ? `$${(+item.totalPrice).toFixed(2)}`
             : item.currency === 'EUR'
             ? `€${(+item.totalPrice).toFixed(2)}`
             : `S/. ${(+item.totalPrice).toFixed(2)}`,

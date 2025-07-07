@@ -9,6 +9,7 @@ import type { ComparisonTableProps } from '../types';
 import quotationService from '../../../services/api/quotationService';
 import { Button } from '../../../components/common/Button';
 import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
+import { useToast } from '../../../contexts/ToastContext';
 
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({
   quotation,
@@ -21,7 +22,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { data: exchangeRate } = useCurrentExchangeRate();
-
+  const { showError, showSuccess } = useToast();
   const handleDownloadPdf = async () => {
     if (!selectedSupplierId) return;
 
@@ -44,9 +45,9 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      showSuccess('PDF descargado correctamente');
     } catch (error) {
-      console.error('Error al descargar el PDF:', error);
-      alert('Error al descargar el PDF');
+      showError('Error al descargar el PDF', error as string);
     } finally {
       setIsDownloading(false);
     }

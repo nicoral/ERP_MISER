@@ -118,7 +118,7 @@ const menuItems: MenuItem[] = [
       {
         label: SIDEBAR_TEXTS.payments,
         path: ROUTES.PAYMENTS,
-        permission: [],
+        permission: ['view_payments'],
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
     ],

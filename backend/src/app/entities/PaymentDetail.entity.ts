@@ -54,6 +54,9 @@ export class PaymentDetail {
   @Column('text', { nullable: true })
   receiptImage: string; // Foto del comprobante
 
+  @Column('text', { nullable: true })
+  invoiceImage: string; // Foto de la factura
+
   @Column({
     type: 'enum',
     enum: PhysicalReceipt,

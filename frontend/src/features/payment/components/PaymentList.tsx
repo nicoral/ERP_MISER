@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePaymentService } from '../../../hooks/usePaymentService';
 import { useToast } from '../../../contexts/ToastContext';
@@ -19,6 +19,7 @@ import { Card } from '../../../components/ui/card';
 import { Plus, Eye, Edit } from 'lucide-react';
 import { FormInput } from '../../../components/common/FormInput';
 import { ROUTES } from '../../../config/constants';
+import { hasPermission } from '../../../utils/permissions';
 
 export const PaymentList: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +46,8 @@ export const PaymentList: React.FC = () => {
     CANCELLED: 0,
   });
 
-  // Load statistics from backend
+  const isInitialMount = useRef(true);
+
   const loadStatistics = async () => {
     try {
       const stats = await getPaymentStatistics();
@@ -66,7 +68,12 @@ export const PaymentList: React.FC = () => {
     }
   };
 
+  // Load payments when filters change
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return; // Skip the first execution
+    }
     loadPayments(1);
   }, [filters]);
 
@@ -174,12 +181,23 @@ export const PaymentList: React.FC = () => {
       header: 'Cotización',
       render: (payment: PaymentGroup) => (
         <div>
-          <div className="font-medium text-blue-600 dark:text-blue-400">
-            {payment.quotationRequest.code}
-          </div>
-          <div className="text-sm text-gray-500">
-            {payment.quotationRequest.status}
-          </div>
+          <button
+            onClick={() => {
+              const url = ROUTES.QUOTATION_DETAILS.replace(
+                ':id',
+                payment.quotationRequest.id.toString()
+              );
+              window.open(url, '_blank');
+            }}
+            className="bg-transparent text-left hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors w-full"
+          >
+            <div className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer">
+              {payment.quotationRequest.code}
+            </div>
+            <div className="text-sm text-gray-500">
+              {payment.quotationRequest.status}
+            </div>
+          </button>
         </div>
       ),
     },
@@ -261,19 +279,27 @@ export const PaymentList: React.FC = () => {
   ];
 
   const actions: TableAction<PaymentGroup>[] = [
-    {
-      icon: <Eye className="w-5 h-5 text-green-600" />,
-      label: 'Ver detalles',
-      onClick: handleViewPayment,
-    },
-    {
-      icon: <Edit className="w-5 h-5 text-blue-600" />,
-      label: 'Editar',
-      onClick: handleEditPayment,
-      isHidden: (payment: PaymentGroup) =>
-        payment.status !== PaymentStatus.PENDING &&
-        payment.status !== PaymentStatus.PARTIAL,
-    },
+    ...(hasPermission('view_payments')
+      ? [
+          {
+            icon: <Eye className="w-5 h-5 text-green-600" />,
+            label: 'Ver detalles',
+            onClick: handleViewPayment,
+          },
+        ]
+      : []),
+    ...(hasPermission('update_payment')
+      ? [
+          {
+            icon: <Edit className="w-5 h-5 text-blue-600" />,
+            label: 'Editar',
+            onClick: handleEditPayment,
+            isHidden: (payment: PaymentGroup) =>
+              payment.status !== PaymentStatus.PENDING &&
+              payment.status !== PaymentStatus.PARTIAL,
+          },
+        ]
+      : []),
     /* {
       icon: <Trash2 className="w-5 h-5 text-red-600" />,
       label: 'Eliminar',
@@ -288,10 +314,12 @@ export const PaymentList: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Grupos de Pagos</h1>
-        <Button onClick={handleCreatePayment} className="hidden">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Grupo de Pagos
-        </Button>
+        {hasPermission('create_payment') && (
+          <Button onClick={handleCreatePayment} className="hidden">
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Grupo de Pagos
+          </Button>
+        )}
       </div>
 
       <Card className="p-6">

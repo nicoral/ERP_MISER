@@ -15,6 +15,7 @@ import type {
   PaymentDetail,
 } from '../../../types/payment';
 import type { CreatePaymentDetailDto } from '../../../types/payment';
+import { hasPermission } from '../../../utils/permissions';
 
 export const PaymentForm: React.FC = () => {
   const params = useParams();
@@ -1526,7 +1527,7 @@ export const PaymentForm: React.FC = () => {
             </Button>
 
             <div className="flex space-x-3">
-              {canEdit && currentTab === 'receipt' && (
+              {canEdit && currentTab === 'receipt' && hasPermission('create_payment') && (
                 <>
                   <Button
                     onClick={handleSaveReceipt}
@@ -1582,7 +1583,7 @@ export const PaymentForm: React.FC = () => {
                   </Button>
                 </>
               )}
-              {canEdit && currentTab === 'invoice' && (
+              {canEdit && currentTab === 'invoice' && hasPermission('update_payment') && (
                 <>
                   <Button
                     onClick={handleSaveInvoice}
