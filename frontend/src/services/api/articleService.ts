@@ -81,10 +81,15 @@ export const articleService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await createApiCall<Article>(`${BASE_URL}/${id}/image`, {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await createApiCall<Article>(
+      `${BASE_URL}/${id}/image`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
     return response;
   },
 
@@ -102,10 +107,15 @@ export const articleService = {
     }
     formData.append('name', brand.name);
 
-    const response = await createApiCall<Brand>(`${BASE_URL}/brands`, {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await createApiCall<Brand>(
+      `${BASE_URL}/brands`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
     return response;
   },
 
@@ -136,7 +146,9 @@ export const articleService = {
       {
         method: 'POST',
         body: formData,
-      }
+      },
+      false,
+      true
     );
     return response;
   },

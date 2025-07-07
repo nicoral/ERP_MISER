@@ -8,10 +8,11 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { QuotationRequest } from './QuotationRequest.entity';
+import { PaymentGroup } from './PaymentGroup.entity';
 import { Employee } from './Employee.entity';
+import { Supplier } from './Supplier.entity';
 
-export enum PaymentStatus {
+export enum PaymentDetailStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
@@ -24,19 +25,22 @@ export enum PhysicalReceipt {
 }
 
 @Entity()
-export class Payment {
+export class PaymentDetail {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ unique: true })
-  code: string;
+  code: string; // Código único del pago (ej: "PAY-2024-001-01", "PAY-2024-001-02")
 
   @Column({
     type: 'enum',
-    enum: PaymentStatus,
-    default: PaymentStatus.PENDING,
+    enum: PaymentDetailStatus,
+    default: PaymentDetailStatus.PENDING,
   })
-  status: PaymentStatus;
+  status: PaymentDetailStatus;
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  amount: number; // Monto de este pago específico
 
   @Column('text', { nullable: true })
   paymentReceipt: string; // Comprobante de pago
@@ -58,7 +62,7 @@ export class Payment {
   physicalReceipt: PhysicalReceipt; // Comprobante físico (SI o NO)
 
   @Column({ type: 'date', nullable: true })
-  purchaseDate: Date; // Fecha de compra (se jala automáticamente del día que se aprobó)
+  purchaseDate: Date; // Fecha de compra
 
   @Column({ type: 'date', nullable: true })
   invoiceEmissionDate: Date; // Fecha de emisión de factura
@@ -67,10 +71,7 @@ export class Payment {
   documentNumber: string; // Número de documento (número de la factura)
 
   @Column('text', { nullable: true })
-  description: string; // Descripción
-
-  @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  amount: number; // Monto del pago
+  description: string; // Descripción del pago
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   retentionAmount: number; // Monto de retención (si supera los S/700)
@@ -81,13 +82,18 @@ export class Payment {
   @Column('boolean', { default: false })
   hasRetention: boolean; // Indica si aplica retención
 
-  // Relación con la cotización
-  @ManyToOne(() => QuotationRequest, quotationRequest => quotationRequest.payments)
-  @JoinColumn({ name: 'quotation_request_id' })
-  quotationRequest: QuotationRequest;
+  // Relación con el grupo de pagos
+  @ManyToOne(() => PaymentGroup, paymentGroup => paymentGroup.paymentDetails)
+  @JoinColumn({ name: 'payment_group_id' })
+  paymentGroup: PaymentGroup;
+
+  // Relación con el proveedor
+  @ManyToOne(() => Supplier, { nullable: false })
+  @JoinColumn({ name: 'supplier_id' })
+  supplier: Supplier;
 
   // Relación con el empleado que creó el pago
-  @ManyToOne(() => Employee, employee => employee.payments)
+  @ManyToOne(() => Employee, employee => employee.paymentDetails)
   @JoinColumn({ name: 'created_by' })
   createdBy: Employee;
 
@@ -118,4 +124,4 @@ export class Payment {
     nullable: true,
   })
   deletedAt: Date;
-} 
+}

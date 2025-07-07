@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { GeneralSettings } from '../entities/GeneralSettings.entity';
 import { SunatProvider } from '../providers/sunat.provider';
 import { CloudinaryService } from './cloudinary.service';
+import { UpdateGeneralSettingsDto } from '../dto/generalSettings/update-generalSettings.dto';
 
 @Injectable()
 export class GeneralSettingsService {
@@ -39,7 +40,7 @@ export class GeneralSettingsService {
    * Actualiza las configuraciones generales
    */
   async updateSettings(
-    updateData: Partial<GeneralSettings>
+    updateData: UpdateGeneralSettingsDto
   ): Promise<GeneralSettings> {
     const settings = await this.getSettings();
 
@@ -160,6 +161,7 @@ export class GeneralSettingsService {
     defaultSettings.exchangeRateDateString = null;
     defaultSettings.exchangeRateAutoUpdate = true;
     defaultSettings.timezone = 'America/Lima';
+    defaultSettings.generalTax = 18;
     defaultSettings.additionalSettings = null;
 
     return await this.generalSettingsRepository.save(defaultSettings);
@@ -188,5 +190,10 @@ export class GeneralSettingsService {
     const exchangeDateStr = new Date(exchangeDate).toISOString().split('T')[0];
 
     return todayStr !== exchangeDateStr;
+  }
+
+  async getGeneralTax(): Promise<number> {
+    const settings = await this.getSettings();
+    return settings.generalTax;
   }
 }

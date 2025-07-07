@@ -34,19 +34,24 @@ import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-req
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { formatNumber } from '../utils/transformer';
 import { CreateSupplierQuotationDto } from '../dto/quotation/create-supplier-quotation.dto';
-import { UpdateSupplierQuotationDto } from '../dto/quotation/update-supplier-quotation.dto';
-import { UpdateQuotationOrderDto } from '../dto/quotation/update-quotation-order.dto';
+import { UpdateSupplierQuotationDto, UpdateSupplierQuotationOcDto } from '../dto/quotation/update-supplier-quotation.dto';
+import {
+  ApplyGeneralTermsDto,
+  UpdateQuotationOrderDto,
+} from '../dto/quotation/update-quotation-order.dto';
 import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.dto';
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
-import { arraysAreEqual, compareArraysNumbers } from '../utils/utils';
+import { arraysAreEqual, compareArraysNumbers, numberToSpanishWordsCurrency } from '../utils/utils';
 import { Employee } from '../entities/Employee.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
 import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
+import { Requirement } from '../entities/Requirement.entity';
+import { PaymentService } from './payment.service';
 
 @Injectable()
 export class QuotationService {
@@ -68,7 +73,8 @@ export class QuotationService {
     @InjectRepository(RequirementArticle)
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     private readonly requirementService: RequirementService,
-    private readonly supplierService: SupplierService
+    private readonly supplierService: SupplierService,
+    private readonly paymentService: PaymentService
   ) {}
 
   // ========================================
@@ -93,9 +99,6 @@ export class QuotationService {
     const quotationRequest: Partial<QuotationRequest> =
       this.quotationRequestRepository.create({
         ...quotationData,
-        deadline: quotationData.deadline
-          ? new Date(quotationData.deadline)
-          : undefined,
         requirement: { id: requirementId },
         status: userId
           ? QuotationRequestStatus.DRAFT
@@ -163,12 +166,49 @@ export class QuotationService {
   ): Promise<{ quotationRequests: QuotationRequest[]; total: number }> {
     const { status, search } = filters;
 
+    // Obtener empleado y permisos
+    const employee = await this.requirementService['employeeService'].findOne(userId);
+    const role = await this.requirementService['roleService'].findById(employee.role.id);
+    const userPermissions = role.permissions.map(p => p.name);
+
     // Construir query builder para mayor control
     const queryBuilder = this.quotationRequestRepository
       .createQueryBuilder('quotation')
       .leftJoinAndSelect('quotation.requirement', 'requirement')
-      .leftJoinAndSelect('quotation.createdBy', 'createdBy')
-      .where('(createdBy.id = :userId OR createdBy.id IS NULL)', { userId });
+      .leftJoinAndSelect('quotation.createdBy', 'createdBy');
+
+    // Aplicar filtros basados en permisos
+    if (userPermissions.includes('quotation-view-all')) {
+      // Usuario puede ver todas las cotizaciones
+      queryBuilder.where('1=1'); // No hay restricción
+    } else if (userPermissions.includes('quotation-view-signed3')) {
+      // Usuario puede ver cotizaciones firmadas por administración y aprobadas
+      queryBuilder.where('quotation.status IN (:...statuses)', {
+        statuses: [QuotationRequestStatus.SIGNED_3, QuotationRequestStatus.APPROVED]
+      });
+    } else if (userPermissions.includes('quotation-view-signed2')) {
+      // Usuario puede ver cotizaciones firmadas por oficina técnica, administración y aprobadas
+      queryBuilder.where('quotation.status IN (:...statuses)', {
+        statuses: [
+          QuotationRequestStatus.SIGNED_2,
+          QuotationRequestStatus.SIGNED_3,
+          QuotationRequestStatus.APPROVED
+        ]
+      });
+    } else if (userPermissions.includes('quotation-view-signed1')) {
+      // Usuario puede ver cotizaciones firmadas por logística, oficina técnica, administración y aprobadas
+      queryBuilder.where('quotation.status IN (:...statuses)', {
+        statuses: [
+          QuotationRequestStatus.SIGNED_1,
+          QuotationRequestStatus.SIGNED_2,
+          QuotationRequestStatus.SIGNED_3,
+          QuotationRequestStatus.APPROVED
+        ]
+      });
+    } else {
+      // Usuario solo puede ver sus propias cotizaciones
+      queryBuilder.where('(createdBy.id = :userId OR createdBy.id IS NULL)', { userId });
+    }
 
     // Aplicar filtros adicionales
     if (status) {
@@ -199,6 +239,7 @@ export class QuotationService {
         'requirement',
         'requirement.requirementArticles',
         'requirement.requirementArticles.article',
+        'requirement.requirementArticles.article.brand',
         'requirement.employee',
         'requirement.costCenter',
         'createdBy',
@@ -235,11 +276,12 @@ export class QuotationService {
     const quotationRequest = await this.getQuotationRequestOrders(id, [
       'quotationSuppliers',
       'quotationSuppliers.supplier',
+      'requirement',
     ]);
-    if (quotationRequest.createdBy === undefined) {
+    if (quotationRequest.createdBy == undefined || quotationRequest.createdBy == null) {
       await this.quotationRequestRepository.update(id, {
         createdBy: { id: userId },
-        status: QuotationRequestStatus.ACTIVE,
+        status: QuotationRequestStatus.DRAFT,
       });
     }
 
@@ -264,9 +306,6 @@ export class QuotationService {
     // Update basic data
     await this.quotationRequestRepository.update(id, {
       ...quotationData,
-      deadline: quotationData.deadline
-        ? new Date(quotationData.deadline)
-        : quotationRequest.deadline,
     });
 
     // Update suppliers if provided
@@ -277,7 +316,11 @@ export class QuotationService {
       }
 
       // Update suppliers using the helper method
-      await this.updateQuotationSuppliersWithSoftDelete(id, suppliers);
+      await this.updateQuotationSuppliersWithSoftDelete(
+        quotationRequest.requirement,
+        id,
+        suppliers
+      );
     }
 
     // Update articles if provided
@@ -306,16 +349,14 @@ export class QuotationService {
     return this.findOneQuotationRequest(id);
   }
 
-
-
   async cancelQuotationRequest(id: number): Promise<QuotationRequest> {
     const quotationRequest = await this.getQuotationRequestOrders(id, [
       'quotationSuppliers',
     ]);
 
-    if (quotationRequest.status === QuotationRequestStatus.COMPLETED) {
+    if (quotationRequest.status === QuotationRequestStatus.APPROVED) {
       throw new BadRequestException(
-        'Cannot cancel completed quotation request'
+        'Cannot cancel approved quotation request'
       );
     }
 
@@ -400,7 +441,6 @@ export class QuotationService {
       status: QuotationRequestStatus.PENDING,
       createdBy: undefined,
       progress: 0,
-      deadline: undefined,
     });
   }
 
@@ -606,7 +646,7 @@ export class QuotationService {
     id: number,
     updateSupplierQuotationDto: UpdateSupplierQuotationDto
   ): Promise<SupplierQuotation> {
-    const { notes, items } = updateSupplierQuotationDto;
+    const { items, ...data} = updateSupplierQuotationDto;
     const supplierQuotation = await this.findOneSupplierQuotation(id);
 
     if (supplierQuotation.status !== SupplierQuotationStatus.DRAFT) {
@@ -617,7 +657,7 @@ export class QuotationService {
 
     // Update basic data
     await this.supplierQuotationRepository.update(id, {
-      notes: notes,
+      ...data,
     });
 
     // Update items if provided
@@ -652,6 +692,17 @@ export class QuotationService {
 
       await this.supplierQuotationRepository.update(id, { totalAmount });
     }
+
+    return this.findOneSupplierQuotation(id);
+  }
+
+  async updateSupplierQuotationOc(
+    id: number, 
+    updateSupplierQuotationDto: UpdateSupplierQuotationOcDto
+  ): Promise<SupplierQuotation> {
+    await this.supplierQuotationRepository.update(id, {
+      ...updateSupplierQuotationDto,
+    });
 
     return this.findOneSupplierQuotation(id);
   }
@@ -840,8 +891,7 @@ export class QuotationService {
 
   async applyGeneralTermsToAll(
     quotationRequestId: number,
-    terms: string,
-    selectedArticles?: number[]
+    applyGeneralTermsDto: ApplyGeneralTermsDto
   ): Promise<QuotationRequest> {
     const quotationRequest = await this.getQuotationRequestOrders(
       quotationRequestId,
@@ -860,22 +910,29 @@ export class QuotationService {
     // Update all quotation suppliers with the general terms
     for (const quotationSupplier of quotationRequest.quotationSuppliers) {
       await this.quotationSupplierRepository.update(quotationSupplier.id, {
-        terms: terms,
+        terms: applyGeneralTermsDto.terms,
+        deadline: applyGeneralTermsDto.deadline
+          ? new Date(applyGeneralTermsDto.deadline)
+          : undefined,
       });
 
       // If selectedArticles is provided, update articles for all suppliers
-      if (selectedArticles && selectedArticles.length > 0) {
+      if (
+        applyGeneralTermsDto.selectedArticles &&
+        applyGeneralTermsDto.selectedArticles.length > 0
+      ) {
         // Remove existing articles for this supplier
         await this.quotationSupplierArticleRepository.delete({
           quotationSupplier: { id: quotationSupplier.id },
         });
 
         // Add selected articles
-        const quotationSupplierArticles = selectedArticles.map(articleId => ({
-          quotationSupplier: { id: quotationSupplier.id },
-          requirementArticle: { id: articleId },
-          quantity: 1, // Default quantity, can be updated later
-        }));
+        const quotationSupplierArticles =
+          applyGeneralTermsDto.selectedArticles.map(article => ({
+            quotationSupplier: { id: quotationSupplier.id },
+            requirementArticle: { id: article.articleId },
+            quantity: article.quantity, // Default quantity, can be updated later
+          }));
 
         await this.quotationSupplierArticleRepository.save(
           quotationSupplierArticles
@@ -989,10 +1046,14 @@ export class QuotationService {
         );
       }
       for (const [supplierId, total] of adjudicadosPorProveedor.entries()) {
-        const quotationSupplier = await this.quotationSupplierRepository.findOne({
-          where: { supplier: { id: supplierId }, quotationRequest: { id: +quotationRequestId } },
-          relations: ['supplierQuotation'],
-        });
+        const quotationSupplier =
+          await this.quotationSupplierRepository.findOne({
+            where: {
+              supplier: { id: supplierId },
+              quotationRequest: { id: +quotationRequestId },
+            },
+            relations: ['supplierQuotation'],
+          });
         if (quotationSupplier?.supplierQuotation) {
           await this.supplierQuotationRepository.update(
             quotationSupplier.supplierQuotation.id,
@@ -1103,7 +1164,10 @@ export class QuotationService {
     }
     for (const [supplierId, total] of adjudicadosPorProveedor.entries()) {
       const quotationSupplier = await this.quotationSupplierRepository.findOne({
-        where: { supplier: { id: supplierId }, quotationRequest: { id: +quotationRequestId } },
+        where: {
+          supplier: { id: supplierId },
+          quotationRequest: { id: +quotationRequestId },
+        },
         relations: ['supplierQuotation'],
       });
       if (quotationSupplier?.supplierQuotation) {
@@ -1237,10 +1301,14 @@ export class QuotationService {
       // Update SupplierQuotation totals
       const quotationRequestId = finalSelection.quotationRequest.id;
       for (const [supplierId, total] of adjudicadosPorProveedor.entries()) {
-        const quotationSupplier = await this.quotationSupplierRepository.findOne({
-          where: { supplier: { id: supplierId }, quotationRequest: { id: quotationRequestId } },
-          relations: ['supplierQuotation'],
-        });
+        const quotationSupplier =
+          await this.quotationSupplierRepository.findOne({
+            where: {
+              supplier: { id: supplierId },
+              quotationRequest: { id: quotationRequestId },
+            },
+            relations: ['supplierQuotation'],
+          });
         if (quotationSupplier?.supplierQuotation) {
           await this.supplierQuotationRepository.update(
             quotationSupplier.supplierQuotation.id,
@@ -1277,11 +1345,11 @@ export class QuotationService {
       status: FinalSelectionStatus.APPROVED,
     });
 
-    // Update quotation request status to COMPLETED
+    // Update quotation request status to ACTIVE
     await this.quotationRequestRepository.update(
       finalSelection.quotationRequest.id,
       {
-        status: QuotationRequestStatus.COMPLETED,
+        status: QuotationRequestStatus.ACTIVE,
       }
     );
 
@@ -1304,19 +1372,27 @@ export class QuotationService {
   // APPROVAL FLOW METHODS
   // ========================================
 
-  async signQuotationRequest(id: number, userId: number): Promise<QuotationRequest> {
+  async signQuotationRequest(
+    id: number,
+    userId: number
+  ): Promise<QuotationRequest> {
     const quotationRequest = await this.findOneQuotationRequest(id);
-    
+
     // Verificar que tenga selección final
     if (!quotationRequest.finalSelection) {
-      throw new BadRequestException('No se puede firmar una cotización sin selección final');
+      throw new BadRequestException(
+        'No se puede firmar una cotización sin selección final'
+      );
     }
 
     // Importar utilidades
-    const { canUserSign, processSignature, isLowAmount } = await import('../utils/approvalFlow.utils');
-    
+    const { canUserSign, processSignature, isLowAmount } = await import(
+      '../utils/approvalFlow.utils'
+    );
+
     // Obtener empleado y permisos
-    const employee = await this.requirementService['employeeService'].findOne(userId);
+    const employee =
+      await this.requirementService['employeeService'].findOne(userId);
     if (!employee) {
       throw new NotFoundException('Empleado no encontrado');
     }
@@ -1325,30 +1401,46 @@ export class QuotationService {
       throw new BadRequestException('El usuario no tiene firma registrada');
     }
 
-    const role = await this.requirementService['roleService'].findById(employee.role.id);
+    const role = await this.requirementService['roleService'].findById(
+      employee.role.id
+    );
     const userPermissions = role.permissions.map(p => p.name);
 
     // Verificar permisos
-    const { canSign } = canUserSign(quotationRequest, userPermissions, quotationRequest.createdBy.id, userId, 'quotation');
-    
+    const { canSign } = canUserSign(
+      quotationRequest,
+      userPermissions,
+      quotationRequest.createdBy.id,
+      userId,
+      'quotation'
+    );
+
     // Para la primera firma, verificar que sea el creador de la cotización
-    if (!quotationRequest.firstSignedBy && userId !== quotationRequest.createdBy.id) {
-      throw new BadRequestException('Solo el creador de la cotización puede realizar la primera firma');
+    if (
+      !quotationRequest.firstSignedBy &&
+      userId !== quotationRequest.createdBy.id
+    ) {
+      throw new BadRequestException(
+        'Solo el creador de la cotización puede realizar la primera firma'
+      );
     }
-    
+
     if (!canSign) {
-      throw new BadRequestException('No tienes permisos para firmar esta cotización');
+      throw new BadRequestException(
+        'No tienes permisos para firmar esta cotización'
+      );
     }
 
     // Calcular monto total para determinar si es de monto bajo
-    const totalAmount = quotationRequest.finalSelection.finalSelectionItems.reduce(
-      (sum, item) => sum + (item.unitPrice * item.quantity),
-      0
-    );
+    const totalAmount =
+      quotationRequest.finalSelection.finalSelectionItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      );
     const isLowAmountQuotation = isLowAmount(totalAmount);
 
     // Procesar firma
-    const { updatedEntity } = processSignature(
+    const { updatedEntity, becameApproved } = processSignature(
       quotationRequest,
       userId,
       employee.signature,
@@ -1357,7 +1449,39 @@ export class QuotationService {
 
     // Actualizar entidad
     Object.assign(quotationRequest, updatedEntity);
-    const savedQuotationRequest = await this.quotationRequestRepository.save(quotationRequest);
+    const savedQuotationRequest =
+      await this.quotationRequestRepository.save(quotationRequest);
+
+    // === AUTOGENERATE PAYMENT GROUP IF QUOTATION BECAME APPROVED ===
+    if (becameApproved) {
+      // Get the updated quotation request with relations to check if payment group exists
+      const updatedQuotationRequest = await this.quotationRequestRepository.findOne({
+        where: { id: savedQuotationRequest.id },
+        relations: ['paymentGroup', 'createdBy', 'finalSelection', 'finalSelection.finalSelectionItems'],
+      });
+      
+      if (updatedQuotationRequest && !updatedQuotationRequest.paymentGroup) {
+        // Generate payment group code (e.g., PAY-2024-001)
+        const year = new Date().getFullYear();
+        const code = `PAY-${year}-${String(updatedQuotationRequest.id).padStart(3, '0')}`;
+        
+        // Calculate total amount from final selection items
+        const totalAmount = updatedQuotationRequest.finalSelection.finalSelectionItems.reduce(
+          (sum, item) => sum + (+item.totalPrice || 0),
+          0
+        );
+        
+        // Create payment group
+        await this.paymentService.createPaymentGroup(
+          {
+            code,
+            totalAmount,
+            quotationRequestId: updatedQuotationRequest.id,
+          },
+          updatedQuotationRequest.createdBy.id
+        );
+      }
+    }
 
     // Actualizar progreso
     await this.updateQuotationProgress(id);
@@ -1371,9 +1495,11 @@ export class QuotationService {
     reason: string
   ): Promise<QuotationRequest> {
     const quotationRequest = await this.findOneQuotationRequest(id);
-    
+
     if (quotationRequest.status === QuotationRequestStatus.APPROVED) {
-      throw new BadRequestException('No se puede rechazar una cotización aprobada');
+      throw new BadRequestException(
+        'No se puede rechazar una cotización aprobada'
+      );
     }
 
     quotationRequest.rejectedReason = reason;
@@ -1381,8 +1507,9 @@ export class QuotationService {
     quotationRequest.rejectedAt = new Date();
     quotationRequest.status = QuotationRequestStatus.REJECTED;
 
-    const savedQuotationRequest = await this.quotationRequestRepository.save(quotationRequest);
-    
+    const savedQuotationRequest =
+      await this.quotationRequestRepository.save(quotationRequest);
+
     // Actualizar progreso
     await this.updateQuotationProgress(id);
 
@@ -1416,7 +1543,7 @@ export class QuotationService {
       const approvalProgress = calculateApprovalProgress(quotationRequest, {
         baseProgress: 80,
         maxProgress: 100,
-        approvalSteps: 4
+        approvalSteps: 4,
       });
       return approvalProgress;
     }
@@ -1452,6 +1579,7 @@ export class QuotationService {
 
   // Private method to handle supplier updates with soft delete
   private async updateQuotationSuppliersWithSoftDelete(
+    requirement: Requirement,
     quotationRequestId: number,
     suppliers: Array<{ supplierId: number }>
   ): Promise<void> {
@@ -1461,7 +1589,7 @@ export class QuotationService {
         where: { quotationRequest: { id: quotationRequestId } },
         relations: ['supplier'],
       });
-
+    let quotationNumber = currentQuotationSuppliers.length + 1;
     const newSupplierIds = new Set(suppliers.map(s => s.supplierId));
     const currentSupplierIds = new Set(
       currentQuotationSuppliers.map(qs => qs.supplier.id)
@@ -1485,11 +1613,16 @@ export class QuotationService {
 
     // Add new suppliers
     if (suppliersToAdd.length > 0) {
-      const newQuotationSuppliers = suppliersToAdd.map(supplier => ({
+      const newQuotationSuppliers = suppliersToAdd.map((supplier) => {
+        const quotation = {
+        orderNumber: `OC-${requirement.code}-${formatNumber(quotationNumber,3)}`,
         quotationRequest: { id: quotationRequestId },
         supplier: { id: supplier.supplierId },
         status: QuotationSupplierStatus.PENDING,
-      }));
+        };
+        quotationNumber += 1;
+        return quotation;
+      });
       await this.quotationSupplierRepository.save(newQuotationSuppliers);
     }
   }
@@ -1531,17 +1664,17 @@ export class QuotationService {
         'quotationSuppliers.supplierQuotation.supplierQuotationItems.requirementArticle.article',
         'finalSelection',
         'finalSelection.finalSelectionItems',
+        'finalSelection.finalSelectionItems.supplier',
         'finalSelection.finalSelectionItems.requirementArticle',
         'finalSelection.finalSelectionItems.requirementArticle.article',
       ],
     });
   }
 
-  async getQuotationStatistics(userId: number): Promise<{
+  async getQuotationStatistics(): Promise<{
     PENDING: number;
     DRAFT: number;
     ACTIVE: number;
-    COMPLETED: number;
     CANCELLED: number;
     SIGNED_1: number;
     SIGNED_2: number;
@@ -1552,7 +1685,6 @@ export class QuotationService {
     const stats = await this.quotationRequestRepository
       .createQueryBuilder('quotation')
       .leftJoin('quotation.createdBy', 'createdBy')
-      .where('(createdBy.id = :userId OR createdBy.id IS NULL)', { userId })
       .select('quotation.status', 'status')
       .addSelect('COUNT(*)', 'count')
       .groupBy('quotation.status')
@@ -1562,7 +1694,6 @@ export class QuotationService {
       PENDING: 0,
       DRAFT: 0,
       ACTIVE: 0,
-      COMPLETED: 0,
       CANCELLED: 0,
       SIGNED_1: 0,
       SIGNED_2: 0,
@@ -1724,10 +1855,11 @@ export class QuotationService {
         let calculatedTotal = 0;
         if (qs.supplierQuotation?.supplierQuotationItems) {
           calculatedTotal = qs.supplierQuotation.supplierQuotationItems
-            .filter(item =>
-              selectedArticlesForSupplier.includes(
-                item.requirementArticle.article.id
-              ) && item.status === 'QUOTED'
+            .filter(
+              item =>
+                selectedArticlesForSupplier.includes(
+                  item.requirementArticle.article.id
+                ) && item.status === 'QUOTED'
             )
             .reduce((sum, item) => sum + (item.totalPrice || 0), 0);
         }
@@ -1747,9 +1879,11 @@ export class QuotationService {
           location: qs.supplier.address || '',
           totalAmount: calculatedTotal,
           currency:
-            qs.supplierQuotation?.supplierQuotationItems?.[0]?.currency || 'PEN',
+            qs.supplierQuotation?.supplierQuotationItems?.[0]?.currency ||
+            'PEN',
           deliveryTime:
-            qs.supplierQuotation?.supplierQuotationItems?.[0]?.deliveryTime || 0,
+            qs.supplierQuotation?.supplierQuotationItems?.[0]?.deliveryTime ||
+            0,
           paymentTerms: qs.terms || '',
           notes: qs.supplierQuotation?.notes || '',
           isSelected: qs.supplier.id === supplierId,
@@ -1854,4 +1988,189 @@ export class QuotationService {
 
     return Buffer.from(pdfBuffer);
   }
+
+  async generatePurchaseOrderPdf(
+    id: number,
+    supplierId: number
+  ): Promise<Buffer> {
+    // Buscar la cotización con todas las relaciones necesarias
+    const quotation = await this.findOneQuotationRequest(id);
+    // Verificar que existe una selección final
+    if (!quotation.finalSelection) {
+      throw new BadRequestException(
+        'No hay selección final para generar orden de compra'
+      );
+    }
+    
+    
+    // Obtener el proveedor seleccionado
+    const supplierSelected = quotation.quotationSuppliers.find(
+      qs => qs.supplier.id === supplierId
+    );
+    
+    if (!supplierSelected) {
+      throw new NotFoundException('Supplier not found in this quotation request');
+    }
+
+    // Obtener los artículos seleccionados para el proveedor específico
+    const selectedArticlesForSupplier = quotation.finalSelection.finalSelectionItems
+      .filter(item => item.supplier.id === supplierId)
+      .map(item => item.requirementArticle.article.id);
+
+    if (selectedArticlesForSupplier.length === 0) {
+      throw new BadRequestException(
+        'No hay artículos seleccionados para este proveedor'
+      );
+    }
+
+    // Calcular fecha de entrega basada en el tiempo de entrega del proveedor
+    const deliveryTime = supplierSelected?.supplierQuotation?.supplierQuotationItems?.[0]
+      ?.deliveryTime;
+    let deliveryDate = 'POR DEFINIR';
+    if (deliveryTime !== undefined && deliveryTime !== null) {
+      if (deliveryTime === 0) {
+        deliveryDate = 'Inmediato';
+      } else {
+        const today = new Date();
+        const deliveryDateObj = new Date(today);
+        deliveryDateObj.setDate(today.getDate() + deliveryTime);
+        deliveryDate = deliveryDateObj.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        });
+      }
+    }
+
+    // Calcular total, subtotal y IGV
+    const igvPercentage = supplierSelected?.supplierQuotation?.igv
+      ? Number(supplierSelected?.supplierQuotation?.igv)
+      : 18;
+
+    const total = quotation.finalSelection.finalSelectionItems
+      .filter(item => item.supplier.id === supplierId)
+      .reduce((sum, item) => sum + Number(item.totalPrice || 0), 0);
+    
+    const subtotal = +(total / (1 + igvPercentage / 100)).toFixed(2);
+    const igv = +(total - subtotal).toFixed(2);
+    
+    // Preparar datos para el template
+    const data = {
+      code: 'MYS-LG-FT-04',
+      date: quotation.createdAt
+        ? quotation.createdAt.toISOString().slice(0, 10).replace(/-/g, '/')
+        : new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
+      orderNumber: supplierSelected.orderNumber || `OC-${quotation.code}-${supplierId}`,
+      issueDate: quotation.createdAt
+        ? quotation.createdAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : new Date().toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }),
+      
+      // Datos del comprador (MYSER)
+      buyerName: 'MAQUINARIA Y SERVICIOS ALTO HUARCA S.A',
+      buyerRUC: '20490597795',
+      buyerAddress: 'AV. LA MARINA - ZONA NORTE G1',
+      buyerLocation: '',
+      buyerPhone: '',
+      
+      // Datos del proveedor
+      supplierName: supplierSelected?.supplier.businessName || '-',
+      supplierRUC: supplierSelected?.supplier.ruc || '-',
+      supplierAddress: supplierSelected?.supplier.address || '-',
+      supplierLocation: supplierSelected?.supplier.address || '-',
+      supplierPhone: supplierSelected?.supplier.mobile || '-',
+      
+      // Datos de facturación
+      invoiceToRUC: '20490597795',
+      invoiceToName: 'MAQUINARIA Y SERVICIOS ALTO HUARCA S.A',
+      
+      // Datos del requerimiento
+      requirementNumber: quotation.requirement?.code || '-',
+      quotationNumber: supplierSelected?.supplierQuotation?.quotationNumber || '-',
+      requestedBy: quotation.requirement?.employee
+        ? `${quotation.requirement.employee.firstName} ${quotation.requirement.employee.lastName}`
+        : '-',
+      preparedBy: quotation.createdBy
+        ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`
+        : '-',
+      costCenter: quotation.requirement?.costCenter?.description || '-',
+      
+      // Artículos seleccionados
+      items: quotation.finalSelection.finalSelectionItems
+        .filter(item => item.supplier.id === supplierId)
+        .map((item, index) => ({
+          item: index + 1,
+          code: item.requirementArticle.article.code || '-',
+          quantity: item.quantity,
+          unit: item.requirementArticle.article.unitOfMeasure || '-',
+          description: item.requirementArticle.article.name || '-',
+          brand: item.requirementArticle.article.brand?.name || '-',
+          unitPrice: item.currency === 'USD' 
+            ? `$${(+item.unitPrice).toFixed(2)}`
+            : item.currency === 'EUR'
+            ? `€${(+item.unitPrice).toFixed(2)}`
+            : `S/. ${(+item.unitPrice).toFixed(2)}`,
+          amount: item.currency === 'USD' 
+            ? `$${item.totalPrice.toFixed(2)}`
+            : item.currency === 'EUR'
+            ? `€${(+item.totalPrice).toFixed(2)}`
+            : `S/. ${(+item.totalPrice).toFixed(2)}`,
+        })),
+      
+      // Condiciones de pago y entrega
+      paymentMethod: supplierSelected?.supplierQuotation?.methodOfPayment || '-',
+      deliveryDate: deliveryDate,
+      
+      // Totales
+      subtotal: `S/. ${subtotal.toFixed(2)}`,
+      igv: `S/. ${igv.toFixed(2)}`,
+      total: `S/. ${total.toFixed(2)}`,
+      currency: 'PEN',
+      totalInWords: numberToSpanishWordsCurrency(total, 'PEN'),
+      
+      // Firmantes (ejemplo)
+      signers: [
+        { name: 'ADMINISTRACION', date: '-' },
+        { name: 'RESIDENCIA', date: '-' },
+        { name: 'OFICINA TECNICA', date: '-' },
+        { name: 'GERENCIA', date: '-' },
+      ],
+      
+      // Observaciones
+      observationsLine2: supplierSelected?.supplierQuotation?.notes || '-',
+    };
+
+    // Leer y compilar el template
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/purchase-order.template.html'),
+      'utf8'
+    );
+    const template = Handlebars.compile(templateHtml);
+    const html = template(data);
+
+    // Generar el PDF con puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
+    });
+    await browser.close();
+
+    return Buffer.from(pdfBuffer);
+  }
+
+
 }

@@ -13,6 +13,7 @@ import type {
   SendQuotationOrderDto,
   ApplyGeneralTermsDto,
   QuotationFilters,
+  UpdateSupplierQuotationOcDto,
 } from '../types/quotation';
 
 export const useQuotationService = () => {
@@ -139,6 +140,15 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
+  const updateSupplierQuotationOc = useCallback(
+    async (id: number, data: UpdateSupplierQuotationOcDto) => {
+      return handleRequest(() =>
+        quotationService.updateSupplierQuotationOc(id, data)
+      );
+    },
+    [handleRequest]
+  );
+
   const submitSupplierQuotation = useCallback(
     async (id: number) => {
       return handleRequest(() => quotationService.submitSupplierQuotation(id));
@@ -187,20 +197,42 @@ export const useQuotationService = () => {
   );
 
   // Approval flow methods
-  const signQuotationRequest = useCallback(
-    async (id: number) => {
-      return handleRequest(() => quotationService.signQuotationRequest(id));
-    },
-    [handleRequest]
-  );
+  const signQuotationRequest = useCallback(async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await quotationService.signQuotationRequest(id);
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const rejectQuotationRequest = useCallback(
     async (id: number, reason: string) => {
-      return handleRequest(() =>
-        quotationService.rejectQuotationRequest(id, reason)
-      );
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await quotationService.rejectQuotationRequest(
+          id,
+          reason
+        );
+        return result;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'An error occurred';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
     },
-    [handleRequest]
+    []
   );
 
   // Quotation Order methods
@@ -263,6 +295,7 @@ export const useQuotationService = () => {
     getSupplierQuotation,
     getSupplierQuotationsByRequest,
     updateSupplierQuotation,
+    updateSupplierQuotationOc,
     submitSupplierQuotation,
     // Final Selection
     createFinalSelection,

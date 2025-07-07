@@ -11,7 +11,11 @@ import { QuotationModule } from './quotation.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Requirement, RequirementArticle, RequirementServiceEntity]),
+    TypeOrmModule.forFeature([
+      Requirement,
+      RequirementArticle,
+      RequirementServiceEntity,
+    ]),
     EmployeeModule,
     RoleModule,
     forwardRef(() => QuotationModule),

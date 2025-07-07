@@ -70,10 +70,15 @@ export const employeeService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await createApiCall<Employee>(`${BASE_URL}/${id}/image`, {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await createApiCall<Employee>(
+      `${BASE_URL}/${id}/image`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
     return response;
   },
 
@@ -104,7 +109,9 @@ export const employeeService = {
       {
         method: 'POST',
         body: formData,
-      }
+      },
+      false,
+      true
     );
     return response;
   },

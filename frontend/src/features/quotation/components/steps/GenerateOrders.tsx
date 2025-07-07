@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   type SelectedSupplier,
   type QuotationOrder,
   type UpdateQuotationOrderDto,
   type SendQuotationOrderDto,
   QuotationSupplierStatus,
+  type QuotationRequest,
 } from '../../../../types/quotation';
 import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
@@ -16,19 +17,274 @@ import { Loader2 } from 'lucide-react';
 
 interface GenerateOrdersProps {
   requirement: Requirement;
-  selectedSuppliers: SelectedSupplier[];
-  quotationRequestId: number;
+  quotationRequest: QuotationRequest;
   onComplete: (selectedSuppliers: SelectedSupplier[]) => void;
   onBack: () => void;
 }
 
+// Tipos para el estado de carga
+interface LoadingStates {
+  savingTerms: number | null;
+  exportingPdf: number | null;
+  savingOrder: number | null;
+  sendingOrder: number | null;
+  applyingGeneralTerms: boolean;
+  sendingAllOrders: boolean;
+}
+
+// Componente para mostrar el estado de una orden
+const OrderStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'GUARDADA':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'BORRADOR':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'ENVIADA':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}
+    >
+      {status}
+    </span>
+  );
+};
+
+// Componente para la selección de productos
+const ProductSelection: React.FC<{
+  supplierId: number;
+  requirementArticles: Requirement['requirementArticles'];
+  selectedProducts: Set<number>;
+  onProductToggle: (supplierId: number, articleId: number) => void;
+  onSelectAll: (supplierId: number) => void;
+  onDeselectAll: (supplierId: number) => void;
+}> = ({
+  supplierId,
+  requirementArticles,
+  selectedProducts,
+  onProductToggle,
+  onSelectAll,
+  onDeselectAll,
+}) => {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          Seleccionar productos
+        </h5>
+        <div className="flex space-x-2">
+          <Button onClick={() => onSelectAll(supplierId)} className="text-xs">
+            Seleccionar todos
+          </Button>
+          <Button onClick={() => onDeselectAll(supplierId)} className="text-xs">
+            Deseleccionar
+          </Button>
+        </div>
+      </div>
+      <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded">
+        {requirementArticles.map(article => {
+          const isSelected = selectedProducts.has(article.id);
+          return (
+            <div
+              key={article.id}
+              className={`flex items-center space-x-3 p-2 text-xs border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
+                isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onProductToggle(supplierId, article.id)}
+                className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 dark:text-white">
+                  {article.article.name}
+                </div>
+                <div className="text-gray-500 dark:text-gray-400">
+                  {article.article.code} - {article.quantity} unidades
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Componente para la vista previa de la orden
+const OrderPreview: React.FC<{
+  order: QuotationOrder | undefined;
+  deadline: Date;
+  selectedCount: number;
+  totalQuantity: number;
+  totalArticles: number;
+  orderNumber: string | undefined;
+}> = ({
+  order,
+  deadline,
+  selectedCount,
+  totalQuantity,
+  totalArticles,
+  orderNumber,
+}) => {
+  return (
+    <div className="bg-gray-50 dark:bg-gray-900 rounded p-3">
+      <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Vista previa de la orden
+      </h5>
+      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+        <div>
+          <strong>Número:</strong> {orderNumber || 'Pendiente de generar'}
+        </div>
+        <div>
+          <strong>Fecha límite:</strong> {deadline.toLocaleDateString()}
+        </div>
+        <div>
+          <strong>Productos seleccionados:</strong> {selectedCount} de{' '}
+          {totalArticles} artículos
+        </div>
+        <div>
+          <strong>Cantidad total:</strong> {totalQuantity} unidades
+        </div>
+        <div>
+          <strong>Términos:</strong> {order?.terms || 'No definidos'}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente para los botones de acción
+const ActionButtons: React.FC<{
+  supplierId: number;
+  order: QuotationOrder | undefined;
+  selectedCount: number;
+  loadingStates: LoadingStates;
+  onEditTerms: (supplierId: number) => void;
+  onExportPDF: (supplierId: number) => void;
+  onSaveOrder: (supplierId: number) => void;
+  onSendOrder: (supplierId: number) => void;
+}> = ({
+  supplierId,
+  order,
+  selectedCount,
+  loadingStates,
+  onEditTerms,
+  onExportPDF,
+  onSaveOrder,
+  onSendOrder,
+}) => {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        onClick={() => onEditTerms(supplierId)}
+        className="text-xs"
+        disabled={loadingStates.savingTerms === supplierId}
+      >
+        ✏️ Editar términos
+      </Button>
+      <Button
+        onClick={() => onExportPDF(supplierId)}
+        className="text-xs"
+        disabled={
+          !order ||
+          selectedCount === 0 ||
+          loadingStates.exportingPdf === supplierId
+        }
+      >
+        {loadingStates.exportingPdf === supplierId ? (
+          <>
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            Generando PDF...
+          </>
+        ) : (
+          '📄 Exportar PDF'
+        )}
+      </Button>
+      <Button
+        onClick={() => onSaveOrder(supplierId)}
+        className="text-xs"
+        disabled={
+          !order ||
+          selectedCount === 0 ||
+          loadingStates.savingOrder === supplierId
+        }
+      >
+        {loadingStates.savingOrder === supplierId ? (
+          <>
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            Guardando...
+          </>
+        ) : (
+          '💾 Guardar'
+        )}
+      </Button>
+      <Button
+        onClick={() => onSendOrder(supplierId)}
+        className="text-xs"
+        disabled={
+          !order ||
+          selectedCount === 0 ||
+          order.status === 'SENT' ||
+          loadingStates.sendingOrder === supplierId
+        }
+        variant={order?.status === 'SENT' ? 'outline' : 'primary'}
+      >
+        {loadingStates.sendingOrder === supplierId ? (
+          <>
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            Enviando...
+          </>
+        ) : order?.status === 'SENT' ? (
+          '✅ Enviada'
+        ) : (
+          '📤 Enviar'
+        )}
+      </Button>
+    </div>
+  );
+};
+
 export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
   requirement,
-  selectedSuppliers,
-  quotationRequestId,
+  quotationRequest,
   onComplete,
   onBack,
 }) => {
+  // Extraer selectedSuppliers y quotationRequestId de quotationRequest
+  const selectedSuppliers: SelectedSupplier[] =
+    quotationRequest.quotationSuppliers
+      .filter(qs => qs.supplier)
+      .map(qs => ({
+        supplier: qs.supplier,
+        isSelected: true,
+        quotationOrder:
+          qs.orderNumber || qs.terms
+            ? {
+                id: qs.id,
+                supplierId: qs.supplier.id,
+                requirementId: quotationRequest.requirement.id,
+                orderNumber: qs.orderNumber || '',
+                terms: qs.terms || '',
+                deadline: qs.sentAt ? new Date(qs.sentAt) : new Date(),
+                status: qs.status,
+                createdAt: new Date(qs.createdAt),
+                updatedAt: new Date(qs.updatedAt),
+              }
+            : undefined,
+      }));
+
+  const quotationRequestId = quotationRequest.id;
+
+  // Estados principales
   const [orders, setOrders] = useState<Record<number, QuotationOrder>>({});
   const [selectedProducts, setSelectedProducts] = useState<
     Record<number, Set<number>>
@@ -36,310 +292,351 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
   const [editingOrder, setEditingOrder] = useState<number | null>(null);
   const [deadline, setDeadline] = useState(
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  ); // 7 days from now
-  const [loading, setLoading] = useState(false);
-  const hasLoadedData = useRef(false);
+  );
   const [editingTerms, setEditingTerms] = useState<string>('');
   const [generalTerms, setGeneralTerms] = useState<string>(
     'Términos estándar de cotización'
   );
-  const [exportingPdfId, setExportingPdfId] = useState<number | null>(null);
-  const [savingOrderId, setSavingOrderId] = useState<number | null>(null);
-  const [savingTermsId, setSavingTermsId] = useState<number | null>(null);
-  const [sendingOrderId, setSendingOrderId] = useState<number | null>(null);
+
+  // Estados de carga optimizados
+  const [loadingStates, setLoadingStates] = useState<LoadingStates>({
+    savingTerms: null,
+    exportingPdf: null,
+    savingOrder: null,
+    sendingOrder: null,
+    applyingGeneralTerms: false,
+    sendingAllOrders: false,
+  });
+
+  // Flag para evitar cargas múltiples
+  const [hasLoadedData, setHasLoadedData] = useState(false);
 
   const {
     updateQuotationOrder,
     sendQuotationOrder,
     applyGeneralTermsToAll,
     sendAllQuotationOrders,
-    getQuotationByRequirement,
     error,
   } = useQuotationService();
   const { showSuccess, showError } = useToast();
 
-  // Load existing quotation data when component mounts (only once)
-  useEffect(() => {
-    const loadExistingData = async () => {
-      // Solo cargar una vez y solo si no hay datos locales
-      if (
-        !hasLoadedData.current &&
-        Object.keys(orders).length === 0 &&
-        Object.keys(selectedProducts).length === 0
-      ) {
-        hasLoadedData.current = true;
+  // Memoizar valores calculados
+  const totalArticles = useMemo(
+    () => requirement.requirementArticles.length,
+    [requirement.requirementArticles]
+  );
 
-        const existingQuotation = await getQuotationByRequirement(
-          requirement.id
+  // Cargar datos existentes desde las props
+  useEffect(() => {
+    if (hasLoadedData || Object.keys(orders).length > 0) return;
+
+    setHasLoadedData(true);
+
+    if (quotationRequest) {
+      const initialOrders: Record<number, QuotationOrder> = {};
+      const initialSelectedProducts: Record<number, Set<number>> = {};
+
+      quotationRequest.quotationSuppliers.forEach(quotationSupplier => {
+        const supplierId = quotationSupplier.supplier.id;
+
+        if (quotationSupplier.quotationSupplierArticles.length > 0) {
+          initialOrders[supplierId] = {
+            id: Date.now(),
+            supplierId,
+            requirementId: requirement.id,
+            orderNumber: quotationSupplier.orderNumber,
+            terms: quotationSupplier.terms || 'Términos estándar de cotización',
+            deadline: new Date(deadline),
+            status: quotationSupplier.status,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          const selectedArticleIds = new Set(
+            quotationSupplier.quotationSupplierArticles.map(
+              qsa => qsa.requirementArticle.id
+            )
+          );
+          initialSelectedProducts[supplierId] = selectedArticleIds;
+        }
+      });
+      setOrders(initialOrders);
+      setSelectedProducts(initialSelectedProducts);
+    }
+  }, [quotationRequest, requirement.id, deadline, hasLoadedData]);
+
+  // Callbacks optimizados
+  const handleEditTerms = useCallback(
+    (supplierId: number) => {
+      const currentOrder = orders[supplierId];
+      setEditingTerms(currentOrder?.terms || 'Términos estándar de cotización');
+      setEditingOrder(supplierId);
+    },
+    [orders]
+  );
+
+  const handleSaveTerms = useCallback(
+    async (supplierId: number, terms: string) => {
+      setLoadingStates(prev => ({ ...prev, savingTerms: supplierId }));
+
+      try {
+        const existingOrder = orders[supplierId];
+        // No modificar el orderNumber existente, solo actualizar términos
+        const selectedArticles = Array.from(selectedProducts[supplierId] || []);
+
+        const updateData: UpdateQuotationOrderDto = {
+          supplierId,
+          terms,
+          selectedArticles,
+        };
+
+        const result = await updateQuotationOrder(
+          quotationRequestId,
+          updateData
         );
 
-        if (existingQuotation) {
-          // Initialize orders from existing quotation suppliers
-          const initialOrders: Record<number, QuotationOrder> = {};
-          const initialSelectedProducts: Record<number, Set<number>> = {};
-
-          existingQuotation.quotationSuppliers.forEach(quotationSupplier => {
-            const supplierId = quotationSupplier.supplier.id;
-
-            // Initialize order if it exists
-            if (quotationSupplier.quotationSupplierArticles.length > 0) {
-              const orderNumber = `OC-${requirement.code}-${supplierId}-${Date.now()}`;
-
-              initialOrders[supplierId] = {
+        if (result) {
+          setOrders(prev => ({
+            ...prev,
+            [supplierId]: {
+              ...(existingOrder || {
                 id: Date.now(),
                 supplierId,
                 requirementId: requirement.id,
-                orderNumber,
-                terms:
-                  quotationSupplier.terms || 'Términos estándar de cotización',
+                orderNumber: '',
                 deadline: new Date(deadline),
-                status: quotationSupplier.status,
+                status: QuotationSupplierStatus.PENDING,
                 createdAt: new Date(),
-                updatedAt: new Date(),
-              };
+              }),
+              terms,
+              updatedAt: new Date(),
+            },
+          }));
 
-              // Initialize selected products from existing data
-              const selectedArticleIds = new Set(
-                quotationSupplier.quotationSupplierArticles.map(
-                  qsa => qsa.requirementArticle.id
-                )
-              );
-              initialSelectedProducts[supplierId] = selectedArticleIds;
-            }
-          });
-
-          setOrders(initialOrders);
-          setSelectedProducts(initialSelectedProducts);
+          showSuccess(
+            'Términos actualizados',
+            `Términos para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} actualizados exitosamente`
+          );
+          setEditingOrder(null);
+        } else {
+          showError(
+            'Error al actualizar términos',
+            error ||
+              'No se pudieron actualizar los términos. Inténtalo de nuevo.'
+          );
         }
+      } finally {
+        setLoadingStates(prev => ({ ...prev, savingTerms: null }));
       }
-    };
+    },
+    [
+      orders,
+      selectedProducts,
+      requirement.code,
+      deadline,
+      updateQuotationOrder,
+      quotationRequestId,
+      selectedSuppliers,
+      showSuccess,
+      showError,
+      error,
+    ]
+  );
 
-    loadExistingData();
-  }, [requirement.id, getQuotationByRequirement, deadline]);
+  const handleExportPDF = useCallback(
+    async (supplierId: number) => {
+      setLoadingStates(prev => ({ ...prev, exportingPdf: supplierId }));
 
-  // Initialize orders from existing quotation suppliers (fallback)
-  useEffect(() => {
-    const initialOrders: Record<number, QuotationOrder> = {};
-    selectedSuppliers.forEach(supplier => {
-      if (supplier.quotationOrder) {
-        initialOrders[supplier.supplier.id] = supplier.quotationOrder;
+      try {
+        const blob = await quotationService.downloadPurchaseRequestPdf(
+          quotationRequestId,
+          supplierId
+        );
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `solicitud_compra_${quotationRequestId}_${supplierId}.pdf`;
+        a.click();
+        showSuccess(
+          'PDF generado',
+          `El PDF se ha generado correctamente para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName}`
+        );
+      } catch (error) {
+        showError('Error al generar PDF', (error as Error).message);
+      } finally {
+        setLoadingStates(prev => ({ ...prev, exportingPdf: null }));
       }
-    });
-    setOrders(prev => ({ ...prev, ...initialOrders }));
-  }, [selectedSuppliers]);
+    },
+    [quotationRequestId, selectedSuppliers, showSuccess, showError]
+  );
 
-  const handleEditTerms = (supplierId: number) => {
-    const currentOrder = orders[supplierId];
-    setEditingTerms(currentOrder?.terms || 'Términos estándar de cotización');
-    setEditingOrder(supplierId);
-  };
+  const handleSaveOrder = useCallback(
+    async (supplierId: number) => {
+      setLoadingStates(prev => ({ ...prev, savingOrder: supplierId }));
 
-  const handleSaveTerms = async (supplierId: number, terms: string) => {
-    setSavingTermsId(supplierId);
-    try {
-      const existingOrder = orders[supplierId];
-      const orderNumber =
-        existingOrder?.orderNumber ||
-        `OC-${requirement.code}-${supplierId}-${Date.now()}`;
-      const selectedArticles = Array.from(selectedProducts[supplierId] || []);
+      try {
+        const order = orders[supplierId];
+        if (!order) return;
 
-      const updateData: UpdateQuotationOrderDto = {
-        supplierId,
-        orderNumber,
-        terms,
-        selectedArticles,
-      };
+        const updateData: UpdateQuotationOrderDto = {
+          supplierId,
+          orderNumber: order.orderNumber,
+          terms: order.terms,
+          selectedArticles: Array.from(selectedProducts[supplierId] || []),
+        };
 
-      const result = await updateQuotationOrder(quotationRequestId, updateData);
-      if (result) {
-        setOrders(prev => ({
-          ...prev,
-          [supplierId]: {
-            ...(existingOrder || {
-              id: Date.now(),
-              supplierId,
-              requirementId: requirement.id,
-              orderNumber,
-              deadline: new Date(deadline),
+        const result = await updateQuotationOrder(
+          quotationRequestId,
+          updateData
+        );
+
+        if (result) {
+          setOrders(prev => ({
+            ...prev,
+            [supplierId]: {
+              ...prev[supplierId]!,
               status: QuotationSupplierStatus.PENDING,
-              createdAt: new Date(),
-            }),
-            terms,
-            updatedAt: new Date(),
-          },
-        }));
+              updatedAt: new Date(),
+            },
+          }));
 
-        showSuccess(
-          'Términos actualizados',
-          `Términos para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} actualizados exitosamente`
-        );
-        setEditingOrder(null);
-      } else {
-        showError(
-          'Error al actualizar términos',
-          error || 'No se pudieron actualizar los términos. Inténtalo de nuevo.'
-        );
+          showSuccess(
+            'Orden guardada',
+            `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} guardada exitosamente`
+          );
+        } else {
+          showError(
+            'Error al guardar orden',
+            error || 'No se pudo guardar la orden. Inténtalo de nuevo.'
+          );
+        }
+      } finally {
+        setLoadingStates(prev => ({ ...prev, savingOrder: null }));
       }
-    } finally {
-      setSavingTermsId(null);
-    }
-  };
+    },
+    [
+      orders,
+      selectedProducts,
+      updateQuotationOrder,
+      quotationRequestId,
+      selectedSuppliers,
+      showSuccess,
+      showError,
+      error,
+    ]
+  );
 
-  const handleExportPDF = async (supplierId: number) => {
-    setExportingPdfId(supplierId);
+  const handleSendOrder = useCallback(
+    async (supplierId: number) => {
+      setLoadingStates(prev => ({ ...prev, sendingOrder: supplierId }));
+
+      try {
+        const order = orders[supplierId];
+        if (!order) return;
+
+        const sendData: SendQuotationOrderDto = {
+          supplierId,
+          orderNumber: order.orderNumber,
+          terms: order.terms,
+        };
+
+        const result = await sendQuotationOrder(quotationRequestId, sendData);
+
+        if (result) {
+          setOrders(prev => ({
+            ...prev,
+            [supplierId]: {
+              ...prev[supplierId]!,
+              status: QuotationSupplierStatus.SENT,
+              updatedAt: new Date(),
+            },
+          }));
+
+          showSuccess(
+            'Orden enviada',
+            `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} enviada exitosamente`
+          );
+        } else {
+          showError(
+            'Error al enviar orden',
+            error || 'No se pudo enviar la orden. Inténtalo de nuevo.'
+          );
+        }
+      } finally {
+        setLoadingStates(prev => ({ ...prev, sendingOrder: null }));
+      }
+    },
+    [
+      orders,
+      sendQuotationOrder,
+      quotationRequestId,
+      selectedSuppliers,
+      showSuccess,
+      showError,
+      error,
+    ]
+  );
+
+  const handleSendAllOrders = useCallback(async () => {
+    setLoadingStates(prev => ({ ...prev, sendingAllOrders: true }));
+
     try {
-      const blob = await quotationService.downloadPurchaseRequestPdf(
-        quotationRequestId,
-        supplierId
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `solicitud_compra_${quotationRequestId}_${supplierId}.pdf`;
-      a.click();
-      showSuccess(
-        'PDF generado',
-        `El PDF se ha generado correctamente para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName}`
-      );
-    } catch (error) {
-      showError('Error al generar PDF', (error as Error).message);
-    } finally {
-      setExportingPdfId(null);
-    }
-  };
+      const result = await sendAllQuotationOrders(quotationRequestId);
 
-  const handleSaveOrder = async (supplierId: number) => {
-    setSavingOrderId(supplierId);
-    try {
-      const order = orders[supplierId];
-      if (!order) return;
-
-      const updateData: UpdateQuotationOrderDto = {
-        supplierId,
-        orderNumber: order.orderNumber,
-        terms: order.terms,
-        selectedArticles: Array.from(selectedProducts[supplierId] || []),
-      };
-
-      const result = await updateQuotationOrder(quotationRequestId, updateData);
       if (result) {
-        setOrders(prev => ({
-          ...prev,
-          [supplierId]: {
-            ...prev[supplierId]!,
-            status: QuotationSupplierStatus.PENDING,
-            updatedAt: new Date(),
-          },
-        }));
-
-        showSuccess(
-          'Orden guardada',
-          `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} guardada exitosamente`
-        );
-      } else {
-        showError(
-          'Error al guardar orden',
-          error || 'No se pudo guardar la orden. Inténtalo de nuevo.'
-        );
-      }
-    } finally {
-      setSavingOrderId(null);
-    }
-  };
-
-  const handleSendOrder = async (supplierId: number) => {
-    setSendingOrderId(supplierId);
-    try {
-      const order = orders[supplierId];
-      if (!order) return;
-
-      const sendData: SendQuotationOrderDto = {
-        supplierId,
-        orderNumber: order.orderNumber,
-        terms: order.terms,
-      };
-
-      const result = await sendQuotationOrder(quotationRequestId, sendData);
-      if (result) {
-        setOrders(prev => ({
-          ...prev,
-          [supplierId]: {
-            ...prev[supplierId]!,
-            status: QuotationSupplierStatus.SENT,
-            updatedAt: new Date(),
-          },
-        }));
-
-        showSuccess(
-          'Orden enviada',
-          `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} enviada exitosamente`
-        );
-      } else {
-        showError(
-          'Error al enviar orden',
-          error || 'No se pudo enviar la orden. Inténtalo de nuevo.'
-        );
-      }
-    } finally {
-      setSendingOrderId(null);
-    }
-  };
-
-  const handleSendAllOrders = async () => {
-    setLoading(true);
-    const result = await sendAllQuotationOrders(quotationRequestId);
-    if (result) {
-      // Actualizar el estado local de todas las órdenes a SENT
-      setOrders(prevOrders => {
-        const updatedOrders: Record<number, QuotationOrder> = {};
-
-        Object.keys(prevOrders).forEach(supplierId => {
-          const supplierIdNum = parseInt(supplierId);
-          updatedOrders[supplierIdNum] = {
-            ...prevOrders[supplierIdNum],
-            status: QuotationSupplierStatus.SENT,
-          };
+        setOrders(prevOrders => {
+          const updatedOrders: Record<number, QuotationOrder> = {};
+          Object.keys(prevOrders).forEach(supplierId => {
+            const supplierIdNum = parseInt(supplierId);
+            updatedOrders[supplierIdNum] = {
+              ...prevOrders[supplierIdNum],
+              status: QuotationSupplierStatus.SENT,
+            };
+          });
+          return updatedOrders;
         });
 
-        return updatedOrders;
-      });
-      showSuccess(
-        'Órdenes enviadas',
-        'Todas las órdenes se han enviado exitosamente'
-      );
-    } else {
-      showError(
-        'Error al enviar órdenes',
-        error || 'No se pudieron enviar las órdenes. Inténtalo de nuevo.'
-      );
+        showSuccess(
+          'Órdenes enviadas',
+          'Todas las órdenes se han enviado exitosamente'
+        );
+      } else {
+        showError(
+          'Error al enviar órdenes',
+          error || 'No se pudieron enviar las órdenes. Inténtalo de nuevo.'
+        );
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, sendingAllOrders: false }));
     }
-    setLoading(false);
-  };
+  }, [
+    sendAllQuotationOrders,
+    quotationRequestId,
+    showSuccess,
+    showError,
+    error,
+  ]);
 
-  const handleApplyGeneralTermsToAll = async () => {
-    setLoading(true);
+  const handleApplyGeneralTermsToAll = useCallback(async () => {
+    setLoadingStates(prev => ({ ...prev, applyingGeneralTerms: true }));
 
     try {
-      // Aplicar términos generales a todas las órdenes existentes en una sola llamada
       const result = await applyGeneralTermsToAll(quotationRequestId, {
         terms: generalTerms,
-        selectedArticles: Array.from(
-          new Set(requirement.requirementArticles.map(ra => ra.id))
-        ),
+        deadline: new Date(deadline),
+        selectedArticles: requirement.requirementArticles.map(ra => ({
+          articleId: ra.id,
+          quantity: ra.quantity,
+        })),
       });
 
       if (result) {
-        // Actualizar el estado local con los datos de la respuesta
-        const updatedQuotation = result;
-
-        // Actualizar órdenes locales
         const newOrders: Record<number, QuotationOrder> = {};
         const newSelectedProducts: Record<number, Set<number>> = {};
 
-        updatedQuotation.quotationSuppliers.forEach(quotationSupplier => {
+        result.quotationSuppliers.forEach(quotationSupplier => {
           const supplierId = quotationSupplier.supplier.id;
 
-          // Actualizar orden
           newOrders[supplierId] = {
             id: quotationSupplier.id,
             supplierId,
@@ -352,7 +649,6 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
             updatedAt: new Date(quotationSupplier.updatedAt),
           };
 
-          // Actualizar productos seleccionados
           const selectedArticleIds = new Set(
             quotationSupplier.quotationSupplierArticles.map(
               qsa => qsa.requirementArticle.id
@@ -375,58 +671,70 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
         'No se pudieron aplicar los términos generales a todas las órdenes'
       );
     } finally {
-      setLoading(false);
+      setLoadingStates(prev => ({ ...prev, applyingGeneralTerms: false }));
     }
-  };
+  }, [
+    applyGeneralTermsToAll,
+    quotationRequestId,
+    generalTerms,
+    deadline,
+    requirement.requirementArticles,
+    showSuccess,
+    showError,
+  ]);
 
-  const handleProductToggle = (
-    supplierId: number,
-    requirementArticleId: number
-  ) => {
-    setSelectedProducts(prev => {
-      const currentSelection = prev[supplierId] || new Set();
-      const newSelection = new Set(currentSelection);
+  const handleProductToggle = useCallback(
+    (supplierId: number, requirementArticleId: number) => {
+      setSelectedProducts(prev => {
+        const currentSelection = prev[supplierId] || new Set();
+        const newSelection = new Set(currentSelection);
 
-      if (newSelection.has(requirementArticleId)) {
-        newSelection.delete(requirementArticleId);
-      } else {
-        newSelection.add(requirementArticleId);
-      }
+        if (newSelection.has(requirementArticleId)) {
+          newSelection.delete(requirementArticleId);
+        } else {
+          newSelection.add(requirementArticleId);
+        }
 
-      return {
+        return {
+          ...prev,
+          [supplierId]: newSelection,
+        };
+      });
+    },
+    []
+  );
+
+  const handleSelectAllProducts = useCallback(
+    (supplierId: number) => {
+      const allRequirementArticleIds = new Set(
+        requirement.requirementArticles.map(ra => ra.id)
+      );
+      setSelectedProducts(prev => ({
         ...prev,
-        [supplierId]: newSelection,
-      };
-    });
-  };
+        [supplierId]: allRequirementArticleIds,
+      }));
+    },
+    [requirement.requirementArticles]
+  );
 
-  const handleSelectAllProducts = (supplierId: number) => {
-    const allRequirementArticleIds = new Set(
-      requirement.requirementArticles.map(ra => ra.id)
-    );
-    setSelectedProducts(prev => ({
-      ...prev,
-      [supplierId]: allRequirementArticleIds,
-    }));
-  };
-
-  const handleDeselectAllProducts = (supplierId: number) => {
+  const handleDeselectAllProducts = useCallback((supplierId: number) => {
     setSelectedProducts(prev => ({
       ...prev,
       [supplierId]: new Set(),
     }));
-  };
+  }, []);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     const updatedSuppliers = selectedSuppliers.map(supplier => ({
       ...supplier,
       quotationOrder: orders[supplier.supplier.id],
     }));
-    if (
-      Object.values(orders).filter(
-        o => o.status === QuotationSupplierStatus.SENT
-      ).length !== selectedSuppliers.length
-    ) {
+
+    const sentOrdersCount = Object.values(orders).filter(
+      o => o.status === QuotationSupplierStatus.SENT
+    ).length;
+
+    if (sentOrdersCount !== selectedSuppliers.length) {
       showError(
         'Error',
         'Debe enviar todas las órdenes para continuar con el proceso de cotización'
@@ -435,41 +743,52 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     }
 
     onComplete(updatedSuppliers);
-  };
+  }, [selectedSuppliers, orders, showError, onComplete]);
 
-  const getOrderStatus = (supplierId: number) => {
-    const order = orders[supplierId];
-    if (!order) return 'PENDIENTE';
-    return order.status === QuotationSupplierStatus.PENDING
-      ? 'GUARDADA'
-      : order.status === QuotationSupplierStatus.SENT
-        ? 'ENVIADA'
-        : 'BORRADOR';
-  };
+  // Funciones auxiliares memoizadas
+  const getOrderStatus = useCallback(
+    (supplierId: number) => {
+      const order = orders[supplierId];
+      if (!order) return 'PENDIENTE';
+      return order.status === QuotationSupplierStatus.PENDING
+        ? 'GUARDADA'
+        : order.status === QuotationSupplierStatus.SENT
+          ? 'ENVIADA'
+          : 'BORRADOR';
+    },
+    [orders]
+  );
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'GUARDADA':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'BORRADOR':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'ENVIADA':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
+  const getSelectedProductsCount = useCallback(
+    (supplierId: number) => {
+      return selectedProducts[supplierId]?.size || 0;
+    },
+    [selectedProducts]
+  );
 
-  const getSelectedProductsCount = (supplierId: number) => {
-    return selectedProducts[supplierId]?.size || 0;
-  };
+  const getTotalSelectedQuantity = useCallback(
+    (supplierId: number) => {
+      const selectedIds = selectedProducts[supplierId] || new Set();
+      return requirement.requirementArticles
+        .filter(ra => selectedIds.has(ra.id))
+        .reduce((total, ra) => +total + +ra.quantity, 0);
+    },
+    [selectedProducts, requirement.requirementArticles]
+  );
 
-  const getTotalSelectedQuantity = (supplierId: number) => {
-    const selectedIds = selectedProducts[supplierId] || new Set();
-    return requirement.requirementArticles
-      .filter(ra => selectedIds.has(ra.id))
-      .reduce((total, ra) => +total + +ra.quantity, 0);
-  };
+  // Estadísticas memoizadas
+  const statistics = useMemo(() => {
+    const totalOrders = Object.keys(orders).length;
+    const sentOrders = Object.values(orders).filter(
+      o => o.status === QuotationSupplierStatus.SENT
+    ).length;
+    const pendingOrders = Object.values(orders).filter(
+      o => o.status === QuotationSupplierStatus.PENDING
+    ).length;
+    const unsavedOrders = selectedSuppliers.length - totalOrders;
+
+    return { totalOrders, sentOrders, pendingOrders, unsavedOrders };
+  }, [orders, selectedSuppliers.length]);
 
   return (
     <div className="p-6">
@@ -510,10 +829,12 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
               <Button
                 variant="outline"
                 onClick={handleApplyGeneralTermsToAll}
-                disabled={loading}
+                disabled={loadingStates.applyingGeneralTerms}
                 className="text-sm bg-blue-500 text-white"
               >
-                {loading ? 'Aplicando...' : 'Aplicar términos y crear órdenes'}
+                {loadingStates.applyingGeneralTerms
+                  ? 'Aplicando...'
+                  : 'Aplicar términos y crear órdenes'}
               </Button>
             </div>
           </div>
@@ -529,6 +850,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
           const isEditing = editingOrder === supplier.id;
           const selectedCount = getSelectedProductsCount(supplier.id);
           const totalQuantity = getTotalSelectedQuantity(supplier.id);
+          const orderNumber = selectedSupplier.quotationOrder?.orderNumber;
 
           return (
             <div
@@ -546,11 +868,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                       RUC: {supplier.ruc}
                     </p>
                   </div>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}
-                  >
-                    {status}
-                  </span>
+                  <OrderStatusBadge status={status} />
                 </div>
               </div>
 
@@ -571,9 +889,9 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                           handleSaveTerms(supplier.id, editingTerms)
                         }
                         className="text-sm"
-                        disabled={savingTermsId === supplier.id}
+                        disabled={loadingStates.savingTerms === supplier.id}
                       >
-                        {savingTermsId === supplier.id ? (
+                        {loadingStates.savingTerms === supplier.id ? (
                           <>
                             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                             Guardando...
@@ -586,7 +904,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                         variant="outline"
                         onClick={() => setEditingOrder(null)}
                         className="text-sm"
-                        disabled={savingTermsId === supplier.id}
+                        disabled={loadingStates.savingTerms === supplier.id}
                       >
                         Cancelar
                       </Button>
@@ -594,168 +912,36 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Order Preview */}
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded p-3">
-                      <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Vista previa de la orden
-                      </h5>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                        <div>
-                          <strong>Número:</strong>{' '}
-                          {order?.orderNumber || 'Pendiente de generar'}
-                        </div>
-                        <div>
-                          <strong>Fecha límite:</strong>{' '}
-                          {deadline.toLocaleDateString()}
-                        </div>
-                        <div>
-                          <strong>Productos seleccionados:</strong>{' '}
-                          {selectedCount} de{' '}
-                          {requirement.requirementArticles.length} artículos
-                        </div>
-                        <div>
-                          <strong>Cantidad total:</strong> {totalQuantity}{' '}
-                          unidades
-                        </div>
-                        <div>
-                          <strong>Términos:</strong>{' '}
-                          {order?.terms || 'No definidos'}
-                        </div>
-                      </div>
-                    </div>
+                    <OrderPreview
+                      order={order}
+                      deadline={deadline}
+                      selectedCount={selectedCount}
+                      totalQuantity={totalQuantity}
+                      totalArticles={totalArticles}
+                      orderNumber={orderNumber}
+                    />
 
-                    {/* Product Selection */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          Seleccionar productos
-                        </h5>
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={() => handleSelectAllProducts(supplier.id)}
-                            className="text-xs"
-                          >
-                            Seleccionar todos
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleDeselectAllProducts(supplier.id)
-                            }
-                            className="text-xs"
-                          >
-                            Deseleccionar
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded">
-                        {requirement.requirementArticles.map(
-                          (article, index) => {
-                            const isSelected =
-                              selectedProducts[supplier.id]?.has(article.id) ||
-                              false;
-                            return (
-                              <div
-                                key={index}
-                                className={`flex items-center space-x-3 p-2 text-xs border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
-                                  isSelected
-                                    ? 'bg-blue-50 dark:bg-blue-900/20'
-                                    : ''
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() =>
-                                    handleProductToggle(supplier.id, article.id)
-                                  }
-                                  className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-900 dark:text-white">
-                                    {article.article.name}
-                                  </div>
-                                  <div className="text-gray-500 dark:text-gray-400">
-                                    {article.article.code} - {article.quantity}{' '}
-                                    unidades
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                        )}
-                      </div>
-                    </div>
+                    <ProductSelection
+                      supplierId={supplier.id}
+                      requirementArticles={requirement.requirementArticles}
+                      selectedProducts={
+                        selectedProducts[supplier.id] || new Set()
+                      }
+                      onProductToggle={handleProductToggle}
+                      onSelectAll={handleSelectAllProducts}
+                      onDeselectAll={handleDeselectAllProducts}
+                    />
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        onClick={() => handleEditTerms(supplier.id)}
-                        className="text-xs"
-                        disabled={savingTermsId === supplier.id}
-                      >
-                        ✏️ Editar términos
-                      </Button>
-                      <Button
-                        onClick={() => handleExportPDF(supplier.id)}
-                        className="text-xs"
-                        disabled={
-                          !order ||
-                          selectedCount === 0 ||
-                          exportingPdfId === supplier.id
-                        }
-                      >
-                        {exportingPdfId === supplier.id ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Generando PDF...
-                          </>
-                        ) : (
-                          '📄 Exportar PDF'
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => handleSaveOrder(supplier.id)}
-                        className="text-xs"
-                        disabled={
-                          !order ||
-                          selectedCount === 0 ||
-                          savingOrderId === supplier.id
-                        }
-                      >
-                        {savingOrderId === supplier.id ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Guardando...
-                          </>
-                        ) : (
-                          '💾 Guardar'
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => handleSendOrder(supplier.id)}
-                        className="text-xs"
-                        disabled={
-                          !order ||
-                          selectedCount === 0 ||
-                          order.status === 'SENT' ||
-                          sendingOrderId === supplier.id
-                        }
-                        variant={
-                          order?.status === 'SENT' ? 'outline' : 'primary'
-                        }
-                      >
-                        {sendingOrderId === supplier.id ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : order?.status === 'SENT' ? (
-                          '✅ Enviada'
-                        ) : (
-                          '📤 Enviar'
-                        )}
-                      </Button>
-                    </div>
+                    <ActionButtons
+                      supplierId={supplier.id}
+                      order={order}
+                      selectedCount={selectedCount}
+                      loadingStates={loadingStates}
+                      onEditTerms={handleEditTerms}
+                      onExportPDF={handleExportPDF}
+                      onSaveOrder={handleSaveOrder}
+                      onSendOrder={handleSendOrder}
+                    />
                   </div>
                 )}
               </div>
@@ -780,27 +966,19 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
               Órdenes generadas:
             </span>
             <span className="ml-2 font-medium text-gray-900 dark:text-white">
-              {Object.keys(orders).length}
+              {statistics.totalOrders}
             </span>
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Enviadas:</span>
             <span className="ml-2 font-medium text-blue-600 dark:text-blue-400">
-              {
-                Object.values(orders).filter(
-                  o => o.status === QuotationSupplierStatus.SENT
-                ).length
-              }
+              {statistics.sentOrders}
             </span>
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Guardadas:</span>
             <span className="ml-2 font-medium text-green-600 dark:text-green-400">
-              {
-                Object.values(orders).filter(
-                  o => o.status === QuotationSupplierStatus.PENDING
-                ).length
-              }
+              {statistics.pendingOrders}
             </span>
           </div>
           <div>
@@ -808,7 +986,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
               Sin guardar:
             </span>
             <span className="ml-2 font-medium text-yellow-600 dark:text-yellow-400">
-              {selectedSuppliers.length - Object.keys(orders).length}
+              {statistics.unsavedOrders}
             </span>
           </div>
         </div>
@@ -817,23 +995,21 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
         <div className="flex justify-center">
           <Button
             variant={
-              Object.values(orders).every(
-                o => o.status === QuotationSupplierStatus.SENT
-              )
+              statistics.sentOrders === selectedSuppliers.length
                 ? 'outline'
                 : 'primary'
             }
             onClick={handleSendAllOrders}
             disabled={
-              Object.keys(orders).length === 0 ||
-              loading ||
-              Object.values(orders).every(
-                o => o.status === QuotationSupplierStatus.SENT
-              )
+              statistics.totalOrders === 0 ||
+              loadingStates.sendingAllOrders ||
+              statistics.sentOrders === selectedSuppliers.length
             }
             className="text-sm"
           >
-            {loading ? 'Enviando...' : '📤 Enviar todas las órdenes'}
+            {loadingStates.sendingAllOrders
+              ? 'Enviando...'
+              : '📤 Enviar todas las órdenes'}
           </Button>
         </div>
       </div>
@@ -843,7 +1019,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
         <Button onClick={onBack}>← Volver</Button>
         <Button
           onClick={handleContinue}
-          disabled={Object.keys(orders).length === 0}
+          disabled={statistics.totalOrders === 0}
         >
           Continuar al siguiente paso
         </Button>

@@ -68,6 +68,14 @@ export class GeneralSettings {
   })
   timezone: string;
 
+  @Column('numeric', {
+    precision: 10,
+    scale: 2,
+    name: 'general_tax',
+    default: 18,
+  })
+  generalTax: number;
+
   @Column('text', {
     name: 'additional_settings',
     nullable: true,

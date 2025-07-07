@@ -56,8 +56,12 @@ export const QuotationList: React.FC<QuotationListProps> = ({
     PENDING: 0,
     DRAFT: 0,
     ACTIVE: 0,
-    COMPLETED: 0,
     CANCELLED: 0,
+    SIGNED_1: 0,
+    SIGNED_2: 0,
+    SIGNED_3: 0,
+    APPROVED: 0,
+    REJECTED: 0,
   });
 
   // Load statistics from backend
@@ -313,7 +317,7 @@ export const QuotationList: React.FC<QuotationListProps> = ({
               🔄
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-4 gap-4">
             {/* Pending */}
             <div
               onClick={() => handleStatusFilter(QuotationRequestStatus.PENDING)}
@@ -392,13 +396,13 @@ export const QuotationList: React.FC<QuotationListProps> = ({
               </div>
             </div>
 
-            {/* Completed */}
+            {/* Approved */}
             <div
               onClick={() =>
-                handleStatusFilter(QuotationRequestStatus.COMPLETED)
+                handleStatusFilter(QuotationRequestStatus.APPROVED)
               }
               className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
-                filters.status === QuotationRequestStatus.COMPLETED
+                filters.status === QuotationRequestStatus.APPROVED
                   ? 'bg-green-100 dark:bg-green-800 border-2 border-green-400 dark:border-green-600 shadow-lg'
                   : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
               }`}
@@ -406,10 +410,10 @@ export const QuotationList: React.FC<QuotationListProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                    Completadas
+                    Aprobadas
                   </p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {statusStats.COMPLETED}
+                    {statusStats.APPROVED}
                   </p>
                 </div>
                 <div className="p-2 bg-green-100 dark:bg-green-800 rounded-full">
@@ -420,13 +424,97 @@ export const QuotationList: React.FC<QuotationListProps> = ({
               </div>
             </div>
 
-            {/* Cancelled */}
+            {/* Signed 1 */}
             <div
               onClick={() =>
-                handleStatusFilter(QuotationRequestStatus.CANCELLED)
+                handleStatusFilter(QuotationRequestStatus.SIGNED_1)
               }
               className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
-                filters.status === QuotationRequestStatus.CANCELLED
+                filters.status === QuotationRequestStatus.SIGNED_1
+                  ? 'bg-orange-100 dark:bg-orange-800 border-2 border-orange-400 dark:border-orange-600 shadow-lg'
+                  : 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    Firmado (Logística)
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    {statusStats.SIGNED_1}
+                  </p>
+                </div>
+                <div className="p-2 bg-orange-100 dark:bg-orange-800 rounded-full">
+                  <span className="text-orange-600 dark:text-orange-400 text-xl">
+                    ✍️
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Signed 2 */}
+            <div
+              onClick={() =>
+                handleStatusFilter(QuotationRequestStatus.SIGNED_2)
+              }
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.SIGNED_2
+                  ? 'bg-orange-100 dark:bg-orange-800 border-2 border-orange-400 dark:border-orange-600 shadow-lg'
+                  : 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    Firmado (Of. Técnica)
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    {statusStats.SIGNED_2}
+                  </p>
+                </div>
+                <div className="p-2 bg-orange-100 dark:bg-orange-800 rounded-full">
+                  <span className="text-orange-600 dark:text-orange-400 text-xl">
+                    ✍️
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Signed 3 */}
+            <div
+              onClick={() =>
+                handleStatusFilter(QuotationRequestStatus.SIGNED_3)
+              }
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.SIGNED_3
+                  ? 'bg-orange-100 dark:bg-orange-800 border-2 border-orange-400 dark:border-orange-600 shadow-lg'
+                  : 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    Firmado (Administración)
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    {statusStats.SIGNED_3}
+                  </p>
+                </div>
+                <div className="p-2 bg-orange-100 dark:bg-orange-800 rounded-full">
+                  <span className="text-orange-600 dark:text-orange-400 text-xl">
+                    ✍️
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Rejected */}
+            <div
+              onClick={() =>
+                handleStatusFilter(QuotationRequestStatus.REJECTED)
+              }
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.status === QuotationRequestStatus.REJECTED
                   ? 'bg-red-100 dark:bg-red-800 border-2 border-red-400 dark:border-red-600 shadow-lg'
                   : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
               }`}
@@ -434,10 +522,10 @@ export const QuotationList: React.FC<QuotationListProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                    Canceladas
+                    Rechazadas
                   </p>
                   <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {statusStats.CANCELLED}
+                    {statusStats.REJECTED}
                   </p>
                 </div>
                 <div className="p-2 bg-red-100 dark:bg-red-800 rounded-full">

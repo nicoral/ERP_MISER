@@ -1,6 +1,5 @@
 import React from 'react';
 import { useQuotationService } from '../../../hooks/useQuotationService';
-import { quotationService } from '../../../services/api/quotationService';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
@@ -12,7 +11,6 @@ import { useToast } from '../../../contexts/ToastContext';
 import { ComparisonTable } from './ComparisonTable';
 import { PurchaseOrder } from './PurchaseOrder';
 import {
-  hasPermission,
   canSignQuotation,
   getQuotationSignButtonText,
 } from '../../../utils/permissions';
@@ -38,11 +36,30 @@ export const QuotationDetails = () => {
   const [selectedInternalTab, setSelectedInternalTab] = React.useState<
     'comparison' | 'purchase-order'
   >('comparison');
-  const [isDownloading, setIsDownloading] = React.useState(false);
   const [isSigning, setIsSigning] = React.useState(false);
   const [isRejecting, setIsRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState('');
   const [showRejectModal, setShowRejectModal] = React.useState(false);
+
+  // Función helper para extraer mensaje de error
+  const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+    if (error && typeof error === 'object') {
+      const errorObj = error as Record<string, unknown>;
+      if (errorObj.response && typeof errorObj.response === 'object') {
+        const response = errorObj.response as Record<string, unknown>;
+        if (response.data && typeof response.data === 'object') {
+          const data = response.data as Record<string, unknown>;
+          if (typeof data.message === 'string') {
+            return data.message;
+          }
+        }
+      }
+      if (typeof errorObj.message === 'string') {
+        return errorObj.message;
+      }
+    }
+    return defaultMessage;
+  };
 
   React.useEffect(() => {
     const loadQuotation = async () => {
@@ -79,9 +96,14 @@ export const QuotationDetails = () => {
         setQuotation(updatedQuotation);
         showSuccess('Cotización firmada exitosamente');
       }
-    } catch (error) {
-      showError('Error al firmar la cotización');
+    } catch (error: unknown) {
       console.error('Error signing quotation:', error);
+      // Mostrar mensaje específico del error si está disponible
+      const errorMessage = getErrorMessage(
+        error,
+        'Error al firmar la cotización'
+      );
+      showError('Error', errorMessage);
     } finally {
       setIsSigning(false);
     }
@@ -103,9 +125,14 @@ export const QuotationDetails = () => {
         setRejectReason('');
         showSuccess('Cotización rechazada exitosamente');
       }
-    } catch (error) {
-      showError('Error al rechazar la cotización');
+    } catch (error: unknown) {
       console.error('Error rejecting quotation:', error);
+      // Mostrar mensaje específico del error si está disponible
+      const errorMessage = getErrorMessage(
+        error,
+        'Error al rechazar la cotización'
+      );
+      showError('Error', errorMessage);
     } finally {
       setIsRejecting(false);
     }
@@ -113,11 +140,6 @@ export const QuotationDetails = () => {
 
   // Verificar si el usuario puede firmar
   const canSign = quotation && canSignQuotation(quotation);
-  const canReject = quotation && hasPermission('quotation:reject');
-  const isCompleted = quotation?.status === 'COMPLETED';
-  const isSigned =
-    quotation?.status?.startsWith('SIGNED_') ||
-    quotation?.status === 'APPROVED';
 
   const isRejected = quotation?.status === 'REJECTED';
 
@@ -218,38 +240,6 @@ export const QuotationDetails = () => {
         ruc: supplier.ruc,
         address: supplier.address,
       })) || [];
-
-  const handleDownloadPdf = async () => {
-    if (!selectedSupplierId) {
-      showError('No hay proveedor seleccionado');
-      return;
-    }
-    setIsDownloading(true);
-    try {
-      const blob = await quotationService.downloadQuotationComparisonPdf(
-        quotation.id,
-        selectedSupplierId
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const selectedSupplier = quotation.quotationSuppliers.find(
-        qs => qs.supplier.id === selectedSupplierId
-      );
-      const supplierName =
-        selectedSupplier?.supplier.businessName || 'proveedor';
-      a.download = `cuadro_comparativo_${quotation.id}_${supplierName.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      showError('Error al descargar el PDF');
-      console.error('Error al descargar el PDF:', error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   // Renderizar contenido del tab interno
   const renderInternalTabContent = () => {
@@ -412,24 +402,15 @@ export const QuotationDetails = () => {
 
       {/* Botones fuera del bloque enmarcado */}
       <div className="flex justify-between mt-4">
+        <button
+          onClick={() => navigate(ROUTES.QUOTATIONS)}
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+        >
+          Volver
+        </button>
         <div className="flex gap-2">
-          <button
-            onClick={handleDownloadPdf}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[140px]"
-            disabled={!selectedSupplierId || isDownloading}
-          >
-            {isDownloading ? (
-              <span className="flex items-center gap-2">
-                <LoadingSpinner size="sm" />
-                Descargando...
-              </span>
-            ) : (
-              'Descargar Cotización'
-            )}
-          </button>
-
           {/* Botones de aprobación */}
-          {isCompleted && canSign && !isSigned && !isRejected && (
+          {canSign && !isRejected && (
             <button
               onClick={handleSignQuotation}
               disabled={isSigning}
@@ -446,7 +427,7 @@ export const QuotationDetails = () => {
             </button>
           )}
 
-          {isCompleted && canReject && !isSigned && !isRejected && (
+          {canSign && !isRejected && (
             <button
               onClick={() => setShowRejectModal(true)}
               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
@@ -455,13 +436,6 @@ export const QuotationDetails = () => {
             </button>
           )}
         </div>
-
-        <button
-          onClick={() => navigate(ROUTES.QUOTATIONS)}
-          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-        >
-          Volver
-        </button>
       </div>
 
       {/* Modal de rechazo */}

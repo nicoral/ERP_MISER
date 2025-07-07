@@ -114,8 +114,12 @@ export const canSignQuotation = (quotation: QuotationRequest): boolean => {
     return false;
   }
 
-  // Verificar que la cotización esté en estado COMPLETED
-  if (quotation.status !== 'COMPLETED') {
+  // Verificar que la cotización esté en estado APPROVED
+  if (
+    quotation.status !== 'ACTIVE' &&
+    (quotation.finalSelection === null ||
+      quotation.finalSelection.status !== 'APPROVED')
+  ) {
     return false;
   }
 

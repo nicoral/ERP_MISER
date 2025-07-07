@@ -154,6 +154,14 @@ export const EmployeeDetails: React.FC<Props> = ({ employee }) => {
               </span>
             </p>
           </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              👤 {EMPLOYEES_TEXTS.form.fields.role}:{' '}
+              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {employeeDetails.role.name}
+              </span>
+            </p>
+          </div>
         </div>
       </div>
     </div>

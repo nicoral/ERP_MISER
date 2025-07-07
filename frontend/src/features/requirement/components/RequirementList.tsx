@@ -25,7 +25,10 @@ import { DownloadIcon, Loader2 } from 'lucide-react';
 import { hasPermission, canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
-import { REQUIREMENT_STATUS_LABELS } from '../../../utils/requirementStatus';
+import {
+  getRequirementStatusColor,
+  getRequirementStatusText,
+} from '../../../utils/requirementStatus';
 import { RejectModal } from './modals/RejectModal';
 
 type RequirementType = 'ARTICLE' | 'SERVICE';
@@ -203,36 +206,15 @@ export const RequirementList = () => {
     {
       header: 'Estado',
       accessor: 'status',
-      render: (requirement: Requirement) => {
-        const statusClasses = {
-          PENDING:
-            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-          SIGNED_1:
-            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          SIGNED_2:
-            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          SIGNED_3:
-            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          SIGNED_4:
-            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          APPROVED:
-            'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-          CANCELLED:
-            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-          REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-        };
-
-        return (
-          <span
-            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-              statusClasses[requirement.status as keyof typeof statusClasses]
-            }`}
-          >
-            {REQUIREMENT_STATUS_LABELS[requirement.status] ||
-              requirement.status}
-          </span>
-        );
-      },
+      render: (requirement: Requirement) => (
+        <span
+          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRequirementStatusColor(
+            requirement.status
+          )}`}
+        >
+          {getRequirementStatusText(requirement.status)}
+        </span>
+      ),
     },
   ];
 

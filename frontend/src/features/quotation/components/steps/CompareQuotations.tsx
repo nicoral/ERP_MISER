@@ -4,29 +4,68 @@ import {
   type SupplierQuote,
   QuotationItemStatus,
   type SelectedSupplier,
+  type QuotationRequest,
 } from '../../../../types/quotation';
 import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { Button } from '../../../../components/common/Button';
 import type { Requirement } from '../../../../types/requirement';
+import { useCurrentExchangeRate } from '../../../../hooks/useGeneralSettings';
 
 interface CompareQuotationsProps {
   requirement: Requirement;
-  selectedSuppliers: SelectedSupplier[];
-  quotationRequestId: number;
+  quotationRequest: QuotationRequest;
   onComplete: (selectedSuppliers: SelectedSupplier[]) => void;
   onBack: () => void;
 }
 
 export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
   requirement,
-  selectedSuppliers,
-  quotationRequestId,
+  quotationRequest,
   onComplete,
   onBack,
 }) => {
-  const { getQuotationByRequirement, createFinalSelection } =
-    useQuotationService();
+  const { data: exchangeRate } = useCurrentExchangeRate();
+  // Extraer selectedSuppliers y quotationRequestId de quotationRequest
+  const selectedSuppliers: SelectedSupplier[] =
+    quotationRequest.quotationSuppliers
+      .filter(qs => qs.supplier)
+      .map(qs => ({
+        supplier: qs.supplier,
+        isSelected: true,
+        receivedQuotation: qs.supplierQuotation
+          ? {
+              id: qs.supplierQuotation.id,
+              supplierId: qs.supplier.id,
+              requirementId: quotationRequest.requirement.id,
+              receivedAt: new Date(qs.supplierQuotation.receivedAt),
+              validUntil: new Date(qs.supplierQuotation.validUntil),
+              items: qs.supplierQuotation.supplierQuotationItems.map(item => ({
+                id: item.id,
+                requirementArticleId: item.requirementArticle.id,
+                article: item.requirementArticle.article,
+                quantity: item.requirementArticle.quantity,
+                unitPrice: item.unitPrice || 0,
+                totalPrice: item.totalPrice || 0,
+                currency: item.currency || 'PEN',
+                deliveryTime: item.deliveryTime || 0,
+                notes: item.notes || '',
+                status: item.status as QuotationItemStatus,
+                reasonNotAvailable: item.reasonNotAvailable || '',
+              })),
+              totalAmount: qs.supplierQuotation.totalAmount,
+              status:
+                qs.supplierQuotation.status === 'SUBMITTED'
+                  ? 'SUBMITTED'
+                  : 'DRAFT',
+              notes: qs.supplierQuotation.notes || '',
+            }
+          : undefined,
+      }));
+
+  const quotationRequestId = quotationRequest.id;
+
+  const { createFinalSelection, loading } = useQuotationService();
   const { showError, showSuccess } = useToast();
   const [selectedProductsBySupplier, setSelectedProductsBySupplier] = useState<
     Record<number, number[]>
@@ -44,45 +83,30 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
   const [productSupplierSelections, setProductSupplierSelections] = useState<
     Record<number, number>
   >({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Cargar productos seleccionados desde el backend
+  // Cargar productos seleccionados desde los datos recibidos
   useEffect(() => {
-    const loadSelectedProducts = async () => {
-      try {
-        const existingQuotation = await getQuotationByRequirement(
-          requirement.id
-        );
-        if (existingQuotation) {
-          const productsBySupplier: Record<number, number[]> = {};
+    const loadSelectedProducts = () => {
+      const productsBySupplier: Record<number, number[]> = {};
 
-          existingQuotation.quotationSuppliers
-            .filter(quotationSupplier => quotationSupplier.supplier) // Filtrar proveedores válidos
-            .forEach(quotationSupplier => {
-              const supplierId = quotationSupplier.supplier.id;
-              const selectedArticleIds =
-                quotationSupplier.quotationSupplierArticles.map(
-                  qsa => qsa.requirementArticle.id
-                );
-              productsBySupplier[supplierId] = selectedArticleIds;
-            });
+      // Usar los datos de quotationRequest que ya vienen actualizados
+      quotationRequest.quotationSuppliers
+        .filter(quotationSupplier => quotationSupplier.supplier) // Filtrar proveedores válidos
+        .forEach(quotationSupplier => {
+          const supplierId = quotationSupplier.supplier.id;
+          const selectedArticleIds =
+            quotationSupplier.quotationSupplierArticles.map(
+              qsa => qsa.requirementArticle.id
+            );
+          productsBySupplier[supplierId] = selectedArticleIds;
+        });
 
-          setSelectedProductsBySupplier(productsBySupplier);
-        }
-      } catch {
-        // Si no hay cotización existente, usar todos los productos como fallback
-        const fallbackProducts: Record<number, number[]> = {};
-        selectedSuppliers
-          .filter(supplier => supplier.supplier) // Filtrar proveedores válidos
-          .forEach(supplier => {
-            fallbackProducts[supplier.supplier.id] =
-              requirement.requirementArticles.map(ra => ra.id);
-          });
-        setSelectedProductsBySupplier(fallbackProducts);
-      }
+      setSelectedProductsBySupplier(productsBySupplier);
     };
 
     loadSelectedProducts();
-  }, [requirement.id, selectedSuppliers, getQuotationByRequirement]);
+  }, [quotationRequest.id, requirement.id]);
 
   // Obtener los productos seleccionados para cada proveedor
   const getSelectedProductsForSupplier = (supplierId: number) => {
@@ -110,6 +134,29 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
     return requirement.requirementArticles.filter(ra =>
       allProductIds.has(ra.article.id)
     );
+  };
+
+  // Función para convertir precios a PEN usando el tipo de cambio
+  const convertToPEN = (price: number, currency: string): number => {
+    if (currency === 'PEN') return price;
+    if (currency === 'USD' && exchangeRate?.saleRate) {
+      return price * exchangeRate.saleRate;
+    }
+    // Para EUR usamos el mismo tipo de cambio que USD por ahora
+    if (currency === 'EUR' && exchangeRate?.saleRate) {
+      return price * exchangeRate.saleRate;
+    }
+    return price; // Fallback si no hay tipo de cambio
+  };
+
+  // Función auxiliar para mostrar precio convertido
+  const getConvertedPriceDisplay = (
+    price: number,
+    currency: string
+  ): string => {
+    if (currency === 'PEN' || !exchangeRate?.saleRate) return '';
+    const convertedPrice = convertToPEN(price, currency);
+    return `(PEN ${convertedPrice.toFixed(2)})`;
   };
 
   // Generar comparación de cotizaciones
@@ -161,9 +208,15 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       );
       if (quotedItems.length > 0) {
         const bestPrice = quotedItems.reduce((min, quote) => {
-          const minPrice = Number(min.unitPrice) || 0;
-          const currentPrice = Number(quote.unitPrice) || 0;
-          return currentPrice < minPrice ? quote : min;
+          const minPriceInPEN = convertToPEN(
+            Number(min.unitPrice) || 0,
+            min.currency
+          );
+          const currentPriceInPEN = convertToPEN(
+            Number(quote.unitPrice) || 0,
+            quote.currency
+          );
+          return currentPriceInPEN < minPriceInPEN ? quote : min;
         });
         supplierQuotes.forEach(quote => {
           quote.isBestPrice = quote.supplierId === bestPrice.supplierId;
@@ -200,10 +253,12 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
     return selections;
   }, [comparisonData]);
 
-  // Aplicar selecciones automáticas al cargar
+  // Aplicar selecciones automáticas solo una vez al cargar
   useEffect(() => {
-    setProductSupplierSelections(autoSelections);
-  }, [autoSelections]);
+    if (Object.keys(productSupplierSelections).length === 0) {
+      setProductSupplierSelections(autoSelections);
+    }
+  }, [comparisonData]);
 
   const handleProductSupplierSelection = (
     articleId: number,
@@ -254,6 +309,8 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       );
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       // Crear los items de la selección final
@@ -311,6 +368,8 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         'Error al guardar',
         'Ocurrió un error al guardar la selección final'
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -320,7 +379,35 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         q => q.supplierId === supplierId
       );
       if (quote && quote.status === QuotationItemStatus.QUOTED) {
-        return total + (Number(quote.totalPrice) || 0);
+        const totalPriceInPEN = convertToPEN(
+          Number(quote.totalPrice) || 0,
+          quote.currency
+        );
+        return total + totalPriceInPEN;
+      }
+      return total;
+    }, 0);
+  };
+
+  // Función para calcular el total general de todos los productos seleccionados
+  const getTotalGeneral = () => {
+    return comparisonData.reduce((total, comparison) => {
+      // Obtener el proveedor seleccionado para este producto
+      const selectedSupplierId =
+        productSupplierSelections[comparison.articleId];
+      if (!selectedSupplierId) return total;
+
+      // Obtener la cotización del proveedor seleccionado
+      const quote = comparison.supplierQuotes.find(
+        q => q.supplierId === selectedSupplierId
+      );
+
+      if (quote && quote.status === QuotationItemStatus.QUOTED) {
+        const totalPriceInPEN = convertToPEN(
+          Number(quote.totalPrice) || 0,
+          quote.currency
+        );
+        return total + totalPriceInPEN;
       }
       return total;
     }, 0);
@@ -513,7 +600,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white text-center">
                       {comparison.quantity}
                     </td>
                     {Array.from(selectedSuppliersForComparison).map(
@@ -561,6 +648,14 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
                                   Total: {quote.currency}{' '}
                                   {(Number(quote.totalPrice) || 0).toFixed(2)}
+                                  {quote.currency !== 'PEN' && (
+                                    <span className="text-blue-500 ml-1">
+                                      {getConvertedPriceDisplay(
+                                        Number(quote.totalPrice) || 0,
+                                        quote.currency
+                                      )}
+                                    </span>
+                                  )}
                                 </div>
                                 {quote.deliveryTime && (
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -622,9 +717,9 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     TOTAL
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-center">
                     {comparisonData.reduce(
-                      (sum, comp) => sum + comp.quantity,
+                      (sum, comp) => sum + Number(comp.quantity),
                       0
                     )}
                   </td>
@@ -634,10 +729,6 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                       const bestTotal = getBestTotalSupplier();
                       const isBestTotal =
                         bestTotal && bestTotal.supplierId === supplierId;
-                      const currency =
-                        selectedSuppliers.find(
-                          s => s.supplier.id === supplierId
-                        )?.receivedQuotation?.items[0]?.currency || 'PEN';
 
                       return (
                         <td
@@ -656,7 +747,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                                   : 'text-gray-900 dark:text-white'
                               }`}
                             >
-                              {currency} {(Number(total) || 0).toFixed(2)}
+                              PEN {(Number(total) || 0).toFixed(2)}
                             </span>
                             {isBestTotal && (
                               <span className="text-green-500">🏆</span>
@@ -666,6 +757,9 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                       );
                     }
                   )}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600 dark:text-blue-400">
+                    PEN {getTotalGeneral().toFixed(2)}
+                  </td>
                 </tr>
               </tfoot>
             </table>
@@ -765,9 +859,6 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                 const bestTotal = getBestTotalSupplier();
                 const isBestTotal =
                   bestTotal && bestTotal.supplierId === supplierId;
-                const currency =
-                  selectedSuppliers.find(s => s.supplier.id === supplierId)
-                    ?.receivedQuotation?.items[0]?.currency || 'PEN';
 
                 // Contar productos por estado
                 const supplierQuotes = comparisonData.flatMap(comp =>
@@ -839,7 +930,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                               : 'text-gray-900 dark:text-white'
                           }`}
                         >
-                          {currency} {(Number(total) || 0).toFixed(2)}
+                          PEN {(Number(total) || 0).toFixed(2)}
                         </div>
                         {isBestTotal && (
                           <div className="text-xs text-green-600 dark:text-green-400">
@@ -863,17 +954,24 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button variant="outline" onClick={onBack}>
-          ← Volver
-        </Button>
+        <Button onClick={onBack}>← Volver</Button>
         <Button
           onClick={handleContinue}
           disabled={
             selectedSuppliersForComparison.size === 0 ||
-            Object.keys(productSupplierSelections).length === 0
+            Object.keys(productSupplierSelections).length === 0 ||
+            isSubmitting ||
+            loading
           }
         >
-          Completar Selección Final
+          {isSubmitting || loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Guardando...
+            </>
+          ) : (
+            'Completar Selección Final'
+          )}
         </Button>
       </div>
     </div>

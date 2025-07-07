@@ -75,4 +75,10 @@ export class GeneralSettingsController {
         await this.generalSettingsService.shouldUpdateExchangeRate(),
     };
   }
+
+  @Get('general-tax')
+  @AuditDescription('Consulta de impuesto general')
+  async getGeneralTax() {
+    return await this.generalSettingsService.getGeneralTax();
+  }
 }

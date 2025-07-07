@@ -34,10 +34,10 @@ export class Requirement extends ApprovalFlowBase {
   @Column({ enum: RequirementStatus, default: RequirementStatus.PENDING })
   status: RequirementStatus;
 
-  @Column({ 
-    type: 'enum', 
-    enum: ['ARTICLE', 'SERVICE'], 
-    default: 'ARTICLE' 
+  @Column({
+    type: 'enum',
+    enum: ['ARTICLE', 'SERVICE'],
+    default: 'ARTICLE',
   })
   type: 'ARTICLE' | 'SERVICE';
 

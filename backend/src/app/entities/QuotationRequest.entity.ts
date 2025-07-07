@@ -15,13 +15,12 @@ import { Employee } from './Employee.entity';
 import { QuotationSupplier } from './QuotationSupplier.entity';
 import { FinalSelection } from './FinalSelection.entity';
 import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
-import { Payment } from './Payment.entity';
+import { PaymentGroup } from './PaymentGroup.entity';
 
 export enum QuotationRequestStatus {
   PENDING = 'PENDING',
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
   SIGNED_1 = 'SIGNED_1',
   SIGNED_2 = 'SIGNED_2',
@@ -44,9 +43,6 @@ export class QuotationRequest extends ApprovalFlowBase {
     default: QuotationRequestStatus.PENDING,
   })
   status: QuotationRequestStatus;
-
-  @Column({ type: 'date', nullable: true })
-  deadline: Date;
 
   @Column('text', { nullable: true })
   notes: string;
@@ -74,8 +70,8 @@ export class QuotationRequest extends ApprovalFlowBase {
   )
   finalSelection: FinalSelection;
 
-  @OneToMany(() => Payment, payment => payment.quotationRequest)
-  payments: Payment[];
+  @OneToOne(() => PaymentGroup, paymentGroup => paymentGroup.quotationRequest)
+  paymentGroup: PaymentGroup;
 
   @CreateDateColumn({
     name: 'created_at',

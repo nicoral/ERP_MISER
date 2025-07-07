@@ -10,4 +10,4 @@ export class CreateServiceDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
-} 
+}

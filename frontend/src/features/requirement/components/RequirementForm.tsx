@@ -134,10 +134,8 @@ export const RequirementForm = () => {
 
   // Establecer el tipo inicial si se proporciona como parámetro
   useEffect(() => {
-    console.log('Type parameter:', type);
     if (type && !isEditing) {
       const requirementType = type.toUpperCase() as RequirementType;
-      console.log('Setting type to:', requirementType);
       setForm(prev => ({
         ...prev,
         type: requirementType,

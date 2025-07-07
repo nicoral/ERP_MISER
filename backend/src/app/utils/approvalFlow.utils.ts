@@ -1,5 +1,3 @@
-
-
 export interface ApprovalFlowEntity {
   firstSignature?: string | null;
   firstSignedBy?: number | null;
@@ -32,23 +30,19 @@ export function calculateApprovalProgress(
   entity: ApprovalFlowEntity,
   options: ProgressCalculationOptions = {}
 ): number {
-  const {
-    maxProgress = 100,
-    approvalSteps = 4,
-    baseProgress = 80
-  } = options;
+  const { maxProgress = 100, approvalSteps = 4, baseProgress = 80 } = options;
 
   // Contar firmas completadas
   const completedSignatures = [
     entity.firstSignedAt,
     entity.secondSignedAt,
     entity.thirdSignedAt,
-    entity.fourthSignedAt
+    entity.fourthSignedAt,
   ].filter(Boolean).length;
 
-  // Si no hay firmas, el progreso es 0
+  // Si no hay firmas, el progreso es el baseProgress (80%)
   if (completedSignatures === 0) {
-    return 0;
+    return baseProgress;
   }
 
   // Si todas las firmas están completas, el progreso es 100%
@@ -57,7 +51,8 @@ export function calculateApprovalProgress(
   }
 
   // Calcular progreso basado en firmas completadas
-  const approvalProgress = (completedSignatures / approvalSteps) * (maxProgress - baseProgress);
+  const approvalProgress =
+    (completedSignatures / approvalSteps) * (maxProgress - baseProgress);
   return Math.round(baseProgress + approvalProgress);
 }
 
@@ -76,7 +71,7 @@ export function canUserSign(
 
   // Determinar el estado actual basado en las firmas
   let currentStatus: string;
-  
+
   if (!entity.firstSignedAt) {
     currentStatus = 'PENDING';
   } else if (!entity.secondSignedAt) {
@@ -90,7 +85,8 @@ export function canUserSign(
   }
 
   // Mapear permisos según el tipo de entidad
-  const permissionPrefix = entityType === 'requirement' ? 'requirement' : 'quotation';
+  const permissionPrefix =
+    entityType === 'requirement' ? 'requirement' : 'quotation';
 
   switch (currentStatus) {
     case 'PENDING':
@@ -98,15 +94,18 @@ export function canUserSign(
       break;
     case 'SIGNED_1':
       requiredPermission = `${permissionPrefix}-view-signed1`;
-      canSign = userPermissions.includes(requiredPermission) && !entity.secondSignedAt;
+      canSign =
+        userPermissions.includes(requiredPermission) && !entity.secondSignedAt;
       break;
     case 'SIGNED_2':
       requiredPermission = `${permissionPrefix}-view-signed2`;
-      canSign = userPermissions.includes(requiredPermission) && !entity.thirdSignedAt;
+      canSign =
+        userPermissions.includes(requiredPermission) && !entity.thirdSignedAt;
       break;
     case 'SIGNED_3':
       requiredPermission = `${permissionPrefix}-view-signed3`;
-      canSign = userPermissions.includes(requiredPermission) && !entity.fourthSignedAt;
+      canSign =
+        userPermissions.includes(requiredPermission) && !entity.fourthSignedAt;
       break;
     default:
       return { canSign: false, requiredPermission: '' };
@@ -123,8 +122,8 @@ export function processSignature(
   userId: number,
   signature: string,
   isLowAmount: boolean = false
-): { 
-  updatedEntity: ApprovalFlowEntity; 
+): {
+  updatedEntity: ApprovalFlowEntity;
   becameApproved: boolean;
   newStatus: string;
 } {
@@ -134,7 +133,7 @@ export function processSignature(
 
   // Determinar el estado actual basado en las firmas
   let currentStatus: string;
-  
+
   if (!entity.firstSignedAt) {
     currentStatus = 'PENDING';
   } else if (!entity.secondSignedAt) {
@@ -158,12 +157,7 @@ export function processSignature(
       updatedEntity.secondSignature = signature;
       updatedEntity.secondSignedBy = userId;
       updatedEntity.secondSignedAt = new Date();
-      if (isLowAmount) {
-        newStatus = 'APPROVED';
-        becameApproved = true;
-      } else {
-        newStatus = 'SIGNED_2';
-      }
+      newStatus = 'SIGNED_2';
       break;
     case 'SIGNED_2':
       updatedEntity.thirdSignature = signature;
@@ -195,7 +189,10 @@ export function processSignature(
 /**
  * Verifica si una entidad es de monto bajo (para aprobación automática)
  */
-export function isLowAmount(amount: number, threshold: number = 10000): boolean {
+export function isLowAmount(
+  amount: number,
+  threshold: number = 10000
+): boolean {
   return amount < threshold;
 }
 
@@ -233,4 +230,4 @@ export function getApprovalStatus(entity: ApprovalFlowEntity): string {
   } else {
     return 'Pendiente';
   }
-} 
+}

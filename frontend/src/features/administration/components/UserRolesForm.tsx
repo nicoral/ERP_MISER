@@ -55,7 +55,6 @@ export const UserRolesForm = () => {
 
   const handleDelete = (e: React.MouseEvent, role: Role) => {
     e.stopPropagation();
-    console.log('Eliminar rol:', role);
     showSuccess('Eliminado', `Rol ${role.name} eliminado correctamente`);
   };
 

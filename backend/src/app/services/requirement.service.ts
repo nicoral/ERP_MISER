@@ -17,7 +17,11 @@ import {
   RequirementStatus,
 } from '../common/enum';
 import { formatNumber } from '../utils/transformer';
-import { canUserSign, processSignature, isLowAmount } from '../utils/approvalFlow.utils';
+import {
+  canUserSign,
+  processSignature,
+  isLowAmount,
+} from '../utils/approvalFlow.utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';
@@ -57,7 +61,11 @@ export class RequirementService {
     } = createRequirementDto;
 
     // Determine type based on provided data
-    const requirementType = type || (requirementServices && requirementServices.length > 0 ? 'SERVICE' : 'ARTICLE');
+    const requirementType =
+      type ||
+      (requirementServices && requirementServices.length > 0
+        ? 'SERVICE'
+        : 'ARTICLE');
 
     const requirement = this.requirementRepository.create({
       ...requirementData,
@@ -123,33 +131,33 @@ export class RequirementService {
 
     let whereConditions:
       | FindOptionsWhere<Requirement>
-      | FindOptionsWhere<Requirement>[] = {
+      | FindOptionsWhere<Requirement>[] = [{
       employee: { id: userId },
       type: type,
-    };
+    }];
 
     if (userPermissions.includes('requirement-view-all')) {
       whereConditions = { type: type };
     } else if (userPermissions.includes('requirement-view-signed3')) {
       whereConditions = [
-        { status: RequirementStatus.SIGNED_3 },
-        { status: RequirementStatus.APPROVED },
-        { type: type },
+        { status: RequirementStatus.SIGNED_3, type: type },
+        { status: RequirementStatus.APPROVED, type: type },
+        { employee: { id: userId }, type: type },
       ];
     } else if (userPermissions.includes('requirement-view-signed2')) {
       whereConditions = [
-        { status: RequirementStatus.SIGNED_2 },
-        { status: RequirementStatus.SIGNED_3 },
-        { status: RequirementStatus.APPROVED },
-        { type: type },
+        { status: RequirementStatus.SIGNED_2, type: type },
+        { status: RequirementStatus.SIGNED_3, type: type },
+        { status: RequirementStatus.APPROVED, type: type },
+        { employee: { id: userId }, type: type },
       ];
     } else if (userPermissions.includes('requirement-view-signed1')) {
       whereConditions = [
-        { status: RequirementStatus.SIGNED_1 },
-        { status: RequirementStatus.SIGNED_2 },
-        { status: RequirementStatus.SIGNED_3 },
-        { status: RequirementStatus.APPROVED },
-        { type: type },
+        { status: RequirementStatus.SIGNED_1, type: type },
+        { status: RequirementStatus.SIGNED_2, type: type },
+        { status: RequirementStatus.SIGNED_3, type: type },
+        { status: RequirementStatus.APPROVED, type: type },
+        { employee: { id: userId }, type: type },
       ];
     }
 
@@ -194,8 +202,12 @@ export class RequirementService {
     id: number,
     updateRequirementDto: UpdateRequirementDto
   ): Promise<Requirement> {
-    const { costCenterId, requirementArticles, requirementServices, ...requirementData } =
-      updateRequirementDto;
+    const {
+      costCenterId,
+      requirementArticles,
+      requirementServices,
+      ...requirementData
+    } = updateRequirementDto;
 
     // Find existing requirement with its articles and services
     const requirement = await this.requirementRepository.findOne({
@@ -285,7 +297,7 @@ export class RequirementService {
     );
     const requirement = await this.findOne(id);
     const { requirementArticles, requirementServices, type } = requirement;
-    
+
     // Mapear datos según el tipo de requerimiento
     interface TableItem {
       index: number;
@@ -302,44 +314,48 @@ export class RequirementService {
     }
 
     const tableItems: TableItem[] = [];
-    
+
     if (type === 'ARTICLE') {
-      tableItems.push(...requirementArticles.map((reqArticle, index) => ({
-        index: index + 1,
-        id: reqArticle.article.id.toString().padStart(6, '0'),
-        code: reqArticle.article.code,
-        name: reqArticle.article.name,
-        quantity: reqArticle.quantity,
-        unit: reqArticle.article.unitOfMeasure,
-        justification: reqArticle.justification,
-        currency: reqArticle.currency,
-        unitPrice: reqArticle.unitPrice,
-        total: reqArticle.unitPrice * reqArticle.quantity,
-        brand: reqArticle.article.brand.name,
-      })));
+      tableItems.push(
+        ...requirementArticles.map((reqArticle, index) => ({
+          index: index + 1,
+          id: reqArticle.article.id.toString().padStart(6, '0'),
+          code: reqArticle.article.code,
+          name: reqArticle.article.name,
+          quantity: reqArticle.quantity,
+          unit: reqArticle.article.unitOfMeasure,
+          justification: reqArticle.justification,
+          currency: reqArticle.currency,
+          unitPrice: reqArticle.unitPrice,
+          total: reqArticle.unitPrice * reqArticle.quantity,
+          brand: reqArticle.article.brand.name,
+        }))
+      );
     } else {
-      tableItems.push(...requirementServices.map((reqService, index) => ({
-        index: index + 1,
-        id: reqService.service.code,
-        code: '-',
-        name: reqService.service.name,
-        quantity: reqService.duration || 0,
-        unit: reqService.durationType || '-',
-        justification: reqService.justification,
-        currency: reqService.currency,
-        unitPrice: reqService.unitPrice,
-        total: reqService.unitPrice,
-      })));
+      tableItems.push(
+        ...requirementServices.map((reqService, index) => ({
+          index: index + 1,
+          id: reqService.service.code,
+          code: '-',
+          name: reqService.service.name,
+          quantity: reqService.duration || 0,
+          unit: reqService.durationType || '-',
+          justification: reqService.justification,
+          currency: reqService.currency,
+          unitPrice: reqService.unitPrice,
+          total: reqService.unitPrice,
+        }))
+      );
     }
 
     // Calculate totals using mapped data
     const totalPEN = tableItems
       .filter(item => item.currency === Currency.PEN)
-      .reduce((sum, item) => sum + (+item.total), 0);
-    
+      .reduce((sum, item) => sum + +item.total, 0);
+
     const totalUSD = tableItems
       .filter(item => item.currency === Currency.USD)
-      .reduce((sum, item) => sum + (+item.total), 0);
+      .reduce((sum, item) => sum + +item.total, 0);
 
     const data = {
       id: '01',
@@ -567,7 +583,13 @@ export class RequirementService {
     const userPermissions = role.permissions.map(p => p.name);
 
     // Verificar permisos según el estado del requerimiento
-    const { canSign } = canUserSign(requirement, userPermissions, requirement.employee.id, userId, 'requirement');
+    const { canSign } = canUserSign(
+      requirement,
+      userPermissions,
+      requirement.employee.id,
+      userId,
+      'requirement'
+    );
 
     if (!canSign) {
       throw new ForbiddenException(
@@ -611,6 +633,4 @@ export class RequirementService {
 
     return savedRequirement;
   }
-
-
 }

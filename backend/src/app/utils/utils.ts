@@ -170,5 +170,5 @@ export const numberToSpanishWordsCurrency = (
   if (currency === 'USD') currencyText = 'DÓLARES AMERICANOS';
   else if (currency === 'PEN') currencyText = 'SOLES';
   else currencyText = currency;
-  return `${words} CON ${decimal}/100 ${currencyText}`;
+  return `${words} CON ${decimal}/100 ${currencyText}`.toUpperCase();
 };

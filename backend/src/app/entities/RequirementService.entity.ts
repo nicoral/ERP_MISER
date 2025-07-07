@@ -1,9 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Service } from './Service.entity';
 import { Requirement } from './Requirement.entity';
 import { Currency } from '../common/enum';
@@ -40,13 +35,13 @@ export class RequirementService {
   @Column('varchar', { length: 5, name: 'currency', default: 'PEN' })
   currency: Currency;
 
-  @Column({ 
-    type: 'enum', 
+  @Column({
+    type: 'enum',
     enum: ServiceDurationType,
-    nullable: true 
+    nullable: true,
   })
   durationType: ServiceDurationType;
 
   @Column({ type: 'integer', nullable: true })
   duration: number;
-} 
+}

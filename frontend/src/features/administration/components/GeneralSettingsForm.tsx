@@ -23,6 +23,7 @@ export const GeneralSettingsForm = () => {
     companyName: '',
     timezone: '',
     exchangeRateAutoUpdate: true,
+    generalTax: 18,
   });
 
   React.useEffect(() => {
@@ -31,6 +32,7 @@ export const GeneralSettingsForm = () => {
         companyName: settings.companyName || '',
         timezone: settings.timezone || 'America/Lima',
         exchangeRateAutoUpdate: settings.exchangeRateAutoUpdate,
+        generalTax: settings.generalTax,
       });
     }
   }, [settings]);
@@ -115,6 +117,18 @@ export const GeneralSettingsForm = () => {
               value={formData.timezone}
               onChange={e =>
                 setFormData({ ...formData, timezone: e.target.value })
+              }
+              required
+            />
+            <FormInput
+              label="Impuesto General"
+              value={formData.generalTax}
+              type="number"
+              onChange={e =>
+                setFormData({
+                  ...formData,
+                  generalTax: Number(e.target.value),
+                })
               }
               required
             />

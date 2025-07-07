@@ -8,7 +8,6 @@ export enum QuotationRequestStatus {
   PENDING = 'PENDING',
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
   SIGNED_1 = 'SIGNED_1',
   SIGNED_2 = 'SIGNED_2',
@@ -75,7 +74,7 @@ export interface QuotationRequest {
 export interface QuotationSupplier {
   id: number;
   status: QuotationSupplierStatus;
-  orderNumber?: string;
+  orderNumber: string;
   terms?: string;
   sentAt?: Date;
   quotationRequest: QuotationRequest;
@@ -106,6 +105,8 @@ export interface SupplierQuotation {
   totalAmount: number;
   status: SupplierQuotationStatus;
   notes?: string;
+  methodOfPayment?: string;
+  igv?: string;
   quotationSupplier: QuotationSupplier;
   supplierQuotationItems: SupplierQuotationItem[];
   createdAt: Date;
@@ -135,7 +136,6 @@ export interface FinalSelection {
   id: number;
   notes?: string;
   totalAmount: number;
-  currency: string;
   status: FinalSelectionStatus;
   purchaseOrderNumber?: string;
   quotationRequest: QuotationRequest;
@@ -197,6 +197,8 @@ export interface CreateSupplierQuotationDto {
 
 export interface UpdateSupplierQuotationDto {
   notes?: string;
+  methodOfPayment?: string;
+  igv?: string;
   items: Array<{
     id: number;
     unitPrice?: number;
@@ -217,6 +219,11 @@ export interface CreateFinalSelectionDto {
     selectedPrice: number;
     notes?: string;
   }>;
+}
+
+export interface UpdateSupplierQuotationOcDto {
+  methodOfPayment: string;
+  igv: string;
 }
 
 export interface UpdateFinalSelectionDto {
@@ -249,7 +256,11 @@ export interface SendQuotationOrderDto {
 
 export interface ApplyGeneralTermsDto {
   terms: string;
-  selectedArticles?: number[];
+  deadline?: Date;
+  selectedArticles?: {
+    articleId: number;
+    quantity: number;
+  }[];
 }
 
 // Extended RequirementArticle type for quotation context

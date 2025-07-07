@@ -47,8 +47,21 @@ export class UpdateSupplierQuotationDto {
   @IsString()
   notes?: string;
 
+  
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateSupplierQuotationItemDto)
   items: UpdateSupplierQuotationItemDto[];
+}
+
+export class UpdateSupplierQuotationOcDto  {
+  @IsOptional()
+  @IsString()
+  methodOfPayment?: string;
+
+  @IsOptional()
+  @IsString()
+  igv?: string;
+
 }

@@ -39,6 +39,12 @@ export class SupplierQuotation {
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   totalAmount: number;
 
+  @Column('text', { nullable: true })
+  methodOfPayment: string;
+
+  @Column('text', { nullable: true })
+  igv: string;
+
   @Column({
     type: 'enum',
     enum: SupplierQuotationStatus,

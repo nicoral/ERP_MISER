@@ -14,6 +14,7 @@ import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { RequirementModule } from './requirement.module';
 import { SupplierModule } from './supplier.module';
 import { EmployeeModule } from './employee.module';
+import { PaymentModule } from './payment.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { EmployeeModule } from './employee.module';
     RequirementModule,
     SupplierModule,
     EmployeeModule,
+    PaymentModule,
   ],
   controllers: [QuotationController],
   providers: [QuotationService],

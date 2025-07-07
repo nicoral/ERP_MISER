@@ -28,8 +28,7 @@ export const getQuotationStatusColor = (status: string): string => {
       return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
     case 'ACTIVE':
       return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-    case 'COMPLETED':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+
     case 'CANCELLED':
       return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     case 'SIGNED_1':
@@ -55,8 +54,7 @@ export const getQuotationStatusText = (status: string): string => {
       return '📝 Borrador';
     case 'ACTIVE':
       return '🔄 Activo';
-    case 'COMPLETED':
-      return '✅ Completado';
+
     case 'CANCELLED':
       return '❌ Cancelado';
     case 'SIGNED_1':

@@ -4,6 +4,7 @@ import {
   type QuotationRequest as QuotationRequestType,
   type SelectedSupplier,
   type SupplierQuotationItem,
+  QuotationItemStatus,
 } from '../../../types/quotation';
 import { useQuotationService } from '../../../hooks/useQuotationService';
 import { useToast } from '../../../contexts/ToastContext';
@@ -47,7 +48,8 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
   onCancel,
 }) => {
   const { showSuccess, showError } = useToast();
-  const { loading, error, updateQuotationRequest } = useQuotationService();
+  const { loading, error, updateQuotationRequest, getQuotationByRequirement } =
+    useQuotationService();
   const [showExitModal, setShowExitModal] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<QuotationStep>(
@@ -74,10 +76,6 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
   // Efecto para inicializar la cotización existente
   useEffect(() => {
     if (existingQuotation) {
-      console.log(
-        'QuotationWizard - Cotización existente recibida:',
-        existingQuotation
-      );
       setQuotationRequest(existingQuotation);
       setRequirement(existingQuotation.requirement);
       setCurrentStep(getCurrentStepFromQuotation(existingQuotation));
@@ -142,187 +140,231 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
 
               return selectedSupplier;
             });
-        console.log(
-          'QuotationWizard - Proveedores cargados con cotizaciones:',
-          suppliers
-        );
         setSelectedSuppliers(suppliers);
       }
     }
   }, [existingQuotation, showSuccess]);
 
-  /* const handleRequirementSelected = async (
-    selectedRequirement: Requirement
-  ) => {
-    setRequirement(selectedRequirement);
-
-    // Verificar si ya existe una cotización para este requerimiento
-    const existingQuotation = await getQuotationByRequirement(
-      selectedRequirement.id
-    );
-
-    // Si no existe cotización, crear una nueva
-    if (!existingQuotation) {
-      const createData: CreateQuotationRequestDto = {
-        requirementId: selectedRequirement.id,
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días por defecto
-        notes: '',
-      };
-
-      const createdQuotation = await createQuotationRequest(createData);
-      if (createdQuotation) {
-        setQuotationRequest(createdQuotation);
-        setCurrentStep(QuotationStep.SUPPLIER_SELECTION);
-        showSuccess(
-          'Cotización creada',
-          `Cotización ${createdQuotation.code} creada exitosamente`
-        );
-      } else {
-        showError(
-          'Error al crear cotización',
-          error || 'No se pudo crear la cotización. Inténtalo de nuevo.'
-        );
-      }
-    } else {
-      // Si existe, cargar la cotización existente y continuar donde se quedó
-      setQuotationRequest(existingQuotation);
-      const currentStepFromQuotation =
-        getCurrentStepFromQuotation(existingQuotation);
-      setCurrentStep(currentStepFromQuotation);
-
-      // Cargar los proveedores seleccionados si existen
-      if (existingQuotation.quotationSuppliers.length > 0) {
-        const suppliers: SelectedSupplier[] =
-          existingQuotation.quotationSuppliers
-            .filter(qs => qs.supplier)
-            .map(qs => {
-              const selectedSupplier: SelectedSupplier = {
-                supplier: qs.supplier,
-                isSelected: true,
-              };
-
-              // Incluir cotización recibida si existe
-              if (qs.supplierQuotation) {
-                selectedSupplier.receivedQuotation = {
-                  id: qs.supplierQuotation.id,
-                  supplierId: qs.supplier.id,
-                  requirementId: existingQuotation.requirement.id,
-                  receivedAt: new Date(qs.supplierQuotation.receivedAt),
-                  validUntil: new Date(qs.supplierQuotation.validUntil),
-                  items: qs.supplierQuotation.supplierQuotationItems.map(
-                    (item: SupplierQuotationItem) => ({
-                      id: item.id,
-                      requirementArticleId: item.requirementArticle.id,
-                      article: item.requirementArticle.article,
-                      quantity: item.requirementArticle.quantity,
-                      unitPrice: item.unitPrice || 0,
-                      totalPrice: item.totalPrice || 0,
-                      currency: item.currency || 'PEN',
-                      deliveryTime: item.deliveryTime || 0,
-                      notes: item.notes || '',
-                      status: item.status,
-                      reasonNotAvailable: item.reasonNotAvailable || '',
-                    })
-                  ),
-                  totalAmount: qs.supplierQuotation.totalAmount,
-                  status:
-                    qs.supplierQuotation.status === 'SUBMITTED'
-                      ? 'SUBMITTED'
-                      : 'DRAFT',
-                  notes: qs.supplierQuotation.notes || '',
-                };
-              }
-
-              // Incluir orden de cotización si existe
-              if (qs.orderNumber || qs.terms) {
-                selectedSupplier.quotationOrder = {
-                  id: qs.id,
-                  supplierId: qs.supplier.id,
-                  requirementId: existingQuotation.requirement.id,
-                  orderNumber: qs.orderNumber || '',
-                  terms: qs.terms || '',
-                  deadline: qs.sentAt ? new Date(qs.sentAt) : new Date(),
-                  status: qs.status,
-                  createdAt: new Date(qs.createdAt),
-                  updatedAt: new Date(qs.updatedAt),
-                };
-              }
-
-              return selectedSupplier;
-            });
-        setSelectedSuppliers(suppliers);
-      }
-
-      showSuccess(
-        'Cotización existente encontrada',
-        `Continuando con la cotización ${existingQuotation.code} donde se quedó`
-      );
-    }
-  }; */
-
-  const handleStepComplete = async (
-    stepData: Partial<QuotationRequestType> | SelectedSupplier[]
-  ) => {
-    if (Array.isArray(stepData)) {
-      // Es un array de SelectedSupplier - Paso 2: Selección de Proveedores
-      setSelectedSuppliers(stepData);
-
-      // Solo actualizar en el backend si hay cambios reales
-      if (quotationRequest) {
-        const currentSupplierIds = new Set(
-          (quotationRequest.quotationSuppliers || [])
-            .filter(qs => qs.supplier) // Filtrar proveedores válidos
-            .map(qs => qs.supplier.id)
-        );
-        const newSupplierIds = new Set(
-          stepData
-            .filter(s => s.supplier) // Filtrar proveedores válidos
-            .map(s => s.supplier.id)
-        );
-        const hasChanges =
-          currentSupplierIds.size !== newSupplierIds.size ||
-          Array.from(currentSupplierIds).some(id => !newSupplierIds.has(id)) ||
-          Array.from(newSupplierIds).some(id => !currentSupplierIds.has(id));
-
-        if (hasChanges) {
-          const updateData = {
-            suppliers: stepData
-              .filter(s => s.supplier) // Filtrar proveedores válidos
-              .map(s => ({ supplierId: s.supplier.id })),
-          };
-
-          const updatedQuotation = await updateQuotationRequest(
-            quotationRequest.id,
-            updateData
+  // Efecto para actualizar datos cuando cambia el paso
+  useEffect(() => {
+    const updateQuotationData = async () => {
+      // Solo actualizar si hay una cotización válida y no estamos en el primer paso
+      if (
+        quotationRequest?.id &&
+        currentStep > QuotationStep.SUPPLIER_SELECTION &&
+        requirement?.id
+      ) {
+        try {
+          const updatedQuotation = await getQuotationByRequirement(
+            requirement.id
           );
+
           if (updatedQuotation) {
             setQuotationRequest(updatedQuotation);
-            showSuccess(
-              'Proveedores actualizados',
-              `${stepData.length} proveedores agregados a la cotización`
-            );
-          } else {
-            showError(
-              'Error al actualizar proveedores',
-              error ||
-                'No se pudieron actualizar los proveedores. Inténtalo de nuevo.'
-            );
-            return; // No continuar si hay error
+
+            // Actualizar selectedSuppliers con los datos más recientes
+            const updatedSuppliers: SelectedSupplier[] =
+              updatedQuotation.quotationSuppliers
+                .filter(qs => qs.supplier)
+                .map(qs => {
+                  const selectedSupplier: SelectedSupplier = {
+                    supplier: qs.supplier,
+                    isSelected: true,
+                  };
+
+                  // Incluir cotización recibida si existe
+                  if (qs.supplierQuotation) {
+                    selectedSupplier.receivedQuotation = {
+                      id: qs.supplierQuotation.id,
+                      supplierId: qs.supplier.id,
+                      requirementId: updatedQuotation.requirement.id,
+                      receivedAt: new Date(qs.supplierQuotation.receivedAt),
+                      validUntil: new Date(qs.supplierQuotation.validUntil),
+                      items: qs.supplierQuotation.supplierQuotationItems.map(
+                        (item: SupplierQuotationItem) => ({
+                          id: item.id,
+                          requirementArticleId: item.requirementArticle.id,
+                          article: item.requirementArticle.article,
+                          quantity: item.requirementArticle.quantity,
+                          unitPrice: item.unitPrice || 0,
+                          totalPrice: item.totalPrice || 0,
+                          currency: item.currency || 'PEN',
+                          deliveryTime: item.deliveryTime || 0,
+                          notes: item.notes || '',
+                          status: item.status,
+                          reasonNotAvailable: item.reasonNotAvailable || '',
+                        })
+                      ),
+                      totalAmount: qs.supplierQuotation.totalAmount,
+                      status:
+                        qs.supplierQuotation.status === 'SUBMITTED'
+                          ? 'SUBMITTED'
+                          : 'DRAFT',
+                      notes: qs.supplierQuotation.notes || '',
+                    };
+                  }
+
+                  // Incluir orden de cotización si existe
+                  if (qs.orderNumber || qs.terms) {
+                    selectedSupplier.quotationOrder = {
+                      id: qs.id,
+                      supplierId: qs.supplier.id,
+                      requirementId: updatedQuotation.requirement.id,
+                      orderNumber: qs.orderNumber || '',
+                      terms: qs.terms || '',
+                      deadline: qs.sentAt ? new Date(qs.sentAt) : new Date(),
+                      status: qs.status,
+                      createdAt: new Date(qs.createdAt),
+                      updatedAt: new Date(qs.updatedAt),
+                    };
+                  }
+
+                  return selectedSupplier;
+                });
+
+            setSelectedSuppliers(updatedSuppliers);
           }
+        } catch (error) {
+          console.error('Error al actualizar datos de cotización:', error);
         }
       }
-    } else {
-      // Es un objeto de QuotationRequest
-      if (quotationRequest) {
-        const updatedRequest = {
-          ...quotationRequest,
-          ...stepData,
-          updatedAt: new Date(),
+    };
+
+    updateQuotationData();
+  }, [
+    currentStep,
+    quotationRequest?.id,
+    requirement?.id,
+    getQuotationByRequirement,
+  ]);
+
+  const handleStepComplete = async (stepData: SelectedSupplier[]) => {
+    // Actualizar selectedSuppliers con los datos del paso
+    setSelectedSuppliers(stepData);
+
+    // Solo actualizar en el backend si es el paso de selección de proveedores
+    if (currentStep === QuotationStep.SUPPLIER_SELECTION && quotationRequest) {
+      const currentSupplierIds = new Set(
+        (quotationRequest.quotationSuppliers || [])
+          .filter(qs => qs.supplier)
+          .map(qs => qs.supplier.id)
+      );
+      const newSupplierIds = new Set(
+        stepData.filter(s => s.supplier).map(s => s.supplier.id)
+      );
+      const hasChanges =
+        currentSupplierIds.size !== newSupplierIds.size ||
+        Array.from(currentSupplierIds).some(id => !newSupplierIds.has(id)) ||
+        Array.from(newSupplierIds).some(id => !currentSupplierIds.has(id));
+
+      if (hasChanges) {
+        const updateData = {
+          suppliers: stepData
+            .filter(s => s.supplier)
+            .map(s => ({ supplierId: s.supplier.id })),
         };
-        setQuotationRequest(updatedRequest);
+
+        const updatedQuotation = await updateQuotationRequest(
+          quotationRequest.id,
+          updateData
+        );
+        if (updatedQuotation) {
+          setQuotationRequest(updatedQuotation);
+          showSuccess(
+            'Proveedores actualizados',
+            `${stepData.length} proveedores agregados a la cotización`
+          );
+        } else {
+          showError(
+            'Error al actualizar proveedores',
+            error ||
+              'No se pudieron actualizar los proveedores. Inténtalo de nuevo.'
+          );
+          return; // No continuar si hay error
+        }
       }
     }
 
+    // Recargar datos del backend antes de pasar al siguiente paso
+    if (quotationRequest?.id && requirement?.id) {
+      try {
+        const freshQuotation = await getQuotationByRequirement(requirement.id);
+
+        if (freshQuotation) {
+          setQuotationRequest(freshQuotation);
+
+          // Actualizar selectedSuppliers con los datos más recientes
+          const updatedSuppliers: SelectedSupplier[] =
+            freshQuotation.quotationSuppliers
+              .filter(qs => qs.supplier)
+              .map(qs => {
+                const selectedSupplier: SelectedSupplier = {
+                  supplier: qs.supplier,
+                  isSelected: true,
+                };
+
+                // Incluir cotización recibida si existe
+                if (qs.supplierQuotation) {
+                  selectedSupplier.receivedQuotation = {
+                    id: qs.supplierQuotation.id,
+                    supplierId: qs.supplier.id,
+                    requirementId: freshQuotation.requirement.id,
+                    receivedAt: new Date(qs.supplierQuotation.receivedAt),
+                    validUntil: new Date(qs.supplierQuotation.validUntil),
+                    items: qs.supplierQuotation.supplierQuotationItems
+                      .filter(item => item.requirementArticle)
+                      .map(item => ({
+                        id: item.id,
+                        requirementArticleId: item.requirementArticle!.id,
+                        article: item.requirementArticle!.article,
+                        quantity: item.requirementArticle!.quantity,
+                        unitPrice: item.unitPrice || 0,
+                        totalPrice: item.totalPrice || 0,
+                        currency: item.currency || 'PEN',
+                        deliveryTime: item.deliveryTime || 0,
+                        notes: item.notes || '',
+                        status: item.status as QuotationItemStatus,
+                        reasonNotAvailable: item.reasonNotAvailable || '',
+                      })),
+                    totalAmount: qs.supplierQuotation.totalAmount,
+                    status:
+                      qs.supplierQuotation.status === 'SUBMITTED'
+                        ? 'SUBMITTED'
+                        : 'DRAFT',
+                    notes: qs.supplierQuotation.notes || '',
+                  };
+                }
+
+                // Incluir orden de cotización si existe
+                if (qs.orderNumber || qs.terms) {
+                  selectedSupplier.quotationOrder = {
+                    id: qs.id,
+                    supplierId: qs.supplier.id,
+                    requirementId: freshQuotation.requirement.id,
+                    orderNumber: qs.orderNumber || '',
+                    terms: qs.terms || '',
+                    deadline: qs.sentAt ? new Date(qs.sentAt) : new Date(),
+                    status: qs.status,
+                    createdAt: new Date(qs.createdAt),
+                    updatedAt: new Date(qs.updatedAt),
+                  };
+                }
+
+                return selectedSupplier;
+              });
+
+          setSelectedSuppliers(updatedSuppliers);
+        }
+      } catch (error) {
+        console.error('Error al recargar datos del backend:', error);
+        showError(
+          'Error al recargar datos',
+          'No se pudieron recargar los datos del servidor. Los cambios pueden no estar sincronizados.'
+        );
+      }
+    }
+
+    // Cambiar al siguiente paso
     if (currentStep === QuotationStep.FINAL_SELECTION) {
       handleCreateQuotation();
     } else {
@@ -339,8 +381,92 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
     );
   };
 
-  const handleStepBack = () => {
+  const handleStepBack = async () => {
     if (currentStep > QuotationStep.SUPPLIER_SELECTION) {
+      // Recargar datos del backend antes de volver al paso anterior
+      if (quotationRequest?.id && requirement?.id) {
+        try {
+          const freshQuotation = await getQuotationByRequirement(
+            requirement.id
+          );
+
+          if (freshQuotation) {
+            setQuotationRequest(freshQuotation);
+
+            // Actualizar selectedSuppliers con los datos más recientes
+            const updatedSuppliers: SelectedSupplier[] =
+              freshQuotation.quotationSuppliers
+                .filter(qs => qs.supplier)
+                .map(qs => {
+                  const selectedSupplier: SelectedSupplier = {
+                    supplier: qs.supplier,
+                    isSelected: true,
+                  };
+
+                  // Incluir cotización recibida si existe
+                  if (qs.supplierQuotation) {
+                    selectedSupplier.receivedQuotation = {
+                      id: qs.supplierQuotation.id,
+                      supplierId: qs.supplier.id,
+                      requirementId: freshQuotation.requirement.id,
+                      receivedAt: new Date(qs.supplierQuotation.receivedAt),
+                      validUntil: new Date(qs.supplierQuotation.validUntil),
+                      items: qs.supplierQuotation.supplierQuotationItems
+                        .filter(item => item.requirementArticle)
+                        .map(item => ({
+                          id: item.id,
+                          requirementArticleId: item.requirementArticle!.id,
+                          article: item.requirementArticle!.article,
+                          quantity: item.requirementArticle!.quantity,
+                          unitPrice: item.unitPrice || 0,
+                          totalPrice: item.totalPrice || 0,
+                          currency: item.currency || 'PEN',
+                          deliveryTime: item.deliveryTime || 0,
+                          notes: item.notes || '',
+                          status: item.status as QuotationItemStatus,
+                          reasonNotAvailable: item.reasonNotAvailable || '',
+                        })),
+                      totalAmount: qs.supplierQuotation.totalAmount,
+                      status:
+                        qs.supplierQuotation.status === 'SUBMITTED'
+                          ? 'SUBMITTED'
+                          : 'DRAFT',
+                      notes: qs.supplierQuotation.notes || '',
+                    };
+                  }
+
+                  // Incluir orden de cotización si existe
+                  if (qs.orderNumber || qs.terms) {
+                    selectedSupplier.quotationOrder = {
+                      id: qs.id,
+                      supplierId: qs.supplier.id,
+                      requirementId: freshQuotation.requirement.id,
+                      orderNumber: qs.orderNumber || '',
+                      terms: qs.terms || '',
+                      deadline: qs.sentAt ? new Date(qs.sentAt) : new Date(),
+                      status: qs.status,
+                      createdAt: new Date(qs.createdAt),
+                      updatedAt: new Date(qs.updatedAt),
+                    };
+                  }
+
+                  return selectedSupplier;
+                });
+
+            setSelectedSuppliers(updatedSuppliers);
+          }
+        } catch (error) {
+          console.error(
+            'Error al recargar datos del backend al volver:',
+            error
+          );
+          showError(
+            'Error al recargar datos',
+            'No se pudieron recargar los datos del servidor. Los cambios pueden no estar sincronizados.'
+          );
+        }
+      }
+
       setCurrentStep(currentStep - 1);
     }
   };
@@ -385,8 +511,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
         return (
           <GenerateOrders
             requirement={requirement!}
-            selectedSuppliers={selectedSuppliers}
-            quotationRequestId={quotationRequest?.id || 0}
+            quotationRequest={quotationRequest!}
             onComplete={handleStepComplete}
             onBack={handleStepBack}
           />
@@ -396,8 +521,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
         return (
           <ReceiveQuotations
             requirement={requirement!}
-            selectedSuppliers={selectedSuppliers}
-            quotationRequestId={quotationRequest?.id || 0}
+            quotationRequest={quotationRequest!}
             onComplete={handleStepComplete}
             onBack={handleStepBack}
           />
@@ -407,8 +531,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
         return (
           <CompareQuotations
             requirement={requirement!}
-            selectedSuppliers={selectedSuppliers}
-            quotationRequestId={quotationRequest?.id || 0}
+            quotationRequest={quotationRequest!}
             onComplete={handleStepComplete}
             onBack={handleStepBack}
           />
@@ -418,8 +541,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
         return (
           <FinalSelection
             requirement={requirement!}
-            selectedSuppliers={selectedSuppliers}
-            quotationRequestId={quotationRequest?.id || 0}
+            quotationRequest={quotationRequest!}
             onComplete={handleStepComplete}
             onBack={handleStepBack}
           />

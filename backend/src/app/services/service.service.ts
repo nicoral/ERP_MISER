@@ -9,7 +9,7 @@ import { UpdateServiceDto } from '../dto/service/update-service.dto';
 export class ServiceService {
   constructor(
     @InjectRepository(Service)
-    private readonly serviceRepository: Repository<Service>,
+    private readonly serviceRepository: Repository<Service>
   ) {}
 
   async findAll(
@@ -42,7 +42,10 @@ export class ServiceService {
     return this.serviceRepository.save(service);
   }
 
-  async update(id: number, updateServiceDto: UpdateServiceDto): Promise<Service> {
+  async update(
+    id: number,
+    updateServiceDto: UpdateServiceDto
+  ): Promise<Service> {
     const service = await this.findOne(id);
     this.serviceRepository.merge(service, updateServiceDto);
     return this.serviceRepository.save(service);

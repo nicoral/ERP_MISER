@@ -68,7 +68,9 @@ export const uploadEmployeeSignature = async (
     {
       method: 'PUT',
       body: formData,
-    }
+    },
+    false,
+    true
   );
   return response;
 };

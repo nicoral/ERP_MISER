@@ -36,6 +36,10 @@ export class UpdateGeneralSettingsDto {
   timezone?: string;
 
   @IsOptional()
+  @IsNumber()
+  generalTax?: number;
+
+  @IsOptional()
   @IsString()
   additionalSettings?: string;
 }

@@ -44,6 +44,9 @@ import { QuotationEdit } from './pages/QuotationEdit';
 import { setNavigate } from './services/api/httpInterceptor';
 import { useEffect } from 'react';
 import ComingSoon from './pages/ComingSoon';
+import { PaymentList } from './features/payment/components/PaymentList';
+import { PaymentDetails } from './features/payment/components/PaymentDetails';
+import { PaymentForm } from './features/payment/components/PaymentForm';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -116,6 +119,9 @@ const AppRoutes = () => {
             path={ROUTES.GENERAL_SETTINGS}
             element={<GeneralSettingsForm />}
           />
+          <Route path={ROUTES.PAYMENTS} element={<PaymentList />} />
+          <Route path={ROUTES.PAYMENT_DETAILS} element={<PaymentDetails />} />
+          <Route path={ROUTES.PAYMENT_EDIT} element={<PaymentForm />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

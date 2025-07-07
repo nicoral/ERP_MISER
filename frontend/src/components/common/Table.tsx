@@ -134,7 +134,7 @@ export function Table<T>({
             ))}
           </div>
         ) : (
-          data.map((row, rowIdx) => (
+          (data || []).map((row, rowIdx) => (
             <div
               key={String(row[keyField]) || rowIdx}
               className="mb-6 max-w-md mx-auto p-4 rounded-xl shadow-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
@@ -243,7 +243,7 @@ export function Table<T>({
                 }
               />
             ) : (
-              data.map((row, rowIdx) => (
+              (data || []).map((row, rowIdx) => (
                 <tr key={String(row[keyField]) || rowIdx}>
                   {columns.map((col, colIdx) => (
                     <td

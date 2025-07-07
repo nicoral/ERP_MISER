@@ -41,15 +41,15 @@ export const handleApiError = (error: { response?: { status: number } }) => {
     return;
   }
 
-  // Solo re-lanzar el error si no fue manejado específicamente
-  console.log('Re-throwing unhandled error:', error);
+  // Re-throw the error so it can be caught by the calling component
   throw error;
 };
 
 export const createApiCall = async <T>(
   url: string,
   options: RequestInit = {},
-  isBlob: boolean = false
+  isBlob: boolean = false,
+  isFormData: boolean = false
 ): Promise<T> => {
   try {
     const token = localStorage.getItem(STORAGE_KEY_TOKEN);
@@ -57,7 +57,9 @@ export const createApiCall = async <T>(
     const response = await fetch(url, {
       ...options,
       headers: {
-        ...(!isBlob ? { 'Content-Type': 'application/json' } : {}),
+        ...(!isBlob && !isFormData
+          ? { 'Content-Type': 'application/json' }
+          : {}),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
@@ -75,6 +77,12 @@ export const createApiCall = async <T>(
       (error as { response?: { status: number } }).response = {
         status: response.status,
       };
+
+      // Solo manejar errores 401 y 403 específicamente
+      if (response.status === 401 || response.status === 403) {
+        handleApiError(error as { response?: { status: number } });
+      }
+
       throw error;
     }
 
@@ -96,11 +104,9 @@ export const createApiCall = async <T>(
     // Si el error ya tiene la estructura correcta, usarlo directamente
     if ((error as { response?: { status: number } }).response?.status) {
       handleApiError(error as { response?: { status: number } });
-    } else {
-      // Si no tiene la estructura correcta, re-lanzar el error original
-      throw error;
     }
 
+    // Always re-throw the error so it can be caught by the calling component
     throw error;
   }
 };

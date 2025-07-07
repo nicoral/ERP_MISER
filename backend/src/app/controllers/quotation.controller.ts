@@ -21,7 +21,7 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-request.dto';
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { CreateSupplierQuotationDto } from '../dto/quotation/create-supplier-quotation.dto';
-import { UpdateSupplierQuotationDto } from '../dto/quotation/update-supplier-quotation.dto';
+import { UpdateSupplierQuotationDto, UpdateSupplierQuotationOcDto } from '../dto/quotation/update-supplier-quotation.dto';
 import { UpdateQuotationBasicDto } from '../dto/quotation/update-quotation-basic.dto';
 import {
   UpdateQuotationOrderDto,
@@ -86,8 +86,8 @@ export class QuotationController {
   @Get('statistics/status')
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener estadísticas de cotizaciones')
-  getStatistics(@Req() req) {
-    return this.quotationService.getQuotationStatistics(req.user.id);
+  getStatistics() {
+    return this.quotationService.getQuotationStatistics();
   }
 
   @Patch(':id')
@@ -122,10 +122,7 @@ export class QuotationController {
   @Post(':id/sign')
   @RequirePermissions('view_quotations')
   @AuditDescription('Firmar solicitud de cotización')
-  sign(
-    @Req() req: { user: { id: number } },
-    @Param('id') id: string
-  ) {
+  sign(@Req() req: { user: { id: number } }, @Param('id') id: string) {
     return this.quotationService.signQuotationRequest(+id, req.user.id);
   }
 
@@ -137,7 +134,11 @@ export class QuotationController {
     @Param('id') id: string,
     @Body() body: { reason: string }
   ) {
-    return this.quotationService.rejectQuotationRequest(+id, req.user.id, body.reason);
+    return this.quotationService.rejectQuotationRequest(
+      +id,
+      req.user.id,
+      body.reason
+    );
   }
 
   // Supplier Quotations
@@ -179,6 +180,16 @@ export class QuotationController {
       +id,
       updateSupplierQuotationDto
     );
+  }
+
+  @Patch('supplier-quotation/:id/oc')
+  @RequirePermissions('update_quotation')
+  @AuditDescription('Actualizar cotización de proveedor')
+  updateSupplierQuotationOc(
+    @Param('id') id: string,
+    @Body() updateSupplierQuotationDto: UpdateSupplierQuotationOcDto
+  ) {
+    return this.quotationService.updateSupplierQuotationOc(+id, updateSupplierQuotationDto);
   }
 
   @Patch('supplier-quotation/:id/submit')
@@ -297,10 +308,9 @@ export class QuotationController {
     @Param('id') id: string,
     @Body() applyGeneralTermsDto: ApplyGeneralTermsDto
   ) {
-    return this.quotationService.applyGeneralTermsToAll(
+    return this.quotationService. applyGeneralTermsToAll(
       +id,
-      applyGeneralTermsDto.terms,
-      applyGeneralTermsDto.selectedArticles
+      applyGeneralTermsDto
     );
   }
 
@@ -331,12 +341,47 @@ export class QuotationController {
     @Param('supplierId') supplierId: string,
     @Res() res: Response
   ) {
-    const pdfBuffer =
-      await this.quotationService.generateQuotationComparisonPdf(+id, +supplierId);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="cuadro_comparativo_${id}.pdf"`,
-    });
-    res.end(pdfBuffer);
+    try {
+      const pdfBuffer = await this.quotationService.generateQuotationComparisonPdf(
+        +id,
+        +supplierId
+      );
+
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="comparacion-cotizacion-${id}-${supplierId}.pdf"`,
+      });
+
+      res.end(pdfBuffer);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: error });
+    }
+  }
+
+  @Get(':id/purchase-order/:supplierId/pdf')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Descargar PDF de orden de compra')
+  async downloadPurchaseOrderPdf(
+    @Param('id') id: string,
+    @Param('supplierId') supplierId: string,
+    @Res() res: Response
+  ) {
+    try {
+      const pdfBuffer = await this.quotationService.generatePurchaseOrderPdf(
+        +id,
+        +supplierId
+      );
+
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="orden-compra-${id}-${supplierId}.pdf"`,
+      });
+
+      res.end(pdfBuffer);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: error });
+    }
   }
 }

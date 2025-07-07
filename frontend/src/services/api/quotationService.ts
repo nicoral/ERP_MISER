@@ -14,6 +14,7 @@ import type {
   SendQuotationOrderDto,
   ApplyGeneralTermsDto,
   QuotationFilters,
+  UpdateSupplierQuotationOcDto,
 } from '../../types/quotation';
 import { STORAGE_KEY_TOKEN } from '../../config/constants';
 
@@ -80,7 +81,6 @@ export const quotationService = {
     PENDING: number;
     DRAFT: number;
     ACTIVE: number;
-    COMPLETED: number;
     CANCELLED: number;
     SIGNED_1: number;
     SIGNED_2: number;
@@ -92,7 +92,6 @@ export const quotationService = {
       PENDING: number;
       DRAFT: number;
       ACTIVE: number;
-      COMPLETED: number;
       CANCELLED: number;
       SIGNED_1: number;
       SIGNED_2: number;
@@ -182,6 +181,20 @@ export const quotationService = {
   ): Promise<SupplierQuotation> {
     const response = await createApiCall<SupplierQuotation>(
       `${BASE_URL}/supplier-quotation/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  async updateSupplierQuotationOc(
+    id: number,
+    data: UpdateSupplierQuotationOcDto
+  ): Promise<SupplierQuotation> {
+    const response = await createApiCall<SupplierQuotation>(
+      `${BASE_URL}/supplier-quotation/${id}/oc`,
       {
         method: 'PATCH',
         body: JSON.stringify(data),
@@ -283,6 +296,23 @@ export const quotationService = {
   ): Promise<Blob> {
     const response = await fetch(
       `${BASE_URL}/${quotationId}/supplier/${supplierId}/comparison/pdf`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
+        },
+      }
+    );
+    if (!response.ok) throw new Error('No se pudo descargar el PDF');
+    return await response.blob();
+  },
+
+  async downloadPurchaseOrderPdf(
+    quotationId: number,
+    supplierId: number
+  ): Promise<Blob> {
+    const response = await fetch(
+      `${BASE_URL}/${quotationId}/purchase-order/${supplierId}/pdf`,
       {
         method: 'GET',
         headers: {

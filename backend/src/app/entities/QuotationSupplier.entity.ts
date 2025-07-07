@@ -43,6 +43,9 @@ export class QuotationSupplier {
   @Column({ type: 'timestamp', nullable: true })
   sentAt: Date;
 
+  @Column({ type: 'date', nullable: true })
+  deadline: Date;
+
   @ManyToOne(
     () => QuotationRequest,
     quotationRequest => quotationRequest.quotationSuppliers

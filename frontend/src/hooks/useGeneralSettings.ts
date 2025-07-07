@@ -8,6 +8,7 @@ import {
   shouldUpdateExchangeRate,
   uploadLogo,
   type UpdateGeneralSettingsDto,
+  getGeneralTax,
 } from '../services/api/generalSettingsService';
 
 /**
@@ -98,5 +99,15 @@ export const useShouldUpdateExchangeRate = () => {
     queryKey: ['shouldUpdateExchangeRate'],
     queryFn: shouldUpdateExchangeRate,
     staleTime: 60 * 1000, // 1 minuto
+  });
+};
+
+/**
+ * Hook para obtener el impuesto general
+ */
+export const useGeneralTax = () => {
+  return useQuery({
+    queryKey: ['generalTax'],
+    queryFn: getGeneralTax,
   });
 };

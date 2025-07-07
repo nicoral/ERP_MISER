@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   type FinalSelectionItem,
-  type FinalSelection as FinalSelectionType,
   type SelectedSupplier,
+  type QuotationRequest,
+  QuotationItemStatus,
 } from '../../../../types/quotation';
 import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
@@ -11,31 +12,60 @@ import type { Requirement } from '../../../../types/requirement';
 
 interface FinalSelectionProps {
   requirement: Requirement;
-  selectedSuppliers: SelectedSupplier[];
-  quotationRequestId: number;
+  quotationRequest: QuotationRequest;
   onComplete: (selectedSuppliers: SelectedSupplier[]) => void;
   onBack: () => void;
 }
 
 export const FinalSelection: React.FC<FinalSelectionProps> = ({
   requirement,
-  selectedSuppliers,
-  quotationRequestId,
+  quotationRequest,
   onComplete,
   onBack,
 }) => {
+  // Extraer selectedSuppliers y quotationRequestId de quotationRequest
+  const selectedSuppliers: SelectedSupplier[] =
+    quotationRequest.quotationSuppliers
+      .filter(qs => qs.supplier)
+      .map(qs => ({
+        supplier: qs.supplier,
+        isSelected: true,
+        receivedQuotation: qs.supplierQuotation
+          ? {
+              id: qs.supplierQuotation.id,
+              supplierId: qs.supplier.id,
+              requirementId: quotationRequest.requirement.id,
+              receivedAt: new Date(qs.supplierQuotation.receivedAt),
+              validUntil: new Date(qs.supplierQuotation.validUntil),
+              items: qs.supplierQuotation.supplierQuotationItems.map(item => ({
+                id: item.id,
+                requirementArticleId: item.requirementArticle.id,
+                article: item.requirementArticle.article,
+                quantity: item.requirementArticle.quantity,
+                unitPrice: item.unitPrice || 0,
+                totalPrice: item.totalPrice || 0,
+                currency: item.currency || 'PEN',
+                deliveryTime: item.deliveryTime || 0,
+                notes: item.notes || '',
+                status: item.status as QuotationItemStatus,
+                reasonNotAvailable: item.reasonNotAvailable || '',
+              })),
+              totalAmount: qs.supplierQuotation.totalAmount,
+              status:
+                qs.supplierQuotation.status === 'SUBMITTED'
+                  ? 'SUBMITTED'
+                  : 'DRAFT',
+              notes: qs.supplierQuotation.notes || '',
+            }
+          : undefined,
+      }));
+
   const [internalNotes, setInternalNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [approving, setApproving] = useState(false);
   const [showApprovalWarning, setShowApprovalWarning] = useState(false);
-  const [finalSelectionData, setFinalSelectionData] =
-    useState<FinalSelectionType | null>(null);
 
-  const {
-    getFinalSelectionByRequest,
-    approveFinalSelection,
-    updateFinalSelection,
-  } = useQuotationService();
+  const { approveFinalSelection, updateFinalSelection } = useQuotationService();
   const { showSuccess, showError } = useToast();
 
   // Helper function to safely format numbers
@@ -52,24 +82,14 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
     return '0.00';
   };
 
-  // Cargar la selección final desde el backend
+  // Usar los datos de selección final disponibles
+  const finalSelectionData = quotationRequest.finalSelection;
+  // Inicializar notas cuando se cargan los datos
   useEffect(() => {
-    const loadFinalSelection = async () => {
-      try {
-        const finalSelection =
-          await getFinalSelectionByRequest(quotationRequestId);
-        if (finalSelection) {
-          setFinalSelectionData(finalSelection);
-          setInternalNotes(finalSelection.notes || '');
-        }
-      } catch (error) {
-        console.error('Error loading final selection:', error);
-        showError('Error al cargar', 'No se pudo cargar la selección final');
-      }
-    };
-
-    loadFinalSelection();
-  }, [quotationRequestId, getFinalSelectionByRequest, showError]);
+    if (finalSelectionData?.notes && !internalNotes) {
+      setInternalNotes(finalSelectionData.notes);
+    }
+  }, [finalSelectionData?.notes, internalNotes]);
 
   const handleGeneratePurchaseOrder = async () => {
     setLoading(true);
@@ -134,7 +154,6 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       );
 
       if (approvedFinalSelection) {
-        setFinalSelectionData(approvedFinalSelection);
         showSuccess(
           'Selección final aprobada',
           'La selección final ha sido aprobada exitosamente con las notas guardadas.'
@@ -304,14 +323,19 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {finalSelectionData.finalSelectionItems?.map(
-                (item: FinalSelectionItem, index: number) => {
+              {finalSelectionData.finalSelectionItems
+                ?.map((item: FinalSelectionItem, index: number) => {
+                  // Validar que item tenga las propiedades necesarias
+                  if (!item || !item.requirementArticle || !item.supplier) {
+                    return null;
+                  }
+
                   const requirementArticle =
                     requirement.requirementArticles.find(
-                      ra => ra.id === item.requirementArticle.id
+                      ra => ra.id === item.requirementArticle?.id
                     );
                   const supplier = selectedSuppliers.find(
-                    s => s.supplier.id === item.supplier.id
+                    s => s.supplier.id === item.supplier?.id
                   );
 
                   return (
@@ -346,8 +370,8 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                       </td>
                     </tr>
                   );
-                }
-              ) || (
+                })
+                .filter(Boolean) || (
                 <tr>
                   <td
                     colSpan={5}
@@ -372,9 +396,9 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {finalSelectionData.finalSelectionItems
               ? new Set(
-                  finalSelectionData.finalSelectionItems.map(
-                    (item: FinalSelectionItem) => item.supplier.id
-                  )
+                  finalSelectionData.finalSelectionItems
+                    .filter(item => item && item.supplier)
+                    .map((item: FinalSelectionItem) => item.supplier.id)
                 ).size
               : 0}
           </div>
@@ -402,7 +426,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             Total Estimado
           </h4>
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {finalSelectionData.currency || 'PEN'}{' '}
+            PEN{' '}
             {formatNumber(
               finalSelectionData.finalSelectionItems?.reduce(
                 (total: number, item: FinalSelectionItem) => {

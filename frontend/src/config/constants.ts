@@ -50,6 +50,9 @@ export const ROUTES = {
   QUOTATIONS: '/quotations',
   QUOTATION_DETAILS: '/quotations/:id/details',
   QUOTATION_EDIT: '/quotations/:id/edit',
+  PAYMENTS: '/payments',
+  PAYMENT_DETAILS: '/payments/:id/details',
+  PAYMENT_EDIT: '/payments/:id/edit',
 } as const;
 
 export const MODULES = [
@@ -92,6 +95,10 @@ export const MODULES = [
   {
     key: 'quotation',
     label: 'Cotizaciones',
+  },
+  {
+    key: 'payments',
+    label: 'Pagos',
   },
 ];
 

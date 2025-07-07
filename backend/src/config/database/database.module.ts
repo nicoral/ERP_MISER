@@ -24,7 +24,8 @@ import { FinalSelection } from '../../app/entities/FinalSelection.entity';
 import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity';
 import { Service } from '../../app/entities/Service.entity';
 import { RequirementService } from '../../app/entities/RequirementService.entity';
-import { Payment } from '../../app/entities/Payment.entity';
+import { PaymentGroup } from '../../app/entities/PaymentGroup.entity';
+import { PaymentDetail } from '../../app/entities/PaymentDetail.entity';
 
 @Global()
 @Module({
@@ -54,7 +55,8 @@ import { Payment } from '../../app/entities/Payment.entity';
         FinalSelectionItem,
         Service,
         RequirementService,
-        Payment,
+        PaymentGroup,
+        PaymentDetail,
       ],
     }),
   ],

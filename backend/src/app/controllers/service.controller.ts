@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ServiceService } from '../services/service.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -34,7 +44,10 @@ export class ServiceController {
   @Put(':id')
   @RequirePermissions('update_service')
   @AuditDescription('Actualización de servicio')
-  async update(@Param('id') id: number, @Body() updateServiceDto: UpdateServiceDto): Promise<Service> {
+  async update(
+    @Param('id') id: number,
+    @Body() updateServiceDto: UpdateServiceDto
+  ): Promise<Service> {
     return this.serviceService.update(id, updateServiceDto);
   }
 

@@ -10,6 +10,7 @@ export interface GeneralSettings {
   exchangeRateDateString: string | null;
   exchangeRateAutoUpdate: boolean;
   timezone: string;
+  generalTax: number;
   additionalSettings: string | null;
   createdAt: string;
   updatedAt: string;
@@ -70,10 +71,15 @@ export const generalSettingsService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await createApiCall<GeneralSettings>(`${BASE_URL}/logo`, {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await createApiCall<GeneralSettings>(
+      `${BASE_URL}/logo`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
     return response;
   },
 
@@ -129,6 +135,13 @@ export const generalSettingsService = {
     });
     return response;
   },
+
+  async getGeneralTax(): Promise<number> {
+    const response = await createApiCall<number>(`${BASE_URL}/general-tax`, {
+      method: 'GET',
+    });
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility
@@ -142,3 +155,4 @@ export const getCurrentSaleRate = generalSettingsService.getCurrentSaleRate;
 export const updateExchangeRate = generalSettingsService.updateExchangeRate;
 export const shouldUpdateExchangeRate =
   generalSettingsService.shouldUpdateExchangeRate;
+export const getGeneralTax = generalSettingsService.getGeneralTax;

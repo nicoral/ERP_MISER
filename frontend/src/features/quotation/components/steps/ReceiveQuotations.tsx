@@ -5,35 +5,79 @@ import {
   QuotationItemStatus,
   type CreateSupplierQuotationDto,
   type ReceivedQuotationItem,
+  type QuotationRequest,
 } from '../../../../types/quotation';
 import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { Button } from '../../../../components/common/Button';
 import { FormInput } from '../../../../components/common/FormInput';
 import type { Requirement } from '../../../../types/requirement';
+import { useCurrentExchangeRate } from '../../../../hooks/useGeneralSettings';
 
 interface ReceiveQuotationsProps {
   requirement: Requirement;
-  selectedSuppliers: SelectedSupplier[];
-  quotationRequestId: number;
+  quotationRequest: QuotationRequest;
   onComplete: (selectedSuppliers: SelectedSupplier[]) => void;
   onBack: () => void;
 }
 
 export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
   requirement,
-  selectedSuppliers,
-  quotationRequestId,
+  quotationRequest,
   onComplete,
   onBack,
 }) => {
-  const {
-    createSupplierQuotation,
-    submitSupplierQuotation,
-    getQuotationByRequirement,
-    loading,
-    error,
-  } = useQuotationService();
+  const { data: exchangeRate } = useCurrentExchangeRate();
+
+  // Extraer selectedSuppliers y quotationRequestId de quotationRequest
+  const selectedSuppliers: SelectedSupplier[] =
+    quotationRequest.quotationSuppliers
+      .filter(qs => qs.supplier)
+      .map(qs => {
+        const selectedSupplier: SelectedSupplier = {
+          supplier: qs.supplier,
+          isSelected: true,
+        };
+
+        // Incluir cotización recibida si existe
+        if (qs.supplierQuotation) {
+          selectedSupplier.receivedQuotation = {
+            id: qs.supplierQuotation.id,
+            supplierId: qs.supplier.id,
+            requirementId: quotationRequest.requirement.id,
+            receivedAt: new Date(qs.supplierQuotation.receivedAt),
+            validUntil: new Date(qs.supplierQuotation.validUntil),
+            items: qs.supplierQuotation.supplierQuotationItems
+              .filter(item => item.requirementArticle) // Filtrar items válidos
+              .map(item => ({
+                id: item.id,
+                requirementArticleId: item.requirementArticle!.id,
+                article: item.requirementArticle!.article,
+                quantity: item.requirementArticle!.quantity,
+                unitPrice: item.unitPrice || 0,
+                totalPrice: item.totalPrice || 0,
+                currency: item.currency || 'PEN',
+                deliveryTime: item.deliveryTime || 0,
+                notes: item.notes || '',
+                status: item.status as QuotationItemStatus,
+                reasonNotAvailable: item.reasonNotAvailable || '',
+              })),
+            totalAmount: qs.supplierQuotation.totalAmount,
+            status:
+              qs.supplierQuotation.status === 'SUBMITTED'
+                ? 'SUBMITTED'
+                : 'DRAFT',
+            notes: qs.supplierQuotation.notes || '',
+          };
+        }
+
+        return selectedSupplier;
+      });
+
+  const quotationRequestId = quotationRequest.id;
+
+  const { createSupplierQuotation, submitSupplierQuotation, loading, error } =
+    useQuotationService();
   const { showSuccess, showError } = useToast();
 
   const [quotations, setQuotations] = useState<
@@ -44,84 +88,59 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
     Record<number, number[]>
   >({});
 
-  // Cargar productos seleccionados y cotizaciones guardadas desde el backend
+  // Cargar productos seleccionados y cotizaciones guardadas desde los datos recibidos
   useEffect(() => {
-    const loadSelectedProducts = async () => {
-      try {
-        const existingQuotation = await getQuotationByRequirement(
-          requirement.id
-        );
-        if (existingQuotation) {
-          const productsBySupplier: Record<number, number[]> = {};
-          const existingQuotations: Record<number, ReceivedQuotation> = {};
+    const loadSelectedProducts = () => {
+      const productsBySupplier: Record<number, number[]> = {};
+      const existingQuotations: Record<number, ReceivedQuotation> = {};
 
-          existingQuotation.quotationSuppliers
-            .filter(quotationSupplier => quotationSupplier.supplier) // Filtrar proveedores válidos
-            .forEach(quotationSupplier => {
-              const supplierId = quotationSupplier.supplier.id;
+      // Usar los datos de selectedSuppliers que ya vienen actualizados
+      selectedSuppliers
+        .filter(supplier => supplier.supplier)
+        .forEach(selectedSupplier => {
+          const supplierId = selectedSupplier.supplier.id;
 
-              // Cargar productos seleccionados
+          // Si hay cotización recibida, usarla
+          if (selectedSupplier.receivedQuotation) {
+            const quotation = selectedSupplier.receivedQuotation;
+
+            // Cargar productos seleccionados desde la cotización
+            const selectedArticleIds = quotation.items
+              .map(item => item.requirementArticleId)
+              .filter((id): id is number => id !== undefined);
+            productsBySupplier[supplierId] = selectedArticleIds;
+
+            existingQuotations[supplierId] = quotation;
+          } else {
+            // Si no hay cotización, usar los productos de las órdenes de cotización
+            const quotationSupplier = quotationRequest.quotationSuppliers.find(
+              qs => qs.supplier.id === supplierId
+            );
+
+            if (
+              quotationSupplier &&
+              quotationSupplier.quotationSupplierArticles.length > 0
+            ) {
+              // Usar los productos de las órdenes de cotización
               const selectedArticleIds =
                 quotationSupplier.quotationSupplierArticles.map(
                   qsa => qsa.requirementArticle.id
                 );
               productsBySupplier[supplierId] = selectedArticleIds;
+            } else {
+              // Fallback: usar todos los productos
+              productsBySupplier[supplierId] =
+                requirement.requirementArticles.map(ra => ra.id);
+            }
+          }
+        });
 
-              // Cargar cotización guardada si existe
-              if (quotationSupplier.supplierQuotation) {
-                const supplierQuotation = quotationSupplier.supplierQuotation;
-                const quotationItems: ReceivedQuotationItem[] =
-                  supplierQuotation.supplierQuotationItems
-                    .filter(item => item.requirementArticle) // Filtrar items que tengan requirementArticle
-                    .map(item => ({
-                      id: item.id,
-                      requirementArticleId: item.requirementArticle!.id,
-                      article: item.requirementArticle!.article,
-                      quantity: item.requirementArticle!.quantity,
-                      unitPrice: item.unitPrice || 0,
-                      totalPrice: item.totalPrice || 0,
-                      currency: item.currency || 'PEN',
-                      deliveryTime: item.deliveryTime || 0,
-                      notes: item.notes || '',
-                      status: item.status as QuotationItemStatus,
-                      reasonNotAvailable: item.reasonNotAvailable || '',
-                    }));
-
-                existingQuotations[supplierId] = {
-                  id: supplierQuotation.id,
-                  supplierId: supplierId,
-                  requirementId: requirement.id,
-                  receivedAt: new Date(supplierQuotation.receivedAt),
-                  validUntil: new Date(supplierQuotation.validUntil),
-                  items: quotationItems,
-                  totalAmount: supplierQuotation.totalAmount,
-                  status:
-                    supplierQuotation.status === 'SUBMITTED'
-                      ? 'SUBMITTED'
-                      : 'DRAFT',
-                  notes: supplierQuotation.notes || '',
-                };
-              }
-            });
-
-          setSelectedProductsBySupplier(productsBySupplier);
-          setQuotations(existingQuotations);
-        }
-      } catch {
-        // Si no hay cotización existente, usar todos los productos como fallback
-        const fallbackProducts: Record<number, number[]> = {};
-        selectedSuppliers
-          .filter(supplier => supplier.supplier) // Filtrar proveedores válidos
-          .forEach(supplier => {
-            fallbackProducts[supplier.supplier.id] =
-              requirement.requirementArticles.map(ra => ra.id);
-          });
-        setSelectedProductsBySupplier(fallbackProducts);
-      }
+      setSelectedProductsBySupplier(productsBySupplier);
+      setQuotations(existingQuotations);
     };
 
     loadSelectedProducts();
-  }, [requirement.id, selectedSuppliers, getQuotationByRequirement]);
+  }, [quotationRequest.id, requirement.id]);
 
   const getSelectedProductsForSupplier = (supplierId: number) => {
     const selectedArticleIds = selectedProductsBySupplier[supplierId] || [];
@@ -134,6 +153,7 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
   useEffect(() => {
     if (editingSupplier && !quotations[editingSupplier]) {
       const selectedProducts = getSelectedProductsForSupplier(editingSupplier);
+
       const initialItems = selectedProducts.map(ra => ({
         id: -1, // index,
         requirementArticleId: ra.id, // Guardar solo el ID del RequirementArticle
@@ -148,21 +168,23 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
         reasonNotAvailable: '',
       }));
 
+      const newQuotation: ReceivedQuotation = {
+        id: Date.now(),
+        supplierId: editingSupplier,
+        requirementId: requirement.id,
+        receivedAt: new Date(),
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        items: initialItems,
+        totalAmount: 0,
+        status: 'PENDING' as const,
+      };
+
       setQuotations(prev => ({
         ...prev,
-        [editingSupplier]: {
-          id: Date.now(),
-          supplierId: editingSupplier,
-          requirementId: requirement.id,
-          receivedAt: new Date(),
-          validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          items: initialItems,
-          totalAmount: 0,
-          status: 'PENDING',
-        },
+        [editingSupplier]: newQuotation,
       }));
     }
-  }, [editingSupplier]);
+  }, [editingSupplier, requirement.id]);
 
   const handlePriceChange = (
     supplierId: number,
@@ -471,21 +493,6 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
     return totalsByCurrency;
   };
 
-  const getTotalGeneralPrice = (supplierId: number) => {
-    const quotation = quotations[supplierId];
-    if (!quotation) return 0;
-    return quotation.items
-      .reduce((sum, item) => {
-        return (
-          sum +
-          (item.unitPrice && !isNaN(+item.unitPrice)
-            ? +item.unitPrice * item.quantity
-            : 0)
-        );
-      }, 0)
-      .toFixed(2);
-  };
-
   const getQuotationStatus = (supplierId: number) => {
     const quotation = quotations[supplierId];
     if (!quotation) return 'PENDIENTE';
@@ -606,7 +613,11 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
                     handleSubmitQuotation(editingSupplier);
                   }}
                   className="text-sm"
-                  disabled={loading || !editingSupplier}
+                  disabled={
+                    loading ||
+                    !editingSupplier ||
+                    quotations[editingSupplier].status !== 'DRAFT'
+                  }
                 >
                   ✅ Enviar cotización
                 </Button>
@@ -850,6 +861,14 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
                         Total en {currency}:
                       </span>
                       <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {currency === 'USD' ? (
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Tipo de cambio: {exchangeRate?.saleRate} / PEN{' '}
+                            {(total * (exchangeRate?.saleRate || 0)).toFixed(
+                              2
+                            )}{' '}
+                          </span>
+                        ) : null}
                         {currency} {(+total).toFixed(2)}
                       </span>
                     </div>
@@ -861,18 +880,6 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
                     No hay productos cotizados
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* Total */}
-            <div className="mt-6 flex justify-end">
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                <div className="text-lg font-medium text-gray-900 dark:text-white">
-                  Total General: {getTotalGeneralPrice(editingSupplier)}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  (Suma de todas las monedas)
-                </div>
               </div>
             </div>
 
