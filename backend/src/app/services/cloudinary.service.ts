@@ -6,17 +6,20 @@ import { CloudinaryResponse } from '../types/cloudinary-response';
 export class CloudinaryService {
   async uploadFile(
     file: Express.Multer.File,
-    folder: string = 'miser'
+    folder: string = 'miser',
+    withTransformation: boolean = true
   ): Promise<CloudinaryResponse> {
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
           {
             folder: `mixer/${folder}`,
-            transformation: [
-              { width: 500, crop: 'scale' },
-              { quality: 'auto', fetch_format: 'auto' },
-            ],
+            transformation: withTransformation
+              ? [
+                  { width: 500, crop: 'scale' },
+                  { quality: 'auto', fetch_format: 'auto' },
+                ]
+              : [],
           },
           (error, uploadResult) => {
             if (error) return reject(error);

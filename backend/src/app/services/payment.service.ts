@@ -199,7 +199,8 @@ export class PaymentService {
     if (file) {
       const uploadResult = await this.cloudinaryService.uploadFile(
         file,
-        'payments/receipts'
+        'payments/receipts',
+        false
       );
       updatePaymentDetailReceiptDto.receiptImage = uploadResult.secure_url;
     }
@@ -228,7 +229,8 @@ export class PaymentService {
     if (file) {
       const uploadResult = await this.cloudinaryService.uploadFile(
         file,
-        'payments/invoices'
+        'payments/invoices',
+        false
       );
       updatePaymentDetailInvoiceDto.invoiceImage = uploadResult.secure_url;
     }

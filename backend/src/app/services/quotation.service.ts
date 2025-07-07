@@ -1981,6 +1981,7 @@ export class QuotationService {
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({
       format: 'A4',
+      landscape: true, // Cambiar a orientación horizontal
       printBackground: true,
       margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
     });
