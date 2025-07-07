@@ -388,23 +388,31 @@
     <table class="signature-table">
       <tr>
         <td class="signature-cell">
-          <!-- Espacio para firma -->
+          {{#if firstSignature}}
+            <img src="{{firstSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+          {{/if}}
         </td>
         <td class="signature-cell">
-          <!-- Espacio para firma -->
+          {{#if secondSignature}}
+            <img src="{{secondSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+          {{/if}}
         </td>
         <td class="signature-cell">
-          <!-- Espacio para firma -->
+          {{#if thirdSignature}}
+            <img src="{{thirdSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+          {{/if}}
         </td>
         <td class="signature-cell">
-          <!-- Espacio para firma -->
+          {{#if fourthSignature}}
+            <img src="{{fourthSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+          {{/if}}
         </td>
       </tr>
       <tr class="signature-header">
-        <td>V°B° LOGÍSTICA<br>ELABORA</td>
-        <td>V°B° OFICINA TÉCNICA<br>REVISA</td>
-        <td>V°B° ADMINISTRACIÓN<br>REVISIÓN</td>
-        <td>V°B° GERENCIA<br>APRUEBA</td>
+        <td>V°B° LOGÍSTICA<br>ELABORA<br><small>{{firstSignedAt}}</small></td>
+        <td>V°B° OFICINA TÉCNICA<br>REVISA<br><small>{{secondSignedAt}}</small></td>
+        <td>V°B° ADMINISTRACIÓN<br>REVISIÓN<br><small>{{thirdSignedAt}}</small></td>
+        <td>V°B° GERENCIA<br>APRUEBA<br><small>{{fourthSignedAt}}</small></td>
       </tr>
     </table>
   </div>
@@ -417,6 +425,14 @@
       y experiencia del proveedor. Se recomienda proceder con la adjudicación a la Empresa B S.A.C.
     </div>
   </div>
+
+  <!-- QR Code -->
+  {{#if qrCode}}
+  <div style="margin-top: 15px; text-align: center;">
+    <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">Código QR para acceso digital:</div>
+    <img src="{{qrCode}}" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+  </div>
+  {{/if}}
 </body>
 
 </html> 

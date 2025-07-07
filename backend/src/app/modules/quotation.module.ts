@@ -15,6 +15,7 @@ import { RequirementModule } from './requirement.module';
 import { SupplierModule } from './supplier.module';
 import { EmployeeModule } from './employee.module';
 import { PaymentModule } from './payment.module';
+import { QRService } from '../services/qr.service';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { PaymentModule } from './payment.module';
     PaymentModule,
   ],
   controllers: [QuotationController],
-  providers: [QuotationService],
+  providers: [QuotationService, QRService],
   exports: [QuotationService],
 })
 export class QuotationModule {}

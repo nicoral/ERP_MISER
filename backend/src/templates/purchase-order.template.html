@@ -236,16 +236,40 @@
       <td colspan="2" style="padding:0;">
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
           <tr style="height:60px; padding: 6px">
-            <td style="border-right:1px solid #333;"></td>
-            <td style="border-right:1px solid #333;"></td>
-            <td style="border-right:1px solid #333;"></td>
-            <td></td>
+            <td style="border-right:1px solid #333;">
+              {{#if firstSignature}}
+                <img src="{{firstSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+              {{/if}}
+            </td>
+            <td style="border-right:1px solid #333;">
+              {{#if secondSignature}}
+                <img src="{{secondSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+              {{/if}}
+            </td>
+            <td style="border-right:1px solid #333;">
+              {{#if thirdSignature}}
+                <img src="{{thirdSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+              {{/if}}
+            </td>
+            <td>
+              {{#if fourthSignature}}
+                <img src="{{fourthSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+              {{/if}}
+            </td>
           </tr>
           <tr style="background:#fff; color:#000; font-weight: bold;">
-            <td style="width:25%; text-align:center; font-size:11px; border-right:1px solid #333; border-bottom:1px solid #333; border-top: 1px solid #333;">ADMINISTRACION</td>
-            <td style="width:25%; text-align:center; font-size:11px; border-right:1px solid #333; border-bottom:1px solid #333; border-top: 1px solid #333;">RESIDENCIA</td>
-            <td style="width:25%; text-align:center; font-size:11px; border-right:1px solid #333; border-bottom:1px solid #333; border-top: 1px solid #333;">OFICINA TECNICA</td>
-            <td style="width:25%; text-align:center; font-size:11px; border-bottom:1px solid #333; border-top: 1px solid #333;">GERENCIA</td>
+            <td style="width:25%; text-align:center; font-size:11px; border-right:1px solid #333; border-bottom:1px solid #333; border-top: 1px solid #333;">
+              ADMINISTRACION<br><small>{{firstSignedAt}}</small>
+            </td>
+            <td style="width:25%; text-align:center; font-size:11px; border-right:1px solid #333; border-bottom:1px solid #333; border-top: 1px solid #333;">
+              RESIDENCIA<br><small>{{secondSignedAt}}</small>
+            </td>
+            <td style="width:25%; text-align:center; font-size:11px; border-right:1px solid #333; border-bottom:1px solid #333; border-top: 1px solid #333;">
+              OFICINA TECNICA<br><small>{{thirdSignedAt}}</small>
+            </td>
+            <td style="width:25%; text-align:center; font-size:11px; border-bottom:1px solid #333; border-top: 1px solid #333;">
+              GERENCIA<br><small>{{fourthSignedAt}}</small>
+            </td>
           </tr>
         </table>
       </td>
@@ -284,5 +308,13 @@
       </td>
     </tr>
   </table>
+
+  <!-- QR Code -->
+  {{#if qrCode}}
+  <div style="margin-top: 15px; text-align: center;">
+    <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">Código QR para acceso digital:</div>
+    <img src="{{qrCode}}" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+  </div>
+  {{/if}}
 </body>
 </html>

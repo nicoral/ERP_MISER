@@ -52,6 +52,7 @@ import * as puppeteer from 'puppeteer';
 import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
 import { Requirement } from '../entities/Requirement.entity';
 import { PaymentService } from './payment.service';
+import { QRService } from './qr.service';
 
 @Injectable()
 export class QuotationService {
@@ -74,7 +75,8 @@ export class QuotationService {
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     private readonly requirementService: RequirementService,
     private readonly supplierService: SupplierService,
-    private readonly paymentService: PaymentService
+    private readonly paymentService: PaymentService,
+    private readonly qrService: QRService
   ) {}
 
   // ========================================
@@ -1725,6 +1727,14 @@ export class QuotationService {
       throw new NotFoundException('Supplier quotation not found');
     }
 
+    // Generar QR para la solicitud de compra
+    const qrUrl = this.qrService.generateQuotationURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0'
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
+
     // Preparar datos para el template
     const data = {
       code: quotationSupplier.orderNumber || '',
@@ -1752,6 +1762,43 @@ export class QuotationService {
           image: article.requirementArticle?.article?.imageUrl || null,
         })
       ),
+
+      // Firmas
+      firstSignature: quotation.firstSignature,
+      firstSignedAt: quotation.firstSignedAt
+        ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      secondSignature: quotation.secondSignature,
+      secondSignedAt: quotation.secondSignedAt
+        ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      thirdSignature: quotation.thirdSignature,
+      thirdSignedAt: quotation.thirdSignedAt
+        ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      fourthSignature: quotation.fourthSignature,
+      fourthSignedAt: quotation.fourthSignedAt
+        ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+
+      // QR Code
+      qrCode: qrDataUrl,
     };
 
     // Leer y compilar el template
@@ -1822,6 +1869,14 @@ export class QuotationService {
       if (b.supplier.id === supplierId) return 1;
       return 0;
     });
+
+    // Generar QR para la cotización
+    const qrUrl = this.qrService.generateQuotationURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0'
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
     // Preparar datos para el template
     const data = {
@@ -1935,6 +1990,43 @@ export class QuotationService {
             notes: item.notes,
           })),
       },
+
+      // Firmas
+      firstSignature: quotation.firstSignature,
+      firstSignedAt: quotation.firstSignedAt
+        ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      secondSignature: quotation.secondSignature,
+      secondSignedAt: quotation.secondSignedAt
+        ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      thirdSignature: quotation.thirdSignature,
+      thirdSignedAt: quotation.thirdSignedAt
+        ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      fourthSignature: quotation.fourthSignature,
+      fourthSignedAt: quotation.fourthSignedAt
+        ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+
+      // QR Code
+      qrCode: qrDataUrl,
     };
 
     // Registrar helpers de Handlebars
@@ -2043,6 +2135,14 @@ export class QuotationService {
       }
     }
 
+    // Generar QR para la orden de compra
+    const qrUrl = this.qrService.generateQuotationURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0'
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
+
     // Calcular total, subtotal y IGV
     const igvPercentage = supplierSelected?.supplierQuotation?.igv
       ? Number(supplierSelected?.supplierQuotation?.igv)
@@ -2146,6 +2246,43 @@ export class QuotationService {
       
       // Observaciones
       observationsLine2: supplierSelected?.supplierQuotation?.notes || '-',
+
+      // Firmas
+      firstSignature: quotation.firstSignature,
+      firstSignedAt: quotation.firstSignedAt
+        ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      secondSignature: quotation.secondSignature,
+      secondSignedAt: quotation.secondSignedAt
+        ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      thirdSignature: quotation.thirdSignature,
+      thirdSignedAt: quotation.thirdSignedAt
+        ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+      fourthSignature: quotation.fourthSignature,
+      fourthSignedAt: quotation.fourthSignedAt
+        ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        : '',
+
+      // QR Code
+      qrCode: qrDataUrl,
     };
 
     // Leer y compilar el template
