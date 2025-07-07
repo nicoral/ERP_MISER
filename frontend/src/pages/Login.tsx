@@ -26,7 +26,8 @@ export const Login = () => {
     setError(null);
     try {
       await login(email, password);
-      navigate(ROUTES.WELCOME);
+      // El redirect se maneja automáticamente en AuthContext
+      // No necesitamos navegar aquí
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes('inválidas')) {
         setError(LOGIN_TEXTS.errors.invalidCredentials);

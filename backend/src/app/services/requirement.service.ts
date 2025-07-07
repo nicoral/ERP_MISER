@@ -29,6 +29,7 @@ import * as puppeteer from 'puppeteer';
 import { EmployeeService } from './employee.service';
 import { RoleService } from './role.service';
 import { QuotationService } from './quotation.service';
+import { QRService } from './qr.service';
 import { forwardRef, Inject } from '@nestjs/common';
 
 @Injectable()
@@ -43,7 +44,8 @@ export class RequirementService {
     private readonly employeeService: EmployeeService,
     private readonly roleService: RoleService,
     @Inject(forwardRef(() => QuotationService))
-    private readonly quotationService: QuotationService
+    private readonly quotationService: QuotationService,
+    private readonly qrService: QRService
   ) {}
 
   async create(
@@ -298,6 +300,14 @@ export class RequirementService {
     const requirement = await this.findOne(id);
     const { requirementArticles, requirementServices, type } = requirement;
 
+    // Generar QR para el requerimiento
+    const qrUrl = this.qrService.generateRequirementURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0'
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
+
     // Mapear datos según el tipo de requerimiento
     interface TableItem {
       index: number;
@@ -423,6 +433,7 @@ export class RequirementService {
             day: '2-digit',
           })
         : '',
+      qrCode: qrDataUrl, // Agregar QR al template
     };
     const template = Handlebars.compile(templateHtml);
     const html = template({ ...data });

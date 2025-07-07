@@ -32,6 +32,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const loggedUser = await authService.login(email, password);
       setUser(loggedUser);
+      
+      // Obtener URL de redirect después del login exitoso
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectUrl = urlParams.get('redirect');
+
+      if (redirectUrl) {
+        // Limpiar la URL y redirigir
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+        window.location.href = redirectUrl;
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

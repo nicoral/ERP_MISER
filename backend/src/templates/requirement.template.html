@@ -279,6 +279,18 @@
       </tr>
     </table>
   </div>
+
+  <!-- QR Code Section -->
+  {{#if qrCode}}
+  <div style="margin-top: 20px; text-align: center; border-top: 1px solid #ccc; padding-top: 15px;">
+    <div style="display: inline-block; text-align: center;">
+      <img src="{{qrCode}}" alt="QR Code" style="width: 120px; height: 120px; border: 1px solid #ddd;" />
+      <div style="margin-top: 5px; font-size: 10px; color: #666;">
+        📱 Escanea para ver detalles en línea
+      </div>
+    </div>
+  </div>
+  {{/if}}
 </body>
 
 </html>

@@ -8,6 +8,7 @@ import { RequirementService as RequirementServiceEntity } from '../entities/Requ
 import { EmployeeModule } from './employee.module';
 import { RoleModule } from './role.module';
 import { QuotationModule } from './quotation.module';
+import { QRService } from '../services/qr.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { QuotationModule } from './quotation.module';
     forwardRef(() => QuotationModule),
   ],
   controllers: [RequirementController],
-  providers: [RequirementService],
+  providers: [RequirementService, QRService],
   exports: [RequirementService],
 })
 export class RequirementModule {}
