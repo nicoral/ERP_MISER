@@ -35,26 +35,24 @@ export class PaymentService {
 
   async createPaymentGroup(
     createPaymentGroupDto: CreatePaymentGroupDto,
-    userId: number
   ): Promise<PaymentGroup> {
-    const { quotationRequestId, ...paymentGroupData } = createPaymentGroupDto;
+    const { purchaseOrderId, ...paymentGroupData } = createPaymentGroupDto;
 
     // Verificar que no existe ya un PaymentGroup para esta cotización
     const existingPaymentGroup = await this.paymentGroupRepository.findOne({
-      where: { quotationRequest: { id: quotationRequestId } },
+      where: { purchaseOrder: { id: purchaseOrderId } },
     });
 
     if (existingPaymentGroup) {
       throw new BadRequestException(
-        `Ya existe un grupo de pagos para la cotización ${quotationRequestId}`
+        `Ya existe un grupo de pagos para la cotización ${purchaseOrderId}`
       );
     }
     // Crear el PaymentGroup
     const paymentGroup = this.paymentGroupRepository.create({
       code: paymentGroupData.code,
       totalAmount: paymentGroupData.totalAmount,
-      quotationRequest: { id: quotationRequestId },
-      createdBy: { id: userId },
+      purchaseOrder: { id: purchaseOrderId },
       pendingAmount: paymentGroupData.totalAmount, // Inicialmente todo está pendiente
     });
 
@@ -68,14 +66,13 @@ export class PaymentService {
   ) {
     const queryBuilder = this.paymentGroupRepository
       .createQueryBuilder('paymentGroup')
-      .leftJoinAndSelect('paymentGroup.quotationRequest', 'quotationRequest')
-      .leftJoinAndSelect('paymentGroup.createdBy', 'createdBy')
+      .leftJoinAndSelect('paymentGroup.purchaseOrder', 'purchaseOrder')
       .leftJoinAndSelect('paymentGroup.paymentDetails', 'paymentDetails')
       .orderBy('paymentGroup.createdAt', 'DESC');
 
     if (search) {
       queryBuilder.where(
-        'paymentGroup.code ILIKE :search OR quotationRequest.code ILIKE :search',
+        'paymentGroup.code ILIKE :search OR purchaseOrder.code ILIKE :search',
         { search: `%${search}%` }
       );
     }
@@ -98,16 +95,9 @@ export class PaymentService {
     const paymentGroup = await this.paymentGroupRepository.findOne({
       where: { id },
       relations: [
-        'quotationRequest',
-        'quotationRequest.finalSelection',
-        'quotationRequest.finalSelection.finalSelectionItems',
-        'quotationRequest.finalSelection.finalSelectionItems.supplier',
-        'quotationRequest.finalSelection.finalSelectionItems.requirementArticle',
-        'quotationRequest.finalSelection.finalSelectionItems.requirementArticle.article',
-        'createdBy',
+        'purchaseOrder',
         'approvedBy',
         'paymentDetails',
-        'paymentDetails.supplier',
         'paymentDetails.createdBy',
         'paymentDetails.approvedBy',
       ],
@@ -151,7 +141,7 @@ export class PaymentService {
     createPaymentDetailDto: CreatePaymentDetailDto,
     userId: number
   ): Promise<PaymentDetail> {
-    const { paymentGroupId, supplierId, ...paymentDetailData } = createPaymentDetailDto;
+    const { paymentGroupId, ...paymentDetailData } = createPaymentDetailDto;
 
     // Verificar que el PaymentGroup existe
     const paymentGroup = await this.paymentGroupRepository.findOne({
@@ -168,7 +158,6 @@ export class PaymentService {
     const paymentDetail = this.paymentDetailRepository.create({
       ...paymentDetailData,
       paymentGroup,
-      supplier: { id: supplierId },
       createdBy: { id: userId },
     });
 
@@ -277,7 +266,7 @@ export class PaymentService {
       where: { id },
       relations: [
         'paymentGroup',
-        'paymentGroup.quotationRequest',
+        'paymentGroup.purchaseOrder',
         'createdBy',
         'approvedBy',
       ],

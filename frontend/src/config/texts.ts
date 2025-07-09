@@ -102,7 +102,7 @@ export const SIDEBAR_TEXTS = {
   generalSettings: 'Conf. general',
   administration: 'Administración',
   employees: 'Empleados',
-  process: 'Procesos', //Icono de carrito
+  process: 'Procesos de C.', //Icono de carrito
   processService: 'Procesos de S.', //Icono de herramienta
   processRequirement: 'Requerimiento',
   warehouse: 'Almacenes',

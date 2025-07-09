@@ -26,5 +26,5 @@ export class CreatePaymentGroupDto {
 
   @IsNotEmpty()
   @IsNumber()
-  quotationRequestId: number;
+  purchaseOrderId: number;
 }

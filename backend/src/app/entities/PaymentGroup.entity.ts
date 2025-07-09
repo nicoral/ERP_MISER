@@ -10,9 +10,9 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { QuotationRequest } from './QuotationRequest.entity';
 import { Employee } from './Employee.entity';
 import { PaymentDetail } from './PaymentDetail.entity';
+import { PurchaseOrder } from './PurchaseOrder.entity';
 
 export enum PaymentStatus {
   PENDING = 'PENDING',
@@ -52,17 +52,9 @@ export class PaymentGroup {
   notes: string; // Notas adicionales
 
   // Relación con la cotización (1:1)
-  @OneToOne(
-    () => QuotationRequest,
-    quotationRequest => quotationRequest.paymentGroup
-  )
-  @JoinColumn({ name: 'quotation_request_id' })
-  quotationRequest: QuotationRequest;
-
-  // Relación con el empleado que creó el grupo de pagos
-  @ManyToOne(() => Employee, employee => employee.paymentGroups)
-  @JoinColumn({ name: 'created_by' })
-  createdBy: Employee;
+  @OneToOne(() => PurchaseOrder, purchaseOrder => purchaseOrder.paymentGroup)
+  @JoinColumn({ name: 'purchase_order_id' })
+  purchaseOrder: PurchaseOrder;
 
   // Relación con el empleado que aprobó el grupo de pagos
   @ManyToOne(() => Employee, { nullable: true })

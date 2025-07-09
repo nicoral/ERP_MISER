@@ -8,9 +8,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { PaymentGroup } from './PaymentGroup.entity';
 import { Employee } from './Employee.entity';
-import { Supplier } from './Supplier.entity';
+import { PaymentGroup } from './PaymentGroup.entity';
 
 export enum PaymentDetailStatus {
   PENDING = 'PENDING',
@@ -85,15 +84,10 @@ export class PaymentDetail {
   @Column('boolean', { default: false })
   hasRetention: boolean; // Indica si aplica retención
 
-  // Relación con el grupo de pagos
+  // Relación con la orden de compra
   @ManyToOne(() => PaymentGroup, paymentGroup => paymentGroup.paymentDetails)
   @JoinColumn({ name: 'payment_group_id' })
   paymentGroup: PaymentGroup;
-
-  // Relación con el proveedor
-  @ManyToOne(() => Supplier, { nullable: false })
-  @JoinColumn({ name: 'supplier_id' })
-  supplier: Supplier;
 
   // Relación con el empleado que creó el pago
   @ManyToOne(() => Employee, employee => employee.paymentDetails)

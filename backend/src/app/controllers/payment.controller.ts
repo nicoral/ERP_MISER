@@ -38,12 +38,8 @@ export class PaymentController {
   @AuditDescription('Creación de grupo de pagos')
   async createPaymentGroup(
     @Body() createPaymentGroupDto: CreatePaymentGroupDto,
-    @Request() req: { user: { id: number } }
   ): Promise<PaymentGroup> {
-    return await this.paymentService.createPaymentGroup(
-      createPaymentGroupDto,
-      req.user.id
-    );
+    return await this.paymentService.createPaymentGroup(createPaymentGroupDto);
   }
 
   @Get('groups')

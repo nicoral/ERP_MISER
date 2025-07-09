@@ -16,7 +16,6 @@ import { Warehouse } from './Warehouse.entity';
 import { Requirement } from './Requirement.entity';
 import { QuotationRequest } from './QuotationRequest.entity';
 import { FinalSelection } from './FinalSelection.entity';
-import { PaymentGroup } from './PaymentGroup.entity';
 import { PaymentDetail } from './PaymentDetail.entity';
 
 @Entity()
@@ -105,9 +104,6 @@ export class Employee {
   @ManyToMany(() => Warehouse, warehouse => warehouse.employees)
   @JoinTable()
   warehousesAssigned: Warehouse[];
-
-  @OneToMany(() => PaymentGroup, paymentGroup => paymentGroup.createdBy)
-  paymentGroups: PaymentGroup[];
 
   @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.createdBy)
   paymentDetails: PaymentDetail[];

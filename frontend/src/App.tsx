@@ -46,7 +46,6 @@ import { useEffect } from 'react';
 import ComingSoon from './pages/ComingSoon';
 import { PaymentList } from './features/payment/components/PaymentList';
 import { PaymentDetails } from './features/payment/components/PaymentDetails';
-import { PaymentForm } from './features/payment/components/PaymentForm';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -105,29 +104,63 @@ const AppRoutes = () => {
             path={ROUTES.COST_CENTER_DETAILS}
             element={<CostCenterDetails />}
           />
-          <Route path={ROUTES.REQUIREMENTS} element={<RequirementList />} />
           <Route
-            path={ROUTES.REQUIREMENTS_DETAILS}
-            element={<RequirementDetails />}
+            path={ROUTES.REQUIREMENTS_ARTICLES}
+            element={<RequirementsArticlesRoute />}
           />
           <Route
-            path={ROUTES.REQUIREMENTS_CREATE}
-            element={<RequirementForm />}
+            path={ROUTES.REQUIREMENTS_SERVICES}
+            element={<RequirementsServicesRoute />}
           />
-          <Route path={ROUTES.REQUIREMENT_EDIT} element={<RequirementForm />} />
+          <Route
+            path={ROUTES.REQUIREMENTS_ARTICLES_CREATE}
+            element={<RequirementArticlesFormRoute />}
+          />
+          <Route
+            path={ROUTES.REQUIREMENTS_SERVICES_CREATE}
+            element={<RequirementServicesFormRoute />}
+          />
+          <Route
+            path={ROUTES.REQUIREMENTS_ARTICLES_DETAILS}
+            element={<RequirementArticlesDetailsRoute />}
+          />
+          <Route
+            path={ROUTES.REQUIREMENTS_SERVICES_DETAILS}
+            element={<RequirementServicesDetailsRoute />}
+          />
+          <Route
+            path={ROUTES.REQUIREMENTS_ARTICLES_EDIT}
+            element={<RequirementArticlesEditRoute />}
+          />
+          <Route
+            path={ROUTES.REQUIREMENTS_SERVICES_EDIT}
+            element={<RequirementServicesEditRoute />}
+          />
           <Route
             path={ROUTES.GENERAL_SETTINGS}
             element={<GeneralSettingsForm />}
           />
           <Route path={ROUTES.PAYMENTS} element={<PaymentList />} />
           <Route path={ROUTES.PAYMENT_DETAILS} element={<PaymentDetails />} />
-          <Route path={ROUTES.PAYMENT_EDIT} element={<PaymentForm />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
     </Routes>
   );
 };
+
+const RequirementsArticlesRoute = () => <RequirementList type="ARTICLE" />;
+const RequirementsServicesRoute = () => <RequirementList type="SERVICE" />;
+const RequirementArticlesFormRoute = () => <RequirementForm type="ARTICLE" />;
+const RequirementServicesFormRoute = () => <RequirementForm type="SERVICE" />;
+const RequirementArticlesDetailsRoute = () => (
+  <RequirementDetails type="ARTICLE" />
+);
+const RequirementServicesDetailsRoute = () => (
+  <RequirementDetails type="SERVICE" />
+);
+const RequirementArticlesEditRoute = () => <RequirementForm type="ARTICLE" />;
+const RequirementServicesEditRoute = () => <RequirementForm type="SERVICE" />;
 
 function App() {
   return (

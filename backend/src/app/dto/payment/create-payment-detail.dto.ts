@@ -28,10 +28,6 @@ export class CreatePaymentDetailDto {
   @IsNotEmpty()
   @IsNumber()
   paymentGroupId: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  supplierId: number;
 }
 
 export class UpdatePaymentDetailReceiptDto {

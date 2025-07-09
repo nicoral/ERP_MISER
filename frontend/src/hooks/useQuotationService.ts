@@ -196,6 +196,24 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
+  const generatePurchaseOrders = useCallback(
+    async (id: number, paymentMethod: string) => {
+      return handleRequest(() =>
+        quotationService.generatePurchaseOrders(id, paymentMethod)
+      );
+    },
+    [handleRequest]
+  );
+
+  const generatePurchaseOrder = useCallback(
+    async (id: number, supplierId: number, paymentMethod: string) => {
+      return handleRequest(() =>
+        quotationService.generatePurchaseOrder(id, supplierId, paymentMethod)
+      );
+    },
+    [handleRequest]
+  );
+
   // Approval flow methods
   const signQuotationRequest = useCallback(async (id: number) => {
     setLoading(true);
@@ -303,6 +321,8 @@ export const useQuotationService = () => {
     getFinalSelectionByRequest,
     updateFinalSelection,
     approveFinalSelection,
+    generatePurchaseOrders,
+    generatePurchaseOrder,
     // Approval flow
     signQuotationRequest,
     rejectQuotationRequest,

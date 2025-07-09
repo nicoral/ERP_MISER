@@ -24,15 +24,14 @@ export class QRService {
    * Genera un código QR como DataURL (optimizado para PDFs)
    */
   async generateQRCode(data: string, options?: QRCodeOptions): Promise<string> {
-    
     const defaultOptions: QRCodeOptions = {
       errorCorrectionLevel: 'M', // Nivel medio de corrección de errores
       margin: 1,
       width: 200,
       color: {
         dark: '#000000',
-        light: '#FFFFFF'
-      }
+        light: '#FFFFFF',
+      },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
@@ -48,15 +47,18 @@ export class QRService {
   /**
    * Genera un código QR como Buffer (para almacenamiento)
    */
-  async generateQRCodeBuffer(data: string, options?: QRCodeOptions): Promise<Buffer> {
+  async generateQRCodeBuffer(
+    data: string,
+    options?: QRCodeOptions
+  ): Promise<Buffer> {
     const defaultOptions: QRCodeOptions = {
       errorCorrectionLevel: 'M',
       margin: 1,
       width: 200,
       color: {
         dark: '#000000',
-        light: '#FFFFFF'
-      }
+        light: '#FFFFFF',
+      },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
@@ -71,15 +73,18 @@ export class QRService {
   /**
    * Genera un código QR como SVG (escalable)
    */
-  async generateQRCodeSVG(data: string, options?: QRCodeOptions): Promise<string> {
+  async generateQRCodeSVG(
+    data: string,
+    options?: QRCodeOptions
+  ): Promise<string> {
     const defaultOptions: QRCodeOptions = {
       errorCorrectionLevel: 'M',
       margin: 1,
       width: 200,
       color: {
         dark: '#000000',
-        light: '#FFFFFF'
-      }
+        light: '#FFFFFF',
+      },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
@@ -87,7 +92,7 @@ export class QRService {
     try {
       return await toString(data, {
         type: 'svg',
-        ...finalOptions
+        ...finalOptions,
       });
     } catch (error) {
       throw new Error(`Error generando QR code SVG: ${error.message}`);
@@ -97,11 +102,14 @@ export class QRService {
   /**
    * Genera URL para requerimientos
    */
-  generateRequirementURL(requirementId: number, options?: {
-    includeTimestamp?: boolean;
-    includeVersion?: boolean;
-    version?: string;
-  }): string {
+  generateRequirementURL(
+    requirementId: number,
+    options?: {
+      includeTimestamp?: boolean;
+      includeVersion?: boolean;
+      version?: string;
+    }
+  ): string {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     let url = `${baseUrl}/requirements/${requirementId}/details`;
 
@@ -125,11 +133,14 @@ export class QRService {
   /**
    * Genera URL para cotizaciones
    */
-  generateQuotationURL(quotationId: number, options?: {
-    includeTimestamp?: boolean;
-    includeVersion?: boolean;
-    version?: string;
-  }): string {
+  generateQuotationURL(
+    quotationId: number,
+    options?: {
+      includeTimestamp?: boolean;
+      includeVersion?: boolean;
+      version?: string;
+    }
+  ): string {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     let url = `${baseUrl}/quotations/${quotationId}/details`;
 
@@ -153,11 +164,14 @@ export class QRService {
   /**
    * Genera URL para pagos
    */
-  generatePaymentURL(paymentId: number, options?: {
-    includeTimestamp?: boolean;
-    includeVersion?: boolean;
-    version?: string;
-  }): string {
+  generatePaymentURL(
+    paymentId: number,
+    options?: {
+      includeTimestamp?: boolean;
+      includeVersion?: boolean;
+      version?: string;
+    }
+  ): string {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     let url = `${baseUrl}/payments/${paymentId}/details`;
 
@@ -184,11 +198,11 @@ export class QRService {
   generateFrontendURL(data: QRData): string {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const path = this.getPathByType(data.type, data.id);
-    
+
     const url = new URL(path, baseUrl);
     url.searchParams.set('t', data.timestamp.toString());
     url.searchParams.set('v', data.version);
-    
+
     return url.toString();
   }
 
@@ -228,4 +242,4 @@ export class QRService {
     const url = this.generateFrontendURL(data);
     return this.generateQRCode(url);
   }
-} 
+}

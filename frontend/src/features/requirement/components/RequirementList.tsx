@@ -9,46 +9,38 @@ import {
   usePublishRequirement,
   useGenerateRequirementPdf,
   useSignRequirement,
-  useRejectRequirement,
 } from '../hooks/useRequirements';
 import type { Requirement } from '../../../types/requirement';
 import { ROUTES } from '../../../config/constants';
-import { useNavigate } from 'react-router-dom';
-import {
-  EyeIcon,
-  PublishIcon,
-  TrashIcon,
-  EditIcon,
-  RejectIcon,
-} from '../../../components/common/Icons';
+import { useNavigate, useParams } from 'react-router-dom';
+import { EyeIcon, TrashIcon, EditIcon } from '../../../components/common/Icons';
 import { DownloadIcon, Loader2 } from 'lucide-react';
-import { hasPermission, canSignRequirement } from '../../../utils/permissions';
+import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useState } from 'react';
 import {
   getRequirementStatusColor,
   getRequirementStatusText,
 } from '../../../utils/requirementStatus';
-import { RejectModal } from './modals/RejectModal';
 
 type RequirementType = 'ARTICLE' | 'SERVICE';
 
-export const RequirementList = () => {
+export const RequirementList = (props: { type?: RequirementType }) => {
+  const params = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const deleteRequirementMutation = useDeleteRequirement();
   const publishRequirementMutation = usePublishRequirement();
   const generatePdfMutation = useGenerateRequirementPdf();
   const signRequirementMutation = useSignRequirement();
-  const rejectRequirementMutation = useRejectRequirement();
 
   const [page, setPage] = useState(1);
-  const [selectedType, setSelectedType] = useState<RequirementType>('ARTICLE');
+  // Determinar el tipo por prop, por params, o default 'ARTICLE'
+  const typeParam = props.type || params.type || 'ARTICLE';
+  const selectedType = (typeParam.toUpperCase?.() ||
+    'ARTICLE') as RequirementType;
+
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [selectedRequirement, setSelectedRequirement] =
-    useState<Requirement | null>(null);
 
   // Hook con datos filtrados por tipo
   const { data, isLoading, isFetching } = useRequirementsByType(
@@ -62,15 +54,22 @@ export const RequirementList = () => {
     setPage(newPage);
   };
 
-  const handleTypeChange = (type: RequirementType) => {
-    setSelectedType(type);
-    setPage(1); // Reset to first page when changing type
-  };
-
   const handleViewDetails = (requirement: Requirement) => {
-    navigate(
-      ROUTES.REQUIREMENTS_DETAILS.replace(':id', requirement.id.toString())
-    );
+    if (selectedType === 'ARTICLE') {
+      navigate(
+        ROUTES.REQUIREMENTS_ARTICLES_DETAILS.replace(
+          ':id',
+          requirement.id.toString()
+        )
+      );
+    } else {
+      navigate(
+        ROUTES.REQUIREMENTS_SERVICES_DETAILS.replace(
+          ':id',
+          requirement.id.toString()
+        )
+      );
+    }
   };
 
   const handleDownloadPdf = async (requirement: Requirement) => {
@@ -87,55 +86,6 @@ export const RequirementList = () => {
       showError('Error', 'No se pudo descargar el PDF');
     } finally {
       setDownloadingId(null);
-    }
-  };
-
-  const handlePublish = async (requirement: Requirement) => {
-    try {
-      await publishRequirementMutation.mutateAsync(requirement.id);
-      showSuccess('Publicado', 'Requerimiento publicado correctamente');
-    } catch {
-      showError('Error', 'No se pudo publicar el requerimiento');
-    }
-  };
-
-  const handleSign = async (requirement: Requirement) => {
-    try {
-      await signRequirementMutation.mutateAsync(requirement.id);
-      showSuccess('Firmado', 'Requerimiento firmado correctamente');
-    } catch {
-      showError('Error', 'No se pudo firmar el requerimiento');
-    }
-  };
-
-  const handleOpenRejectModal = (requirement: Requirement) => {
-    setSelectedRequirement(requirement);
-    setShowRejectModal(true);
-  };
-
-  const handleCloseRejectModal = () => {
-    setShowRejectModal(false);
-    setRejectReason('');
-    setSelectedRequirement(null);
-  };
-
-  const handleReject = async () => {
-    if (!selectedRequirement) return;
-
-    if (!rejectReason.trim()) {
-      showError('Error', 'Debe proporcionar un motivo para el rechazo');
-      return;
-    }
-
-    try {
-      await rejectRequirementMutation.mutateAsync({
-        id: selectedRequirement.id,
-        reason: rejectReason.trim(),
-      });
-      showSuccess('Rechazado', 'Requerimiento rechazado correctamente');
-      handleCloseRejectModal();
-    } catch {
-      showError('Error', 'No se pudo rechazar el requerimiento');
     }
   };
 
@@ -158,7 +108,21 @@ export const RequirementList = () => {
   };
 
   const handleEdit = (requirement: Requirement) => {
-    navigate(ROUTES.REQUIREMENT_EDIT.replace(':id', requirement.id.toString()));
+    if (selectedType === 'ARTICLE') {
+      navigate(
+        ROUTES.REQUIREMENTS_ARTICLES_EDIT.replace(
+          ':id',
+          requirement.id.toString()
+        )
+      );
+    } else {
+      navigate(
+        ROUTES.REQUIREMENTS_SERVICES_EDIT.replace(
+          ':id',
+          requirement.id.toString()
+        )
+      );
+    }
   };
 
   const columns: TableColumn<Requirement>[] = [
@@ -237,12 +201,6 @@ export const RequirementList = () => {
         ]
       : []),
     {
-      icon: <PublishIcon className="w-5 h-5 text-green-600" />,
-      label: 'Publicar',
-      onClick: handlePublish,
-      isHidden: (requirement: Requirement) => requirement.status !== 'PENDING',
-    },
-    {
       icon: (requirement: Requirement) =>
         downloadingId === requirement.id ? (
           <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
@@ -252,18 +210,6 @@ export const RequirementList = () => {
       label: 'Descargar PDF',
       onClick: handleDownloadPdf,
       disabled: (requirement: Requirement) => downloadingId === requirement.id,
-    },
-    {
-      icon: <PublishIcon className="w-5 h-5 text-purple-600" />,
-      label: 'Firmar',
-      onClick: handleSign,
-      isHidden: (requirement: Requirement) => !canSignRequirement(requirement),
-    },
-    {
-      icon: <RejectIcon className="w-5 h-5 text-red-600" />,
-      label: 'Rechazar',
-      onClick: handleOpenRejectModal,
-      isHidden: (requirement: Requirement) => !canSignRequirement(requirement),
     },
     ...(hasPermission('delete_requirement')
       ? [
@@ -282,16 +228,16 @@ export const RequirementList = () => {
     <div className="sm:p-8 p-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Requerimientos
+          {'Requerimientos de '}
+          {selectedType === 'ARTICLE' ? 'Compras' : 'Servicios'}
         </h2>
         {hasPermission('create_requirement') && (
           <button
             onClick={() =>
               navigate(
-                ROUTES.REQUIREMENTS_CREATE.replace(
-                  ':type',
-                  selectedType.toLowerCase()
-                )
+                selectedType === 'ARTICLE'
+                  ? ROUTES.REQUIREMENTS_ARTICLES_CREATE
+                  : ROUTES.REQUIREMENTS_SERVICES_CREATE
               )
             }
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
@@ -303,76 +249,31 @@ export const RequirementList = () => {
         )}
       </div>
 
-      {/* Tabs que ocupan todo el espacio con contenido enmarcado */}
-      <div className="w-full bg-gray-200 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-xl p-2 shadow-sm">
-        {/* Tabs principales */}
-        <div className="border-b border-gray-300 dark:border-gray-800 w-full">
-          <nav className="-mb-px flex w-full">
-            <div
-              onClick={() => handleTypeChange('ARTICLE')}
-              className={`flex-1 text-center cursor-pointer py-3 px-4 transition-all duration-200 rounded-t-lg
-                ${
-                  selectedType === 'ARTICLE'
-                    ? 'bg-blue-100 dark:bg-blue-900 border-b-4 border-blue-500 dark:border-blue-400 text-blue-700 dark:text-blue-300 font-bold shadow-md'
-                    : 'bg-gray-100 dark:bg-gray-800 border-b-4 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }
-              `}
-              style={{ minWidth: 0 }}
-            >
-              <span className="truncate block">Artículos</span>
-            </div>
-            <div
-              onClick={() => handleTypeChange('SERVICE')}
-              className={`flex-1 text-center cursor-pointer py-3 px-4 transition-all duration-200 rounded-t-lg
-                ${
-                  selectedType === 'SERVICE'
-                    ? 'bg-blue-100 dark:bg-blue-900 border-b-4 border-blue-500 dark:border-blue-400 text-blue-700 dark:text-blue-300 font-bold shadow-md'
-                    : 'bg-gray-100 dark:bg-gray-800 border-b-4 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }
-              `}
-              style={{ minWidth: 0 }}
-            >
-              <span className="truncate block">Servicios</span>
-            </div>
-          </nav>
-        </div>
-
-        {/* Contenido del tab seleccionado */}
-        <div className="p-4">
-          {/* Tabla */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-            <Table<Requirement>
-              columns={columns}
-              data={data?.requirements ?? []}
-              keyField="id"
-              loading={
-                isLoading ||
-                isFetching ||
-                deleteRequirementMutation.isPending ||
-                publishRequirementMutation.isPending ||
-                signRequirementMutation.isPending
-              }
-              pagination={{
-                page: page,
-                totalPages: Math.ceil((data?.total ?? 0) / 10),
-                onPageChange: handlePageChange,
-              }}
-              actions={actions}
-              pageSize={10}
-            />
-          </div>
+      {/* Eliminar los tabs, solo mostrar la tabla */}
+      <div className="w-full bg-gray-200 dark:bg-gray-900 rounded-xl p-2 shadow-sm">
+        {/* Tabla */}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+          <Table<Requirement>
+            columns={columns}
+            data={data?.requirements ?? []}
+            keyField="id"
+            loading={
+              isLoading ||
+              isFetching ||
+              deleteRequirementMutation.isPending ||
+              publishRequirementMutation.isPending ||
+              signRequirementMutation.isPending
+            }
+            pagination={{
+              page: page,
+              totalPages: Math.ceil((data?.total ?? 0) / 10),
+              onPageChange: handlePageChange,
+            }}
+            actions={actions}
+            pageSize={10}
+          />
         </div>
       </div>
-
-      <RejectModal
-        isOpen={showRejectModal}
-        onClose={handleCloseRejectModal}
-        requirement={selectedRequirement as Requirement}
-        rejectReason={rejectReason}
-        setRejectReason={setRejectReason}
-        handleReject={handleReject}
-        rejectRequirementMutation={rejectRequirementMutation}
-      />
     </div>
   );
 };

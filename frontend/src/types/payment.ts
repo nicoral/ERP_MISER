@@ -1,3 +1,5 @@
+import type { PurchaseOrder } from './purchaseOrder';
+
 export enum PaymentDetailStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
@@ -36,7 +38,6 @@ export interface PaymentDetail {
   retentionPercentage: number;
   hasRetention: boolean;
   paymentGroup: PaymentGroup;
-  supplier: Supplier;
   createdBy: Employee;
   approvedBy?: Employee;
   rejectionReason?: string;
@@ -54,7 +55,7 @@ export interface PaymentGroup {
   pendingAmount: number;
   description?: string;
   notes?: string;
-  quotationRequest: QuotationRequest;
+  purchaseOrder: PurchaseOrder;
   createdBy: Employee;
   approvedBy?: Employee;
   paymentDetails: PaymentDetail[];
@@ -68,79 +69,8 @@ export interface Employee {
   firstName: string;
   lastName: string;
   email: string;
-  // ... otros campos del empleado
 }
 
-export interface QuotationRequest {
-  id: number;
-  code: string;
-  status: string;
-  finalSelection?: FinalSelection;
-  // ... otros campos de la cotización
-}
-
-export interface FinalSelection {
-  id: number;
-  notes?: string;
-  totalAmount: number;
-  status: string;
-  purchaseOrderNumber?: string;
-  finalSelectionItems: FinalSelectionItem[];
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-export interface FinalSelectionItem {
-  id: number;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  currency: string;
-  deliveryTime?: number;
-  notes?: string;
-  supplier: Supplier;
-  requirementArticle: RequirementArticle;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-export interface Supplier {
-  id: number;
-  businessName: string;
-  ruc: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  contactPerson?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-export interface RequirementArticle {
-  id: number;
-  quantity: number;
-  unitPrice: number;
-  article: Article;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-export interface Article {
-  id: number;
-  code: string;
-  name: string;
-  description?: string;
-  unit: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-// DTOs para crear y actualizar
 export interface CreatePaymentDetailDto {
   code: string;
   amount: number;
@@ -157,7 +87,6 @@ export interface CreatePaymentDetailDto {
   retentionPercentage?: number;
   hasRetention?: boolean;
   paymentGroupId: number;
-  supplierId: number;
 }
 
 export interface UpdatePaymentDetailDto {

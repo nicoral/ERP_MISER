@@ -14,8 +14,9 @@ import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { RequirementModule } from './requirement.module';
 import { SupplierModule } from './supplier.module';
 import { EmployeeModule } from './employee.module';
-import { PaymentModule } from './payment.module';
+import { PurchaseOrderModule } from './purchaseOrder.module';
 import { QRService } from '../services/qr.service';
+import { GeneralSettingsModule } from './generalSettings.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { QRService } from '../services/qr.service';
     RequirementModule,
     SupplierModule,
     EmployeeModule,
-    PaymentModule,
+    PurchaseOrderModule,
+    GeneralSettingsModule,
   ],
   controllers: [QuotationController],
   providers: [QuotationService, QRService],

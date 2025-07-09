@@ -16,7 +16,7 @@ import {
   type TableAction,
 } from '../../../components/common/Table';
 import { Card } from '../../../components/ui/card';
-import { Plus, Eye, Edit } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import { FormInput } from '../../../components/common/FormInput';
 import { ROUTES } from '../../../config/constants';
 import { hasPermission } from '../../../utils/permissions';
@@ -118,10 +118,6 @@ export const PaymentList: React.FC = () => {
     navigate(ROUTES.PAYMENT_DETAILS.replace(':id', payment.id.toString()));
   };
 
-  const handleEditPayment = (payment: PaymentGroup) => {
-    navigate(ROUTES.PAYMENT_EDIT.replace(':id', payment.id.toString()));
-  };
-
   const handleCreatePayment = () => {
     // TODO: Implement payment creation if needed
     // For now, payments are created through quotation workflow
@@ -178,24 +174,24 @@ export const PaymentList: React.FC = () => {
       accessor: 'code',
     },
     {
-      header: 'Cotización',
+      header: 'Orden de Compra',
       render: (payment: PaymentGroup) => (
         <div>
           <button
             onClick={() => {
               const url = ROUTES.QUOTATION_DETAILS.replace(
                 ':id',
-                payment.quotationRequest.id.toString()
+                payment.purchaseOrder.id.toString()
               );
               window.open(url, '_blank');
             }}
             className="bg-transparent text-left hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors w-full"
           >
             <div className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer">
-              {payment.quotationRequest.code}
+              {payment.purchaseOrder.code}
             </div>
             <div className="text-sm text-gray-500">
-              {payment.quotationRequest.status}
+              {payment.purchaseOrder.supplierName}
             </div>
           </button>
         </div>
@@ -265,17 +261,6 @@ export const PaymentList: React.FC = () => {
         );
       },
     },
-    {
-      header: 'Creado por',
-      render: (payment: PaymentGroup) =>
-        payment.createdBy ? (
-          <span>
-            {payment.createdBy?.firstName} {payment.createdBy?.lastName}
-          </span>
-        ) : (
-          <span>No asignado</span>
-        ),
-    },
   ];
 
   const actions: TableAction<PaymentGroup>[] = [
@@ -288,31 +273,13 @@ export const PaymentList: React.FC = () => {
           },
         ]
       : []),
-    ...(hasPermission('update_payment')
-      ? [
-          {
-            icon: <Edit className="w-5 h-5 text-blue-600" />,
-            label: 'Editar',
-            onClick: handleEditPayment,
-            isHidden: (payment: PaymentGroup) =>
-              payment.status !== PaymentStatus.PENDING &&
-              payment.status !== PaymentStatus.PARTIAL,
-          },
-        ]
-      : []),
-    /* {
-      icon: <Trash2 className="w-5 h-5 text-red-600" />,
-      label: 'Eliminar',
-      onClick: handleDelete,
-      isHidden: (payment: PaymentGroup) => payment.status !== 'PENDING',
-    }, */
   ];
 
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="sm:p-8 p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h1 className="text-2xl font-bold">Grupos de Pagos</h1>
         {hasPermission('create_payment') && (
           <Button onClick={handleCreatePayment} className="hidden">

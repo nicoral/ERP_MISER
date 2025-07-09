@@ -92,17 +92,11 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
   }, [finalSelectionData?.notes, internalNotes]);
 
   const handleGeneratePurchaseOrder = async () => {
+    if (!finalSelectionData) return;
+
     setLoading(true);
 
     try {
-      // Aquí iría la lógica para generar la orden de compra
-      // Por ahora solo simulamos el proceso
-
-      showSuccess(
-        'Orden de compra generada',
-        'Se ha generado la orden de compra exitosamente'
-      );
-
       // Marcar como completado
       const updatedSuppliers = selectedSuppliers.map(supplier => ({
         ...supplier,
@@ -111,9 +105,9 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
 
       onComplete(updatedSuppliers);
     } catch (error) {
-      console.error('Error generating purchase order:', error);
+      console.error('Error generating purchase orders:', error);
       showError(
-        'Error al generar orden de compra',
+        'Error al generar órdenes de compra',
         'Ocurrió un error inesperado. Inténtalo de nuevo.'
       );
     } finally {
@@ -197,7 +191,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          Revisión y Generación de Orden de Compra
+          Revisión y Generación de Ordenes de Compra
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Revisa la selección final completada y genera la orden de compra
@@ -480,7 +474,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
         </div>
         <div className="text-right">
           <Button onClick={handleGeneratePurchaseOrder} disabled={loading}>
-            {loading ? '🔄 Generando...' : '🛒 Generar Orden de Compra'}
+            {loading ? '🔄 Completando...' : 'Completar proceso de cotización'}
           </Button>
         </div>
       </div>

@@ -1,119 +1,61 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { formatCurrency, formatDate } from '../../../utils/quotationUtils';
 import type { PurchaseOrderProps } from '../types';
+import type { PurchaseOrderItem } from '../../../types/purchaseOrder';
 import { numberToSpanishWordsCurrency } from '../../../utils/helpers';
-import { FormInput } from '../../../components/common/FormInput';
-import {
-  useCurrentExchangeRate,
-  useGeneralTax,
-} from '../../../hooks/useGeneralSettings';
-import { useQuotationService } from '../../../hooks/useQuotationService';
+import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 import { Button } from '../../../components/common/Button';
-import quotationService from '../../../services/api/quotationService';
+import { FormInput } from '../../../components/common/FormInput';
 import { useToast } from '../../../contexts/ToastContext';
+import { usePurchaseOrderQuery } from '../../../hooks/usePurchaseOrderService';
+import { usePurchaseOrderService } from '../../../hooks/usePurchaseOrderService';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
   quotation,
   selectedSupplierId,
-  selectedArticles,
   signatures,
+  onGeneratePurchaseOrder,
+  isGenerating,
 }) => {
   const { showError, showSuccess } = useToast();
-  const supplierSelected = quotation.quotationSuppliers.find(
-    qs => qs.supplier.id === selectedSupplierId
-  );
   const { data: exchangeRate } = useCurrentExchangeRate();
-
-  const { data: generalTax } = useGeneralTax();
-  // Estado local para forma de pago
-  const igvPercentage = supplierSelected?.supplierQuotation?.igv
-    ? Number(supplierSelected?.supplierQuotation?.igv)
-    : generalTax || 18;
-
-  const [paymentMethod, setPaymentMethod] = useState(
-    supplierSelected?.supplierQuotation?.methodOfPayment || ''
-  );
-
-  // Estado para el botón de descarga
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  // Calcular fecha de entrega basada en el tiempo de entrega del proveedor
-  const deliveryDate = useMemo(() => {
-    if (!selectedSupplierId) return 'POR DEFINIR';
-
-    const qs = quotation.quotationSuppliers.find(
-      qs => qs.supplier.id === selectedSupplierId
-    );
-
-    const deliveryTime =
-      qs?.supplierQuotation?.supplierQuotationItems[0]?.deliveryTime;
-
-    if (deliveryTime === undefined || deliveryTime === null)
-      return 'POR DEFINIR';
-    if (deliveryTime === 0) return 'Inmediato';
-
-    const today = new Date();
-    const deliveryDate = new Date(today);
-    deliveryDate.setDate(today.getDate() + deliveryTime);
-
-    return deliveryDate.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  }, [selectedSupplierId, quotation.quotationSuppliers]);
-
-  // Calcular total, subtotal y IGV con el porcentaje personalizable
-  const total = selectedArticles.reduce((sum, art) => {
-    const finalSelectionItem =
-      quotation.finalSelection?.finalSelectionItems.find(
-        item =>
-          item.requirementArticle.id === art.id &&
-          item.supplier.id === selectedSupplierId
-      );
-    return (
-      sum +
-      (finalSelectionItem?.currency === 'PEN'
-        ? Number(finalSelectionItem?.totalPrice || 0)
-        : Number(finalSelectionItem?.totalPrice || 0) *
-          (exchangeRate?.saleRate || 1))
-    );
-  }, 0);
-  const subtotal = +(total / (1 + igvPercentage / 100)).toFixed(2);
-  const igv = +(total - subtotal).toFixed(2);
-  const currency =
-    quotation.finalSelection?.finalSelectionItems.find(
-      item => item.supplier.id === selectedSupplierId
-    )?.currency || 'PEN';
+  const queryClient = useQueryClient();
+  const { downloadPurchaseOrderPdf } = usePurchaseOrderService();
   const {
-    updateSupplierQuotationOc,
-    loading: loadingUpdateSupplierQuotationOc,
-  } = useQuotationService();
+    data: purchaseOrder,
+    isLoading: loading,
+    refetch,
+  } = usePurchaseOrderQuery(
+    quotation?.id ?? undefined,
+    selectedSupplierId ?? undefined
+  );
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
 
-  const handleUpdateSupplierQuotation = () => {
-    if (!supplierSelected?.supplierQuotation?.id) return;
-    try {
-      updateSupplierQuotationOc(supplierSelected?.supplierQuotation?.id || 0, {
-        methodOfPayment: paymentMethod,
-        igv: igvPercentage.toString(),
+  // Al generar la orden, invalidar la query para refrescar el cache
+  const handleGenerateOrder = async (payment: string) => {
+    if (onGeneratePurchaseOrder) {
+      await onGeneratePurchaseOrder(payment);
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'purchaseOrder',
+          quotation?.id ?? undefined,
+          selectedSupplierId ?? undefined,
+        ],
       });
-      supplierSelected.supplierQuotation.methodOfPayment = paymentMethod;
-      supplierSelected.supplierQuotation.igv = igvPercentage.toString();
-    } catch (error) {
-      console.error(error);
+      refetch();
     }
   };
 
   const handleDownloadPdf = async () => {
-    if (!selectedSupplierId) return;
-
+    if (!selectedSupplierId || !purchaseOrder) return;
     setIsDownloading(true);
     try {
-      const blob = await quotationService.downloadPurchaseOrderPdf(
-        quotation.id,
-        selectedSupplierId
-      );
-
+      const blob = await downloadPurchaseOrderPdf(purchaseOrder.id);
+      if (!blob) {
+        throw new Error('No se pudo obtener el PDF');
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -134,9 +76,129 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
     const total =
       quotation.finalSelection?.finalSelectionItems
         .filter(item => item.supplier.id === supplierId)
-        .reduce((sum, item) => sum + (+item.totalPrice || 0), 0) || 0;
+        .reduce((sum: number, item) => sum + (+item.totalPrice || 0), 0) || 0;
     return total >= 10000;
   };
+
+  // Si está cargando, mostrar loading
+  if (loading) {
+    return (
+      <div className="mb-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <div className="text-center py-8">
+            <div className="flex justify-center mb-4">
+              <svg
+                className="animate-spin h-8 w-8 text-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              Cargando orden de compra...
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Por favor espera mientras se cargan los datos.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no existe la orden de compra, mostrar botón para generar
+  if (!purchaseOrder) {
+    return (
+      <div className="mb-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <div className="text-center py-8">
+            <div className="text-gray-500 dark:text-gray-400 mb-4">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No se ha generado la orden de compra
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Para este proveedor aún no se ha generado la orden de compra.
+            </p>
+            {/* Campo de forma de pago */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Forma de Pago *
+              </label>
+              <FormInput
+                type="text"
+                value={paymentMethod}
+                onChange={e => setPaymentMethod(e.target.value.toUpperCase())}
+                placeholder="Ej: CONTADO, CRÉDITO 30 DÍAS, etc."
+                className="w-full max-w-md mx-auto"
+                required
+              />
+            </div>
+            <Button
+              onClick={() => handleGenerateOrder(paymentMethod)}
+              disabled={isGenerating || !paymentMethod.trim()}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <span className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Generando...
+                </span>
+              ) : (
+                '🛒 Generar Orden de Compra'
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -144,9 +206,7 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Orden de Compra -{' '}
-              {supplierSelected?.supplierQuotation?.quotationNumber ||
-                'Proveedor'}
+              Orden de Compra - {purchaseOrder.code}
             </h3>
             <Button
               onClick={handleDownloadPdf}
@@ -190,17 +250,20 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
               </h4>
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="font-medium">Nombre:</span> MYSER S.A.C.
+                  <span className="font-medium">Nombre:</span>{' '}
+                  {purchaseOrder.buyerName}
                 </div>
                 <div>
-                  <span className="font-medium">RUC:</span> 20123456789
+                  <span className="font-medium">RUC:</span>{' '}
+                  {purchaseOrder.buyerRUC}
                 </div>
                 <div>
-                  <span className="font-medium">Domicilio:</span> Av. Principal
-                  123
+                  <span className="font-medium">Domicilio:</span>{' '}
+                  {purchaseOrder.buyerAddress}
                 </div>
                 <div>
-                  <span className="font-medium">Teléfono:</span> (01) 123-4567
+                  <span className="font-medium">Teléfono:</span>{' '}
+                  {purchaseOrder.buyerPhone || '-'}
                 </div>
               </div>
             </div>
@@ -212,19 +275,19 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="font-medium">Nombre:</span>{' '}
-                  {supplierSelected?.supplier.businessName || 'POR DEFINIR'}
+                  {purchaseOrder.supplierName}
                 </div>
                 <div>
                   <span className="font-medium">RUC:</span>{' '}
-                  {supplierSelected?.supplier.ruc || 'POR DEFINIR'}
+                  {purchaseOrder.supplierRUC}
                 </div>
                 <div>
                   <span className="font-medium">Domicilio:</span>{' '}
-                  {supplierSelected?.supplier.address || 'POR DEFINIR'}
+                  {purchaseOrder.supplierAddress}
                 </div>
                 <div>
                   <span className="font-medium">Teléfono:</span>{' '}
-                  {supplierSelected?.supplier.mobile || 'POR DEFINIR'}
+                  {purchaseOrder.supplierPhone || '-'}
                 </div>
               </div>
             </div>
@@ -259,38 +322,27 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {selectedArticles.map((art, idx) => {
-                    const finalSelectionItem =
-                      quotation.finalSelection?.finalSelectionItems.find(
-                        item =>
-                          item.requirementArticle.id === art.id &&
-                          item.supplier.id === selectedSupplierId
-                      );
-                    return (
-                      <tr key={art.id}>
-                        <td className="px-4 py-2 text-sm">{idx + 1}</td>
+                  {purchaseOrder.items.map(
+                    (item: PurchaseOrderItem, idx: number) => (
+                      <tr key={idx}>
+                        <td className="px-4 py-2 text-sm">{item.item}</td>
+                        <td className="px-4 py-2 text-sm">{item.code}</td>
                         <td className="px-4 py-2 text-sm">
-                          {art.article.code}
+                          {item.description}
                         </td>
-                        <td className="px-4 py-2 text-sm">
-                          {art.article.name}
-                        </td>
-                        <td className="px-4 py-2 text-sm">{art.quantity}</td>
+                        <td className="px-4 py-2 text-sm">{item.quantity}</td>
                         <td className="px-4 py-2 text-sm">
                           {formatCurrency(
-                            finalSelectionItem?.unitPrice || 0,
-                            finalSelectionItem?.currency
+                            Number(item.unitPrice),
+                            item.currency
                           )}
                         </td>
                         <td className="px-4 py-2 text-sm font-medium">
-                          {formatCurrency(
-                            finalSelectionItem?.totalPrice || 0,
-                            finalSelectionItem?.currency
-                          )}
+                          {formatCurrency(Number(item.amount), item.currency)}
                         </td>
                       </tr>
-                    );
-                  })}
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
@@ -300,38 +352,18 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
               <div className="flex flex-col text-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-bold">Forma de Pago:</span>
-                  {supplierSelected?.supplierQuotation?.methodOfPayment ? (
-                    <span>{paymentMethod}</span>
-                  ) : (
-                    <>
-                      <FormInput
-                        type="text"
-                        className="border border-gray-300 rounded px-2 py-1 text-sm w-56"
-                        value={paymentMethod}
-                        onChange={e =>
-                          setPaymentMethod(e.target.value.toUpperCase())
-                        }
-                      />
-                      <Button
-                        onClick={handleUpdateSupplierQuotation}
-                        className="bg-blue-500 text-white px-4 py-2 rounded-md"
-                        disabled={loadingUpdateSupplierQuotationOc}
-                      >
-                        Actualizar
-                      </Button>
-                    </>
-                  )}
+                  <span>{purchaseOrder.paymentMethod || '-'}</span>
                 </div>
                 <div>
                   <span className="font-bold">Fecha Entrega:</span>{' '}
-                  <span>{deliveryDate}</span>
+                  <span>{purchaseOrder.deliveryDate}</span>
                 </div>
               </div>
               {/* Cálculos de impuestos alineados a la derecha */}
               <div>
                 <table className="text-sm">
                   <tbody>
-                    {currency !== 'PEN' && (
+                    {purchaseOrder.currency !== 'PEN' && (
                       <tr>
                         <td className="font-semibold pr-2 text-right">
                           Tipo de Cambio
@@ -346,17 +378,23 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
                         Sub Total
                       </td>
                       <td className="text-right">
-                        {formatCurrency(subtotal, 'PEN')}
+                        {formatCurrency(
+                          purchaseOrder.subtotal,
+                          purchaseOrder.currency
+                        )}
                       </td>
                     </tr>
                     <tr>
                       <td className="font-semibold pr-2 text-right">
                         <div className="flex items-center gap-1 justify-end">
-                          {`IGV ${igvPercentage}%`}
+                          {`IGV ${purchaseOrder.igv ? (+purchaseOrder.igv).toFixed(0) : 18}%`}
                         </div>
                       </td>
                       <td className="text-right">
-                        {formatCurrency(igv, 'PEN')}
+                        {formatCurrency(
+                          purchaseOrder.total - purchaseOrder.subtotal,
+                          purchaseOrder.currency
+                        )}
                       </td>
                     </tr>
                     <tr>
@@ -364,7 +402,10 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
                         Total Documento
                       </td>
                       <td className="text-right font-bold">
-                        {formatCurrency(total, 'PEN')}
+                        {formatCurrency(
+                          purchaseOrder.total,
+                          purchaseOrder.currency
+                        )}
                       </td>
                     </tr>
                   </tbody>
@@ -373,7 +414,11 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
             </div>
             <div className="flex justify-start mt-8">
               <span className="text-sm font-bold">
-                SON: {numberToSpanishWordsCurrency(total, 'PEN')}
+                SON:{' '}
+                {numberToSpanishWordsCurrency(
+                  +purchaseOrder.total,
+                  purchaseOrder.currency as 'USD' | 'PEN'
+                )}
               </span>
             </div>
           </div>
@@ -393,8 +438,9 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
               if (
                 !isVisibleGerencia(selectedSupplierId || 0) &&
                 s.label === 'Gerencia'
-              )
+              ) {
                 return false;
+              }
               return true;
             })
             .map((firma, idx) => (

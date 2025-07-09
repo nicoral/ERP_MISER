@@ -26,6 +26,7 @@ import { ScheduledTasksService } from './app/services/scheduledTasks.service';
 import { TestModule } from './app/modules/test.module';
 import { ServiceModule } from './app/modules/service.module';
 import { PaymentModule } from './app/modules/payment.module';
+import { PurchaseOrderModule } from './app/modules/purchaseOrder.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PaymentModule } from './app/modules/payment.module';
     TestModule,
     ServiceModule,
     PaymentModule,
+    PurchaseOrderModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],

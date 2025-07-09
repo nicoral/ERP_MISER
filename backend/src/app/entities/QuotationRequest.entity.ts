@@ -15,7 +15,6 @@ import { Employee } from './Employee.entity';
 import { QuotationSupplier } from './QuotationSupplier.entity';
 import { FinalSelection } from './FinalSelection.entity';
 import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
-import { PaymentGroup } from './PaymentGroup.entity';
 
 export enum QuotationRequestStatus {
   PENDING = 'PENDING',
@@ -69,9 +68,6 @@ export class QuotationRequest extends ApprovalFlowBase {
     finalSelection => finalSelection.quotationRequest
   )
   finalSelection: FinalSelection;
-
-  @OneToOne(() => PaymentGroup, paymentGroup => paymentGroup.quotationRequest)
-  paymentGroup: PaymentGroup;
 
   @CreateDateColumn({
     name: 'created_at',

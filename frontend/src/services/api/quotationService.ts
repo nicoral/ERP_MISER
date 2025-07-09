@@ -16,6 +16,7 @@ import type {
   QuotationFilters,
   UpdateSupplierQuotationOcDto,
 } from '../../types/quotation';
+import type { PurchaseOrder } from '../../types/purchaseOrder';
 import { STORAGE_KEY_TOKEN } from '../../config/constants';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/quotation`;
@@ -273,6 +274,35 @@ export const quotationService = {
     return response;
   },
 
+  async generatePurchaseOrders(
+    id: number,
+    paymentMethod: string
+  ): Promise<PurchaseOrder[]> {
+    const response = await createApiCall<PurchaseOrder[]>(
+      `${BASE_URL}/final-selection/${id}/generate-purchase-orders`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ paymentMethod }),
+      }
+    );
+    return response;
+  },
+
+  async generatePurchaseOrder(
+    id: number,
+    supplierId: number,
+    paymentMethod: string
+  ): Promise<PurchaseOrder> {
+    const response = await createApiCall<PurchaseOrder>(
+      `${BASE_URL}/final-selection/${id}/generate-purchase-order`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ supplierId, paymentMethod }),
+      }
+    );
+    return response;
+  },
+
   async downloadPurchaseRequestPdf(
     quotationId: number,
     supplierId: number
@@ -296,23 +326,6 @@ export const quotationService = {
   ): Promise<Blob> {
     const response = await fetch(
       `${BASE_URL}/${quotationId}/supplier/${supplierId}/comparison/pdf`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem(STORAGE_KEY_TOKEN)}`,
-        },
-      }
-    );
-    if (!response.ok) throw new Error('No se pudo descargar el PDF');
-    return await response.blob();
-  },
-
-  async downloadPurchaseOrderPdf(
-    quotationId: number,
-    supplierId: number
-  ): Promise<Blob> {
-    const response = await fetch(
-      `${BASE_URL}/${quotationId}/purchase-order/${supplierId}/pdf`,
       {
         method: 'GET',
         headers: {

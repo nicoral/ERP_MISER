@@ -12,7 +12,7 @@ export const QuotationEdit: React.FC = () => {
   const navigate = useNavigate();
   const { getQuotationRequest, loading, error } = useQuotationService();
   const { showError } = useToast();
-  
+
   const [quotation, setQuotation] = useState<QuotationRequest | null>(null);
 
   useEffect(() => {
@@ -32,7 +32,9 @@ export const QuotationEdit: React.FC = () => {
 
   const handleWizardComplete = (quotationRequest: QuotationRequest) => {
     // Redirigir a los detalles de la cotización
-    navigate(ROUTES.QUOTATION_DETAILS.replace(':id', quotationRequest.id.toString()));
+    navigate(
+      ROUTES.QUOTATION_DETAILS.replace(':id', quotationRequest.id.toString())
+    );
   };
 
   const handleWizardCancel = () => {
@@ -42,7 +44,8 @@ export const QuotationEdit: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
   if (error) return <div className="text-red-500">{error}</div>;
-  if (!quotation) return <div className="text-red-500">Cotización no encontrada</div>;
+  if (!quotation)
+    return <div className="text-red-500">Cotización no encontrada</div>;
 
   return (
     <QuotationWizard
@@ -51,4 +54,4 @@ export const QuotationEdit: React.FC = () => {
       onCancel={handleWizardCancel}
     />
   );
-}; 
+};

@@ -34,7 +34,10 @@ import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-req
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { formatNumber } from '../utils/transformer';
 import { CreateSupplierQuotationDto } from '../dto/quotation/create-supplier-quotation.dto';
-import { UpdateSupplierQuotationDto, UpdateSupplierQuotationOcDto } from '../dto/quotation/update-supplier-quotation.dto';
+import {
+  UpdateSupplierQuotationDto,
+  UpdateSupplierQuotationOcDto,
+} from '../dto/quotation/update-supplier-quotation.dto';
 import {
   ApplyGeneralTermsDto,
   UpdateQuotationOrderDto,
@@ -43,7 +46,7 @@ import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.d
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
-import { arraysAreEqual, compareArraysNumbers, numberToSpanishWordsCurrency } from '../utils/utils';
+import { arraysAreEqual, compareArraysNumbers } from '../utils/utils';
 import { Employee } from '../entities/Employee.entity';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -51,8 +54,10 @@ import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
 import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
 import { Requirement } from '../entities/Requirement.entity';
-import { PaymentService } from './payment.service';
+import { PurchaseOrderService } from './purchaseOrder.service';
+import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
 import { QRService } from './qr.service';
+import { GeneralSettingsService } from './generalSettings.service';
 
 @Injectable()
 export class QuotationService {
@@ -75,8 +80,9 @@ export class QuotationService {
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     private readonly requirementService: RequirementService,
     private readonly supplierService: SupplierService,
-    private readonly paymentService: PaymentService,
-    private readonly qrService: QRService
+    private readonly purchaseOrderService: PurchaseOrderService,
+    private readonly qrService: QRService,
+    private readonly generalSettingsService: GeneralSettingsService
   ) {}
 
   // ========================================
@@ -169,8 +175,11 @@ export class QuotationService {
     const { status, search } = filters;
 
     // Obtener empleado y permisos
-    const employee = await this.requirementService['employeeService'].findOne(userId);
-    const role = await this.requirementService['roleService'].findById(employee.role.id);
+    const employee =
+      await this.requirementService['employeeService'].findOne(userId);
+    const role = await this.requirementService['roleService'].findById(
+      employee.role.id
+    );
     const userPermissions = role.permissions.map(p => p.name);
 
     // Construir query builder para mayor control
@@ -186,7 +195,10 @@ export class QuotationService {
     } else if (userPermissions.includes('quotation-view-signed3')) {
       // Usuario puede ver cotizaciones firmadas por administración y aprobadas
       queryBuilder.where('quotation.status IN (:...statuses)', {
-        statuses: [QuotationRequestStatus.SIGNED_3, QuotationRequestStatus.APPROVED]
+        statuses: [
+          QuotationRequestStatus.SIGNED_3,
+          QuotationRequestStatus.APPROVED,
+        ],
       });
     } else if (userPermissions.includes('quotation-view-signed2')) {
       // Usuario puede ver cotizaciones firmadas por oficina técnica, administración y aprobadas
@@ -194,8 +206,8 @@ export class QuotationService {
         statuses: [
           QuotationRequestStatus.SIGNED_2,
           QuotationRequestStatus.SIGNED_3,
-          QuotationRequestStatus.APPROVED
-        ]
+          QuotationRequestStatus.APPROVED,
+        ],
       });
     } else if (userPermissions.includes('quotation-view-signed1')) {
       // Usuario puede ver cotizaciones firmadas por logística, oficina técnica, administración y aprobadas
@@ -204,12 +216,14 @@ export class QuotationService {
           QuotationRequestStatus.SIGNED_1,
           QuotationRequestStatus.SIGNED_2,
           QuotationRequestStatus.SIGNED_3,
-          QuotationRequestStatus.APPROVED
-        ]
+          QuotationRequestStatus.APPROVED,
+        ],
       });
     } else {
       // Usuario solo puede ver sus propias cotizaciones
-      queryBuilder.where('(createdBy.id = :userId OR createdBy.id IS NULL)', { userId });
+      queryBuilder.where('(createdBy.id = :userId OR createdBy.id IS NULL)', {
+        userId,
+      });
     }
 
     // Aplicar filtros adicionales
@@ -280,7 +294,10 @@ export class QuotationService {
       'quotationSuppliers.supplier',
       'requirement',
     ]);
-    if (quotationRequest.createdBy == undefined || quotationRequest.createdBy == null) {
+    if (
+      quotationRequest.createdBy == undefined ||
+      quotationRequest.createdBy == null
+    ) {
       await this.quotationRequestRepository.update(id, {
         createdBy: { id: userId },
         status: QuotationRequestStatus.DRAFT,
@@ -357,9 +374,7 @@ export class QuotationService {
     ]);
 
     if (quotationRequest.status === QuotationRequestStatus.APPROVED) {
-      throw new BadRequestException(
-        'Cannot cancel approved quotation request'
-      );
+      throw new BadRequestException('Cannot cancel approved quotation request');
     }
 
     await this.quotationRequestRepository.update(id, {
@@ -648,7 +663,7 @@ export class QuotationService {
     id: number,
     updateSupplierQuotationDto: UpdateSupplierQuotationDto
   ): Promise<SupplierQuotation> {
-    const { items, ...data} = updateSupplierQuotationDto;
+    const { items, ...data } = updateSupplierQuotationDto;
     const supplierQuotation = await this.findOneSupplierQuotation(id);
 
     if (supplierQuotation.status !== SupplierQuotationStatus.DRAFT) {
@@ -699,7 +714,7 @@ export class QuotationService {
   }
 
   async updateSupplierQuotationOc(
-    id: number, 
+    id: number,
     updateSupplierQuotationDto: UpdateSupplierQuotationOcDto
   ): Promise<SupplierQuotation> {
     await this.supplierQuotationRepository.update(id, {
@@ -1230,6 +1245,7 @@ export class QuotationService {
         'finalSelectionItems',
         'finalSelectionItems.requirementArticle',
         'finalSelectionItems.requirementArticle.article',
+        'finalSelectionItems.requirementArticle.article.brand',
         'finalSelectionItems.supplier',
       ],
     });
@@ -1357,6 +1373,88 @@ export class QuotationService {
 
     return this.findOneFinalSelection(id);
   }
+  /**
+   * Generar una orden de compra para un proveedor específico de la selección final aprobada
+   */
+  async generatePurchaseOrder(
+    finalSelectionId: number,
+    supplierId: number,
+    paymentMethod?: string
+  ): Promise<PurchaseOrder> {
+    const finalSelection = await this.findOneFinalSelection(finalSelectionId);
+    const generalTax = await this.generalSettingsService.getGeneralTax();
+
+    // Verificar que la selección final esté aprobada
+    if (finalSelection.status !== FinalSelectionStatus.APPROVED) {
+      throw new BadRequestException(
+        'Solo se pueden generar órdenes de compra para selecciones finales aprobadas'
+      );
+    }
+
+    // Obtener la cotización con todas las relaciones necesarias
+    const quotationRequest = await this.findOneQuotationRequest(
+      finalSelection.quotationRequest.id
+    );
+
+    // Filtrar items del proveedor específico
+    const supplierItems = finalSelection.finalSelectionItems.filter(
+      item => item.supplier.id === supplierId
+    );
+
+    if (supplierItems.length === 0) {
+      throw new BadRequestException(
+        `No se encontraron items para el proveedor con ID ${supplierId}`
+      );
+    }
+
+    // Calcular totales - el totalPrice ya incluye IGV
+    const total = supplierItems.reduce(
+      (sum, item) => sum + (+item.totalPrice || 0),
+      0
+    );
+    const subtotal = +(total / (1 + generalTax / 100)).toFixed(2); // Extraer subtotal sin IGV
+
+    // Preparar items para la orden de compra
+    const purchaseOrderItems = supplierItems.map(item => ({
+      item: item.requirementArticle.article.id,
+      code: item.requirementArticle.article.code || '-',
+      quantity: item.quantity,
+      unit: item.requirementArticle.article.unitOfMeasure || '-',
+      description: item.requirementArticle.article.name || '-',
+      brand: item.requirementArticle.article.brand?.name || '-',
+      unitPrice: +item.unitPrice,
+      amount: +item.totalPrice,
+      currency: item.currency || 'PEN',
+    }));
+
+    // Crear DTO para la orden de compra
+    const createPurchaseOrderDto = {
+      quotationRequestId: quotationRequest.id,
+      supplierId: supplierId,
+      createdById: quotationRequest.createdBy.id,
+      orderNumber: `OC-${quotationRequest.code}-${supplierId}`,
+      issueDate: new Date(),
+      supplierName: supplierItems[0].supplier.businessName,
+      supplierRUC: supplierItems[0].supplier.ruc,
+      supplierAddress: supplierItems[0].supplier.address,
+      supplierLocation: '',
+      supplierPhone: supplierItems[0].supplier.mobile || '',
+      items: purchaseOrderItems,
+      paymentMethod: paymentMethod || 'POR DEFINIR',
+      deliveryDate: 'POR DEFINIR',
+      subtotal: subtotal,
+      total: total,
+      currency: 'PEN',
+      igv: generalTax,
+    };
+
+    // Crear la orden de compra
+    const purchaseOrder = await this.purchaseOrderService.createPurchaseOrder(
+      createPurchaseOrderDto
+    );
+
+    return purchaseOrder;
+  }
 
   async removeFinalSelection(id: number): Promise<void> {
     await this.findOneFinalSelection(id);
@@ -1456,33 +1554,9 @@ export class QuotationService {
 
     // === AUTOGENERATE PAYMENT GROUP IF QUOTATION BECAME APPROVED ===
     if (becameApproved) {
-      // Get the updated quotation request with relations to check if payment group exists
-      const updatedQuotationRequest = await this.quotationRequestRepository.findOne({
-        where: { id: savedQuotationRequest.id },
-        relations: ['paymentGroup', 'createdBy', 'finalSelection', 'finalSelection.finalSelectionItems'],
-      });
-      
-      if (updatedQuotationRequest && !updatedQuotationRequest.paymentGroup) {
-        // Generate payment group code (e.g., PAY-2024-001)
-        const year = new Date().getFullYear();
-        const code = `PAY-${year}-${String(updatedQuotationRequest.id).padStart(3, '0')}`;
-        
-        // Calculate total amount from final selection items
-        const totalAmount = updatedQuotationRequest.finalSelection.finalSelectionItems.reduce(
-          (sum, item) => sum + (+item.totalPrice || 0),
-          0
-        );
-        
-        // Create payment group
-        await this.paymentService.createPaymentGroup(
-          {
-            code,
-            totalAmount,
-            quotationRequestId: updatedQuotationRequest.id,
-          },
-          updatedQuotationRequest.createdBy.id
-        );
-      }
+      this.purchaseOrderService.approvePurchaseOrders(
+        quotationRequest.id,
+      );
     }
 
     // Actualizar progreso
@@ -1615,12 +1689,12 @@ export class QuotationService {
 
     // Add new suppliers
     if (suppliersToAdd.length > 0) {
-      const newQuotationSuppliers = suppliersToAdd.map((supplier) => {
+      const newQuotationSuppliers = suppliersToAdd.map(supplier => {
         const quotation = {
-        orderNumber: `OC-${requirement.code}-${formatNumber(quotationNumber,3)}`,
-        quotationRequest: { id: quotationRequestId },
-        supplier: { id: supplier.supplierId },
-        status: QuotationSupplierStatus.PENDING,
+          orderNumber: `OC-${requirement.code}-${formatNumber(quotationNumber, 3)}`,
+          quotationRequest: { id: quotationRequestId },
+          supplier: { id: supplier.supplierId },
+          status: QuotationSupplierStatus.PENDING,
         };
         quotationNumber += 1;
         return quotation;
@@ -1731,7 +1805,7 @@ export class QuotationService {
     const qrUrl = this.qrService.generateQuotationURL(id, {
       includeTimestamp: true,
       includeVersion: true,
-      version: '1.0'
+      version: '1.0',
     });
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
@@ -1874,7 +1948,7 @@ export class QuotationService {
     const qrUrl = this.qrService.generateQuotationURL(id, {
       includeTimestamp: true,
       includeVersion: true,
-      version: '1.0'
+      version: '1.0',
     });
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
@@ -2081,234 +2155,4 @@ export class QuotationService {
 
     return Buffer.from(pdfBuffer);
   }
-
-  async generatePurchaseOrderPdf(
-    id: number,
-    supplierId: number
-  ): Promise<Buffer> {
-    // Buscar la cotización con todas las relaciones necesarias
-    const quotation = await this.findOneQuotationRequest(id);
-    // Verificar que existe una selección final
-    if (!quotation.finalSelection) {
-      throw new BadRequestException(
-        'No hay selección final para generar orden de compra'
-      );
-    }
-    
-    
-    // Obtener el proveedor seleccionado
-    const supplierSelected = quotation.quotationSuppliers.find(
-      qs => qs.supplier.id === supplierId
-    );
-    
-    if (!supplierSelected) {
-      throw new NotFoundException('Supplier not found in this quotation request');
-    }
-
-    // Obtener los artículos seleccionados para el proveedor específico
-    const selectedArticlesForSupplier = quotation.finalSelection.finalSelectionItems
-      .filter(item => item.supplier.id === supplierId)
-      .map(item => item.requirementArticle.article.id);
-
-    if (selectedArticlesForSupplier.length === 0) {
-      throw new BadRequestException(
-        'No hay artículos seleccionados para este proveedor'
-      );
-    }
-
-    // Calcular fecha de entrega basada en el tiempo de entrega del proveedor
-    const deliveryTime = supplierSelected?.supplierQuotation?.supplierQuotationItems?.[0]
-      ?.deliveryTime;
-    let deliveryDate = 'POR DEFINIR';
-    if (deliveryTime !== undefined && deliveryTime !== null) {
-      if (deliveryTime === 0) {
-        deliveryDate = 'Inmediato';
-      } else {
-        const today = new Date();
-        const deliveryDateObj = new Date(today);
-        deliveryDateObj.setDate(today.getDate() + deliveryTime);
-        deliveryDate = deliveryDateObj.toLocaleDateString('es-ES', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        });
-      }
-    }
-
-    // Generar QR para la orden de compra
-    const qrUrl = this.qrService.generateQuotationURL(id, {
-      includeTimestamp: true,
-      includeVersion: true,
-      version: '1.0'
-    });
-    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
-
-    // Calcular total, subtotal y IGV
-    const igvPercentage = supplierSelected?.supplierQuotation?.igv
-      ? Number(supplierSelected?.supplierQuotation?.igv)
-      : 18;
-
-    const total = quotation.finalSelection.finalSelectionItems
-      .filter(item => item.supplier.id === supplierId)
-      .reduce((sum, item) => sum + Number(item.totalPrice || 0), 0);
-    
-    const subtotal = +(total / (1 + igvPercentage / 100)).toFixed(2);
-    const igv = +(total - subtotal).toFixed(2);
-    
-    // Preparar datos para el template
-    const data = {
-      code: 'MYS-LG-FT-04',
-      date: quotation.createdAt
-        ? quotation.createdAt.toISOString().slice(0, 10).replace(/-/g, '/')
-        : new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
-      orderNumber: supplierSelected.orderNumber || `OC-${quotation.code}-${supplierId}`,
-      issueDate: quotation.createdAt
-        ? quotation.createdAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : new Date().toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          }),
-      
-      // Datos del comprador (MYSER)
-      buyerName: 'MAQUINARIA Y SERVICIOS ALTO HUARCA S.A',
-      buyerRUC: '20490597795',
-      buyerAddress: 'AV. LA MARINA - ZONA NORTE G1',
-      buyerLocation: '',
-      buyerPhone: '',
-      
-      // Datos del proveedor
-      supplierName: supplierSelected?.supplier.businessName || '-',
-      supplierRUC: supplierSelected?.supplier.ruc || '-',
-      supplierAddress: supplierSelected?.supplier.address || '-',
-      supplierLocation: supplierSelected?.supplier.address || '-',
-      supplierPhone: supplierSelected?.supplier.mobile || '-',
-      
-      // Datos de facturación
-      invoiceToRUC: '20490597795',
-      invoiceToName: 'MAQUINARIA Y SERVICIOS ALTO HUARCA S.A',
-      
-      // Datos del requerimiento
-      requirementNumber: quotation.requirement?.code || '-',
-      quotationNumber: supplierSelected?.supplierQuotation?.quotationNumber || '-',
-      requestedBy: quotation.requirement?.employee
-        ? `${quotation.requirement.employee.firstName} ${quotation.requirement.employee.lastName}`
-        : '-',
-      preparedBy: quotation.createdBy
-        ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`
-        : '-',
-      costCenter: quotation.requirement?.costCenter?.description || '-',
-      
-      // Artículos seleccionados
-      items: quotation.finalSelection.finalSelectionItems
-        .filter(item => item.supplier.id === supplierId)
-        .map((item, index) => ({
-          item: index + 1,
-          code: item.requirementArticle.article.code || '-',
-          quantity: item.quantity,
-          unit: item.requirementArticle.article.unitOfMeasure || '-',
-          description: item.requirementArticle.article.name || '-',
-          brand: item.requirementArticle.article.brand?.name || '-',
-          unitPrice: item.currency === 'USD' 
-            ? `$${(+item.unitPrice).toFixed(2)}`
-            : item.currency === 'EUR'
-            ? `€${(+item.unitPrice).toFixed(2)}`
-            : `S/. ${(+item.unitPrice).toFixed(2)}`,
-          amount: item.currency === 'USD' 
-            ? `$${(+item.totalPrice).toFixed(2)}`
-            : item.currency === 'EUR'
-            ? `€${(+item.totalPrice).toFixed(2)}`
-            : `S/. ${(+item.totalPrice).toFixed(2)}`,
-        })),
-      
-      // Condiciones de pago y entrega
-      paymentMethod: supplierSelected?.supplierQuotation?.methodOfPayment || '-',
-      deliveryDate: deliveryDate,
-      
-      // Totales
-      subtotal: `S/. ${subtotal.toFixed(2)}`,
-      igv: `S/. ${igv.toFixed(2)}`,
-      total: `S/. ${total.toFixed(2)}`,
-      currency: 'PEN',
-      totalInWords: numberToSpanishWordsCurrency(total, 'PEN'),
-      
-      // Firmantes (ejemplo)
-      signers: [
-        { name: 'ADMINISTRACION', date: '-' },
-        { name: 'RESIDENCIA', date: '-' },
-        { name: 'OFICINA TECNICA', date: '-' },
-        { name: 'GERENCIA', date: '-' },
-      ],
-      
-      // Observaciones
-      observationsLine2: supplierSelected?.supplierQuotation?.notes || '-',
-
-      // Firmas
-      firstSignature: quotation.firstSignature,
-      firstSignedAt: quotation.firstSignedAt
-        ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      secondSignature: quotation.secondSignature,
-      secondSignedAt: quotation.secondSignedAt
-        ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      thirdSignature: quotation.thirdSignature,
-      thirdSignedAt: quotation.thirdSignedAt
-        ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      fourthSignature: quotation.fourthSignature,
-      fourthSignedAt: quotation.fourthSignedAt
-        ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-
-      // QR Code
-      qrCode: qrDataUrl,
-    };
-
-    // Leer y compilar el template
-    const templateHtml = fs.readFileSync(
-      path.join(__dirname, '../../templates/purchase-order.template.html'),
-      'utf8'
-    );
-    const template = Handlebars.compile(templateHtml);
-    const html = template(data);
-
-    // Generar el PDF con puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
-    });
-    await browser.close();
-
-    return Buffer.from(pdfBuffer);
-  }
-
-
 }

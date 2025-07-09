@@ -28,6 +28,10 @@ import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 
 type RequirementType = 'ARTICLE' | 'SERVICE';
 
+interface RequirementFormProps {
+  type?: RequirementType;
+}
+
 interface ArticlesSelected {
   id: number;
   code: string;
@@ -66,7 +70,7 @@ interface Services {
   duration?: string;
 }
 
-export const RequirementForm = () => {
+export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
   const navigate = useNavigate();
   const { id, type } = useParams<{ id: string; type?: string }>();
   const { data: exchangeRate, isLoading: loadingExchangeRate } =
@@ -123,7 +127,7 @@ export const RequirementForm = () => {
     warehouse: '',
     observations: '',
     type:
-      (type?.toUpperCase() as RequirementType) ||
+      ((propType || type?.toUpperCase()) as RequirementType) ||
       ('ARTICLE' as RequirementType),
   });
   const [articlesSelected, setArticlesSelected] = useState<Products[]>([]);

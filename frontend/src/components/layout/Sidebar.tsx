@@ -105,7 +105,7 @@ const menuItems: MenuItem[] = [
     subItems: [
       {
         label: SIDEBAR_TEXTS.processRequirement,
-        path: ROUTES.REQUIREMENTS,
+        path: ROUTES.REQUIREMENTS_ARTICLES,
         permission: ['view_requirements'],
         icon: <DocumentIcon className="w-4 h-4" />,
       },
@@ -121,16 +121,28 @@ const menuItems: MenuItem[] = [
         permission: ['view_payments'],
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
+      {
+        label: 'Parte de ingreso',
+        path: ROUTES.COMING_SOON,
+        permission: [],
+        icon: <CreditCardIcon className="w-4 h-4" />,
+      },
+      {
+        label: 'Parte de salida',
+        path: ROUTES.COMING_SOON,
+        permission: [],
+        icon: <CreditCardIcon className="w-4 h-4" />,
+      },
     ],
   },
-  /* {
+  {
     label: SIDEBAR_TEXTS.processService,
     permission: ['view_requirements'],
     icon: <ProcessIcon className="w-5 h-5" />,
     subItems: [
       {
         label: SIDEBAR_TEXTS.processRequirement,
-        path: ROUTES.REQUIREMENTS,
+        path: ROUTES.REQUIREMENTS_SERVICES,
         permission: ['view_requirements'],
         icon: <DocumentIcon className="w-4 h-4" />,
       },
@@ -147,7 +159,7 @@ const menuItems: MenuItem[] = [
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
     ],
-  }, */
+  },
 ];
 
 interface SidebarProps {

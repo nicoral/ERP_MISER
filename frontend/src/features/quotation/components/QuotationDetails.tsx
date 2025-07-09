@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuotationService } from '../../../hooks/useQuotationService';
+import { usePurchaseOrderService } from '../../../hooks/usePurchaseOrderService';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import MyserLogo from '../../../assets/myser-logo.jpg';
@@ -9,7 +10,7 @@ import { getQuotationStatusText } from '../../../utils/quotationUtils';
 import { type QuotationRequest } from '../../../types/quotation';
 import { useToast } from '../../../contexts/ToastContext';
 import { ComparisonTable } from './ComparisonTable';
-import { PurchaseOrder } from './PurchaseOrder';
+import { PurchaseOrder as PurchaseOrderComponent } from './PurchaseOrder';
 import {
   canSignQuotation,
   getQuotationSignButtonText,
@@ -24,8 +25,12 @@ export const QuotationDetails = () => {
     getQuotationRequest,
     signQuotationRequest,
     rejectQuotationRequest,
+    generatePurchaseOrder,
     loading,
   } = useQuotationService();
+
+  const { getByQuotationAndSupplier, getQuotationSummary } =
+    usePurchaseOrderService();
 
   const [quotation, setQuotation] = React.useState<QuotationRequest | null>(
     null
@@ -40,6 +45,13 @@ export const QuotationDetails = () => {
   const [isRejecting, setIsRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState('');
   const [showRejectModal, setShowRejectModal] = React.useState(false);
+  const [isGeneratingPurchaseOrders, setIsGeneratingPurchaseOrders] =
+    React.useState(false);
+  const [quotationSummary, setQuotationSummary] = React.useState<{
+    totalPurchaseOrders: number;
+    totalSuppliersWithFinalSelection: number;
+    canSignFirstSignature: boolean;
+  } | null>(null);
 
   // Función helper para extraer mensaje de error
   const getErrorMessage = (error: unknown, defaultMessage: string): string => {
@@ -79,11 +91,35 @@ export const QuotationDetails = () => {
           if (suppliersWithFinalSelection.length > 0) {
             setSelectedSupplierId(suppliersWithFinalSelection[0].id);
           }
+
+          // Cargar orden de compra para el proveedor seleccionado cuando cambie
+          if (
+            selectedSupplierId &&
+            result.finalSelection?.status === 'APPROVED'
+          ) {
+            // loadPurchaseOrder(result.id, selectedSupplierId); // Eliminado
+          }
+
+          // Cargar resumen de órdenes de compra si la selección final está aprobada
+          if (result.finalSelection?.status === 'APPROVED') {
+            loadQuotationSummary(result.id);
+          }
         }
       }
     };
     loadQuotation();
-  }, [params.id, getQuotationRequest]);
+  }, [params.id, getQuotationRequest, getByQuotationAndSupplier]);
+
+  // Cargar orden de compra cuando cambie el proveedor seleccionado
+  React.useEffect(() => {
+    if (
+      quotation &&
+      selectedSupplierId &&
+      quotation.finalSelection?.status === 'APPROVED'
+    ) {
+      // loadPurchaseOrder(quotation.id, selectedSupplierId); // Eliminado
+    }
+  }, [selectedSupplierId, quotation?.id, quotation?.finalSelection?.status]);
 
   // Función para firmar la cotización
   const handleSignQuotation = async () => {
@@ -138,8 +174,54 @@ export const QuotationDetails = () => {
     }
   };
 
+  // Función para cargar resumen de órdenes de compra
+  const loadQuotationSummary = async (quotationId: number) => {
+    try {
+      const result = await getQuotationSummary(quotationId);
+      setQuotationSummary(result);
+    } catch (error) {
+      console.error('Error loading quotation summary:', error);
+      setQuotationSummary(null);
+    }
+  };
+
+  // Función para generar orden de compra para proveedor específico
+  const handleGeneratePurchaseOrders = async (paymentMethod: string) => {
+    if (!quotation?.finalSelection || !selectedSupplierId) return;
+
+    setIsGeneratingPurchaseOrders(true);
+    try {
+      const generatedOrder = await generatePurchaseOrder(
+        quotation.finalSelection.id,
+        selectedSupplierId,
+        paymentMethod
+      );
+      if (generatedOrder) {
+        // Recargar la orden de compra después de generarla
+        // await loadPurchaseOrder(quotation.id, selectedSupplierId); // Eliminado
+        // Recargar el resumen para actualizar el estado de las órdenes
+        await loadQuotationSummary(quotation.id);
+        showSuccess(
+          'Orden de compra generada',
+          'Se ha generado la orden de compra exitosamente'
+        );
+      }
+    } catch (error) {
+      console.error('Error generating purchase order:', error);
+      showError(
+        'Error al generar orden de compra',
+        'Ocurrió un error inesperado. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsGeneratingPurchaseOrders(false);
+    }
+  };
+
   // Verificar si el usuario puede firmar
-  const canSign = quotation && canSignQuotation(quotation);
+  const canSign =
+    quotation &&
+    canSignQuotation(quotation) &&
+    !!quotationSummary?.canSignFirstSignature;
 
   const isRejected = quotation?.status === 'REJECTED';
 
@@ -257,11 +339,12 @@ export const QuotationDetails = () => {
       );
     } else {
       return (
-        <PurchaseOrder
+        <PurchaseOrderComponent
           quotation={quotation}
           selectedSupplierId={selectedSupplierId}
-          selectedArticles={selectedArticles}
           signatures={signatures}
+          onGeneratePurchaseOrder={handleGeneratePurchaseOrders}
+          isGenerating={isGeneratingPurchaseOrders}
         />
       );
     }
@@ -397,6 +480,37 @@ export const QuotationDetails = () => {
           {selectedSupplierId &&
             relevantSuppliers.length > 0 &&
             renderInternalTabContent()}
+
+          {/* Indicador de progreso de órdenes de compra */}
+          {quotationSummary &&
+            !quotationSummary.canSignFirstSignature &&
+            quotation.finalSelection?.status === 'APPROVED' && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    <span className="font-medium">
+                      Progreso de Órdenes de Compra:
+                    </span>
+                    <span className="ml-2">
+                      {quotationSummary.totalPurchaseOrders} de{' '}
+                      {quotationSummary.totalSuppliersWithFinalSelection}{' '}
+                      generadas
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    {quotationSummary.canSignFirstSignature ? (
+                      <span className="text-green-600 dark:text-green-400 font-medium">
+                        ✓ Listo para firmar
+                      </span>
+                    ) : (
+                      <span className="text-orange-600 dark:text-orange-400 font-medium">
+                        ⚠ Pendiente de órdenes
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       )}
 

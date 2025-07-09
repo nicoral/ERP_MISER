@@ -21,7 +21,6 @@ const paymentService = {
       limit: limit.toString(),
       ...(filters?.status && { status: filters.status }),
       ...(filters?.search && { search: filters.search }),
-      ...(filters?.createdBy && { createdBy: filters.createdBy.toString() }),
       ...(filters?.approvedBy && { approvedBy: filters.approvedBy.toString() }),
       ...(filters?.dateFrom && { dateFrom: filters.dateFrom }),
       ...(filters?.dateTo && { dateTo: filters.dateTo }),

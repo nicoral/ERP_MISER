@@ -53,7 +53,10 @@ export const hasAllPermissions = (permissions: string[]): boolean => {
  * @param requirement - El requerimiento a verificar
  * @returns true si el usuario puede firmar, false en caso contrario
  */
-export const canSignRequirement = (requirement: Requirement): boolean => {
+export const canSignRequirement = (
+  requirement: Requirement,
+  isReject = false
+): boolean => {
   const user = getCurrentUser();
   if (!user || !user.role || !user.role.permissions) {
     return false;
@@ -61,6 +64,9 @@ export const canSignRequirement = (requirement: Requirement): boolean => {
 
   // Verificar según el estado del requerimiento
   switch (requirement.status) {
+    case 'PENDING':
+      return isReject ? false : user.id === requirement.employee.id;
+
     case 'SIGNED_1':
       // Para firmar después de la primera firma, necesita requirement-view-signed2
       return (

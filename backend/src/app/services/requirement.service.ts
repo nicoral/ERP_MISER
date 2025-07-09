@@ -133,10 +133,12 @@ export class RequirementService {
 
     let whereConditions:
       | FindOptionsWhere<Requirement>
-      | FindOptionsWhere<Requirement>[] = [{
-      employee: { id: userId },
-      type: type,
-    }];
+      | FindOptionsWhere<Requirement>[] = [
+      {
+        employee: { id: userId },
+        type: type,
+      },
+    ];
 
     if (userPermissions.includes('requirement-view-all')) {
       whereConditions = { type: type };
@@ -304,7 +306,7 @@ export class RequirementService {
     const qrUrl = this.qrService.generateRequirementURL(id, {
       includeTimestamp: true,
       includeVersion: true,
-      version: '1.0'
+      version: '1.0',
     });
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 

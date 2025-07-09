@@ -33,7 +33,11 @@ interface TableItem {
   total: number;
 }
 
-export const RequirementDetails = () => {
+interface RequirementDetailsProps {
+  type?: 'ARTICLE' | 'SERVICE';
+}
+
+export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
   const params = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
@@ -53,8 +57,8 @@ export const RequirementDetails = () => {
   // Mapear datos según el tipo de requerimiento
   const tableItems: TableItem[] = React.useMemo(() => {
     if (!requirement) return [];
-
-    if (requirement.type === 'ARTICLE') {
+    const reqType = type || requirement.type;
+    if (reqType === 'ARTICLE') {
       return requirement.requirementArticles.map(
         (reqArticle: RequirementArticle) => ({
           id: reqArticle.article.id,
@@ -83,7 +87,7 @@ export const RequirementDetails = () => {
         })
       );
     }
-  }, [requirement]);
+  }, [requirement, type]);
 
   const subtotals = {
     PEN: tableItems
@@ -356,7 +360,7 @@ export const RequirementDetails = () => {
           )}
 
           {requirement &&
-            canSignRequirement(requirement) &&
+            canSignRequirement(requirement, true) &&
             requirement.status !== RequirementStatus.REJECTED && (
               <button
                 onClick={handleRejectClick}

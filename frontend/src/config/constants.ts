@@ -53,6 +53,14 @@ export const ROUTES = {
   PAYMENTS: '/payments',
   PAYMENT_DETAILS: '/payments/:id/details',
   PAYMENT_EDIT: '/payments/:id/edit',
+  REQUIREMENTS_ARTICLES: '/requirements/articles',
+  REQUIREMENTS_SERVICES: '/requirements/services',
+  REQUIREMENTS_ARTICLES_CREATE: '/requirements/articles/create',
+  REQUIREMENTS_SERVICES_CREATE: '/requirements/services/create',
+  REQUIREMENTS_ARTICLES_DETAILS: '/requirements/articles/:id/details',
+  REQUIREMENTS_SERVICES_DETAILS: '/requirements/services/:id/details',
+  REQUIREMENTS_ARTICLES_EDIT: '/requirements/articles/:id/edit',
+  REQUIREMENTS_SERVICES_EDIT: '/requirements/services/:id/edit',
 } as const;
 
 export const MODULES = [

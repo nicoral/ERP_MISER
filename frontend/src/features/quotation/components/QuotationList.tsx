@@ -297,8 +297,8 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 sm:px-8 p-2">
+      <div className="flex justify-between items-center sm:mb-6 mb-2">
         <h1 className="text-2xl font-bold">Cotizaciones</h1>
         <Button onClick={onCreateQuotation} className="hidden">
           <Plus className="h-4 w-4 mr-2" />

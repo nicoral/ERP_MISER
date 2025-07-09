@@ -55,6 +55,7 @@ export interface ComparisonTableProps {
 export interface PurchaseOrderProps {
   quotation: QuotationRequest;
   selectedSupplierId: number | null;
-  selectedArticles: SelectedArticle[];
   signatures: Signature[];
+  onGeneratePurchaseOrder?: (paymentMethod: string) => void;
+  isGenerating?: boolean;
 }

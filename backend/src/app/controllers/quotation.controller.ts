@@ -21,7 +21,10 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-request.dto';
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { CreateSupplierQuotationDto } from '../dto/quotation/create-supplier-quotation.dto';
-import { UpdateSupplierQuotationDto, UpdateSupplierQuotationOcDto } from '../dto/quotation/update-supplier-quotation.dto';
+import {
+  UpdateSupplierQuotationDto,
+  UpdateSupplierQuotationOcDto,
+} from '../dto/quotation/update-supplier-quotation.dto';
 import { UpdateQuotationBasicDto } from '../dto/quotation/update-quotation-basic.dto';
 import {
   UpdateQuotationOrderDto,
@@ -31,6 +34,7 @@ import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.d
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
 import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
+import { GeneratePurchaseOrderDto } from '../dto/quotation/generate-purchase-order.dto';
 
 @Controller('quotation')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -189,7 +193,10 @@ export class QuotationController {
     @Param('id') id: string,
     @Body() updateSupplierQuotationDto: UpdateSupplierQuotationOcDto
   ) {
-    return this.quotationService.updateSupplierQuotationOc(+id, updateSupplierQuotationDto);
+    return this.quotationService.updateSupplierQuotationOc(
+      +id,
+      updateSupplierQuotationDto
+    );
   }
 
   @Patch('supplier-quotation/:id/submit')
@@ -294,6 +301,20 @@ export class QuotationController {
     return this.quotationService.approveFinalSelection(+id);
   }
 
+  @Post('final-selection/:id/generate-purchase-order')
+  @RequirePermissions('create_quotation')
+  @AuditDescription('Generar orden de compra para proveedor específico')
+  generatePurchaseOrder(
+    @Param('id') id: string,
+    @Body() generatePurchaseOrderDto: GeneratePurchaseOrderDto
+  ) {
+    return this.quotationService.generatePurchaseOrder(
+      +id,
+      +generatePurchaseOrderDto.supplierId,
+      generatePurchaseOrderDto.paymentMethod
+    );
+  }
+
   @Delete('final-selection/:id')
   @RequirePermissions('delete_quotation')
   @AuditDescription('Eliminar selección final')
@@ -308,7 +329,7 @@ export class QuotationController {
     @Param('id') id: string,
     @Body() applyGeneralTermsDto: ApplyGeneralTermsDto
   ) {
-    return this.quotationService. applyGeneralTermsToAll(
+    return this.quotationService.applyGeneralTermsToAll(
       +id,
       applyGeneralTermsDto
     );
@@ -342,40 +363,15 @@ export class QuotationController {
     @Res() res: Response
   ) {
     try {
-      const pdfBuffer = await this.quotationService.generateQuotationComparisonPdf(
-        +id,
-        +supplierId
-      );
+      const pdfBuffer =
+        await this.quotationService.generateQuotationComparisonPdf(
+          +id,
+          +supplierId
+        );
 
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="comparacion-cotizacion-${id}-${supplierId}.pdf"`,
-      });
-
-      res.end(pdfBuffer);
-    } catch (error) {
-      console.log(error);
-      res.status(400).json({ message: error });
-    }
-  }
-
-  @Get(':id/purchase-order/:supplierId/pdf')
-  @RequirePermissions('view_quotations')
-  @AuditDescription('Descargar PDF de orden de compra')
-  async downloadPurchaseOrderPdf(
-    @Param('id') id: string,
-    @Param('supplierId') supplierId: string,
-    @Res() res: Response
-  ) {
-    try {
-      const pdfBuffer = await this.quotationService.generatePurchaseOrderPdf(
-        +id,
-        +supplierId
-      );
-
-      res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="orden-compra-${id}-${supplierId}.pdf"`,
       });
 
       res.end(pdfBuffer);
