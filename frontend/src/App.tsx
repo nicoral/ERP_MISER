@@ -46,6 +46,9 @@ import { useEffect } from 'react';
 import ComingSoon from './pages/ComingSoon';
 import { PaymentList } from './features/payment/components/PaymentList';
 import { PaymentDetails } from './features/payment/components/PaymentDetails';
+import { EntryPartList } from './features/entryPart/EntryPartList';
+import { EntryPartForm } from './features/entryPart/EntryPartForm';
+import { EntryPartDetails } from './features/entryPart/EntryPartDetails';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -142,6 +145,12 @@ const AppRoutes = () => {
           />
           <Route path={ROUTES.PAYMENTS} element={<PaymentList />} />
           <Route path={ROUTES.PAYMENT_DETAILS} element={<PaymentDetails />} />
+          <Route path={ROUTES.ENTRY_PARTS} element={<EntryPartList />} />
+          <Route path={ROUTES.ENTRY_PART_CREATE} element={<EntryPartForm />} />
+          <Route
+            path={ROUTES.ENTRY_PART_DETAILS}
+            element={<EntryPartDetails />}
+          />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

@@ -61,6 +61,9 @@ export const ROUTES = {
   REQUIREMENTS_SERVICES_DETAILS: '/requirements/services/:id/details',
   REQUIREMENTS_ARTICLES_EDIT: '/requirements/articles/:id/edit',
   REQUIREMENTS_SERVICES_EDIT: '/requirements/services/:id/edit',
+  ENTRY_PARTS: '/entry-parts',
+  ENTRY_PART_DETAILS: '/entry-parts/:id/details',
+  ENTRY_PART_CREATE: '/entry-parts/create',
 } as const;
 
 export const MODULES = [

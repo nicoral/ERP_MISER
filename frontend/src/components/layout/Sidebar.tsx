@@ -123,7 +123,7 @@ const menuItems: MenuItem[] = [
       },
       {
         label: 'Parte de ingreso',
-        path: ROUTES.COMING_SOON,
+        path: ROUTES.ENTRY_PARTS,
         permission: [],
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
