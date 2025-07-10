@@ -6,6 +6,7 @@ import { PlusIcon, TrashIcon } from '../../components/common/Icons';
 import { useAuthWarehouse } from '../../hooks/useAuthService';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { Modal } from '../../components/common/Modal';
+import { FormInputFile } from '../../components/common/FormInputFile';
 
 // Dummy data for purchase orders and products
 const DUMMY_ORDERS = [
@@ -139,7 +140,7 @@ export const EntryPartForm = () => {
   if (loadingWarehouse) return <LoadingSpinner />;
 
   return (
-    <div className="max-w-5xl mx-auto p-2">
+    <div className="mx-auto p-2">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
         Nuevo Parte de Ingreso
       </h2>
@@ -375,6 +376,26 @@ export const EntryPartForm = () => {
               </table>
             </div>
           )}
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              Imagen de ingreso
+            </h3>
+          </div>
+          <span className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Advertencia: La imagen de ingreso es opcional bajo su propia
+            responsabilidad.
+          </span>
+          <div className="flex justify-start items-center">
+            <FormInputFile
+              label="Imagen de ingreso"
+              name="image"
+              onChange={handleChange}
+              required
+            />
+          </div>
         </div>
 
         <div className="flex justify-end space-x-4">

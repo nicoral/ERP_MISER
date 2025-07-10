@@ -238,7 +238,7 @@ export const PaymentDetails: React.FC = () => {
       console.error('Error saving invoice image:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';
-      showError('Error al subir imagen de factura', errorMessage);
+      showError('Error al subir factura', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -717,7 +717,7 @@ export const PaymentDetails: React.FC = () => {
                 {currentStep === 'receipt'
                   ? 'Añadir Pago'
                   : currentStep === 'invoiceImage'
-                    ? 'Subir Imagen de Factura'
+                    ? 'Subir Factura'
                     : 'Datos de Factura'}
               </h2>
               <button
@@ -852,7 +852,7 @@ export const PaymentDetails: React.FC = () => {
             {currentStep === 'invoiceImage' && (
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  Subir Imagen de Factura
+                  Subir Factura
                 </h3>
 
                 <div className="space-y-6">
@@ -898,7 +898,7 @@ export const PaymentDetails: React.FC = () => {
                     disabled={isSubmitting}
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    {isSubmitting ? 'Subiendo...' : 'Subir Imagen'}
+                    {isSubmitting ? 'Subiendo...' : 'Subir Documento'}
                   </Button>
                 </div>
               </div>

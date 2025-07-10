@@ -181,7 +181,7 @@ export const CostCenterForm = () => {
             <FormInput
               id="code"
               name="code"
-              label="Código"
+              label="Código interno"
               value={formData.code}
               onChange={handleChange}
             />
@@ -198,6 +198,38 @@ export const CostCenterForm = () => {
               id="codeMine"
               name="codeMine"
               label="Código Mina"
+              value={formData.codeMine}
+              onChange={handleChange}
+            />
+
+            <FormInput
+              id="codeMine"
+              name="codeMine"
+              label="Modelo"
+              value={formData.codeMine}
+              onChange={handleChange}
+            />
+
+            <FormInput
+              id="codeMine"
+              name="codeMine"
+              label="Marca"
+              value={formData.codeMine}
+              onChange={handleChange}
+            />
+
+            <FormInput
+              id="codeMine"
+              name="codeMine"
+              label="Placa"
+              value={formData.codeMine}
+              onChange={handleChange}
+            />
+
+            <FormInput
+              id="codeMine"
+              name="codeMine"
+              label="Propietario"
               value={formData.codeMine}
               onChange={handleChange}
             />
@@ -246,34 +278,6 @@ export const CostCenterForm = () => {
                   }
                   required
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormInput
-                    id={`child-${index}-code`}
-                    name="code"
-                    label="Código"
-                    value={child.code}
-                    onChange={e => updateChild(index, 'code', e.target.value)}
-                  />
-
-                  <FormInput
-                    id={`child-${index}-serial`}
-                    name="serial"
-                    label="Serial"
-                    value={child.serial}
-                    onChange={e => updateChild(index, 'serial', e.target.value)}
-                  />
-
-                  <FormInput
-                    id={`child-${index}-codeMine`}
-                    name="codeMine"
-                    label="Código Mina"
-                    value={child.codeMine}
-                    onChange={e =>
-                      updateChild(index, 'codeMine', e.target.value)
-                    }
-                  />
-                </div>
               </div>
             ))}
           </div>

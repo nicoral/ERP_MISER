@@ -112,7 +112,7 @@ export const SIDEBAR_TEXTS = {
   collapse: 'Colapsar menú',
   expand: 'Expandir menú',
   costCenter: 'Centro de costos',
-  logistics: 'Logística',
+  logistics: 'Base de datos',
   roles: 'Roles',
   auditLogs: 'Auditorías',
   quotation: 'Cotización',
@@ -239,7 +239,7 @@ export const WAREHOUSE_TEXTS = {
         back: 'Volver',
       },
       fields: {
-        code: 'Código',
+        code: 'Código de fabricante',
         name: 'Nombre',
         brand: 'Marca',
         line: 'Linea',

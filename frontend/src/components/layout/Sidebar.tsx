@@ -14,14 +14,14 @@ import {
   ProcessIcon,
   DocumentIcon,
   CostCenterIcon,
-  LogisticsIcon,
   RolesIcon,
   AuditIcon,
   CalculatorIcon,
   ServicesIcon,
+  ShoppingCartIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
-import { CreditCardIcon } from 'lucide-react';
+import { CreditCardIcon, DatabaseIcon } from 'lucide-react';
 
 const menuItems: MenuItem[] = [
   {
@@ -70,7 +70,7 @@ const menuItems: MenuItem[] = [
   {
     label: SIDEBAR_TEXTS.logistics,
     permission: ['view_warehouses', 'view_articles', 'view_suppliers'],
-    icon: <LogisticsIcon className="w-5 h-5" />,
+    icon: <DatabaseIcon className="w-5 h-5" />,
     subItems: [
       {
         label: SIDEBAR_TEXTS.warehouse,
@@ -101,7 +101,7 @@ const menuItems: MenuItem[] = [
   {
     label: SIDEBAR_TEXTS.process,
     permission: ['view_requirements'],
-    icon: <ProcessIcon className="w-5 h-5" />,
+    icon: <ShoppingCartIcon className="w-5 h-5" />,
     subItems: [
       {
         label: SIDEBAR_TEXTS.processRequirement,
