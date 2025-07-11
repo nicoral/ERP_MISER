@@ -1,3 +1,9 @@
+import type { Employee } from './employee';
+import type { QuotationRequest } from './quotation';
+import type { Supplier } from './supplier';
+import type { Requirement } from './requirement';
+import type { CostCenter } from './costCenter';
+
 export interface PurchaseOrderItem {
   item: number;
   code: string;
@@ -33,21 +39,11 @@ export interface PurchaseOrder {
   total: number;
   currency: string;
   observation?: string;
-  quotationRequest: {
-    id: number;
-  };
-  supplier: {
-    id: number;
-  };
-  createdBy?: {
-    id: number;
-  };
-  requirement?: {
-    id: number;
-  };
-  costCenterEntity?: {
-    id: number;
-  };
+  quotationRequest: QuotationRequest;
+  supplier: Supplier;
+  createdBy?: Employee;
+  requirement?: Requirement;
+  costCenterEntity?: CostCenter;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

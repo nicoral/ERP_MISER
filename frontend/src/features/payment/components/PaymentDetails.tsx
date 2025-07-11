@@ -20,6 +20,8 @@ import type {
   CreatePaymentDetailDto,
 } from '../../../types/payment';
 import { hasPermission } from '../../../utils/permissions';
+import { Modal } from '../../../components/common/Modal';
+import { SupplierDetails } from '../../supplier/components/SupplierDetails';
 
 export const PaymentDetails: React.FC = () => {
   const params = useParams();
@@ -41,7 +43,7 @@ export const PaymentDetails: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<
     'receipt' | 'invoiceImage' | 'invoiceData'
   >('receipt');
-
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   // Form data
   const [formData, setFormData] = useState({
     receipt: {
@@ -122,11 +124,6 @@ export const PaymentDetails: React.FC = () => {
       return;
     }
 
-    if (!formData.receipt.paymentReceipt) {
-      showError('Error', 'El número de comprobante es obligatorio');
-      return;
-    }
-
     if (!formData.receipt.depositDate) {
       showError('Error', 'La fecha de depósito es obligatoria');
       return;
@@ -158,7 +155,7 @@ export const PaymentDetails: React.FC = () => {
     try {
       // Create a new payment detail
       const paymentDetailData: CreatePaymentDetailDto = {
-        code: `PAY-${payment.code}-${Date.now()}`,
+        code: `${payment.code}-${payment.paymentDetails.length + 1}`,
         amount: formData.receipt.amount,
         description: `Pago para ${payment.purchaseOrder.supplierName}`,
         paymentGroupId: payment.id,
@@ -333,6 +330,60 @@ export const PaymentDetails: React.FC = () => {
     resetForm();
   };
 
+  // Function to download file from URL
+  const downloadFile = async (url: string, baseFilename: string) => {
+    try {
+      // For Cloudinary URLs, we need to handle PDFs differently
+      let downloadUrl = url;
+
+      // If it's a Cloudinary URL and might be a PDF, try to force download
+      if (url.includes('cloudinary.com')) {
+        // Check if URL already has parameters
+        const separator = url.includes('?') ? '&' : '?';
+        downloadUrl = `${url}${separator}fl_attachment`;
+      }
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error('No se pudo descargar el archivo');
+      }
+
+      // Get content type to determine file extension
+      const contentType = response.headers.get('content-type');
+      let extension = '.pdf'; // default
+
+      if (contentType) {
+        if (
+          contentType.includes('image/jpeg') ||
+          contentType.includes('image/jpg')
+        ) {
+          extension = '.jpg';
+        } else if (contentType.includes('image/png')) {
+          extension = '.png';
+        } else if (contentType.includes('image/gif')) {
+          extension = '.gif';
+        } else if (contentType.includes('image/webp')) {
+          extension = '.webp';
+        } else if (contentType.includes('application/pdf')) {
+          extension = '.pdf';
+        }
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${baseFilename}${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      showError('Error al descargar', 'No se pudo descargar el archivo');
+    }
+  };
+
   // Cleanup preview URLs when component unmounts
   useEffect(() => {
     return () => {
@@ -420,9 +471,9 @@ export const PaymentDetails: React.FC = () => {
               </label>
               <button
                 onClick={() => {
-                  const url = ROUTES.QUOTATION_DETAILS.replace(
+                  const url = ROUTES.PURCHASE_ORDER_DETAILS.replace(
                     ':id',
-                    payment.purchaseOrder.quotationRequest.id.toString()
+                    payment.purchaseOrder.id.toString()
                   );
                   window.open(url, '_blank');
                 }}
@@ -498,7 +549,10 @@ export const PaymentDetails: React.FC = () => {
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {detail.code}
                     </h4>
-                    <div className="mt-1">
+                    <div
+                      className="mt-1 cursor-pointer hover:underline rounded-md p-2"
+                      onClick={() => setShowDetailsModal(true)}
+                    >
                       <p className="text-base font-medium text-blue-600 dark:text-blue-400">
                         {payment.purchaseOrder.supplierName}
                       </p>
@@ -533,17 +587,31 @@ export const PaymentDetails: React.FC = () => {
                       <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Comprobante de Pago
                       </h5>
+                      {detail.receiptImage && (
+                        <Button
+                          onClick={() =>
+                            downloadFile(
+                              detail.receiptImage!,
+                              `comprobante-${detail.code}`
+                            )
+                          }
+                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1"
+                        >
+                          📥 Descargar
+                        </Button>
+                      )}
                     </div>
-                    {detail.paymentReceipt ? (
+                    {detail.movementNumber ? (
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            Número:
+                            Movimiento:
                           </span>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {detail.paymentReceipt}
+                            {detail.movementNumber}
                           </span>
                         </div>
+
                         {detail.depositDate && (
                           <div className="flex justify-between">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -553,16 +621,6 @@ export const PaymentDetails: React.FC = () => {
                               {new Date(
                                 detail.depositDate
                               ).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
-                        {detail.movementNumber && (
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Movimiento:
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {detail.movementNumber}
                             </span>
                           </div>
                         )}
@@ -580,6 +638,19 @@ export const PaymentDetails: React.FC = () => {
                       <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Factura
                       </h5>
+                      {detail.invoiceImage && (
+                        <Button
+                          onClick={() =>
+                            downloadFile(
+                              detail.invoiceImage!,
+                              `factura-${detail.code}`
+                            )
+                          }
+                          className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1"
+                        >
+                          📥 Descargar
+                        </Button>
+                      )}
                     </div>
                     {detail.documentNumber ? (
                       <div className="space-y-2">
@@ -749,16 +820,16 @@ export const PaymentDetails: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormInput
-                    label="Comprobante de Pago"
-                    value={formData.receipt.paymentReceipt}
+                    label="Número de Movimiento Bancario"
+                    value={formData.receipt.movementNumber}
                     onChange={e =>
                       handleDataChange(
                         'receipt',
-                        'paymentReceipt',
+                        'movementNumber',
                         e.target.value
                       )
                     }
-                    placeholder="Número de comprobante"
+                    placeholder="Número de movimiento bancario"
                     disabled={!canEdit}
                   />
 
@@ -789,20 +860,6 @@ export const PaymentDetails: React.FC = () => {
                     onChange={e =>
                       handleDataChange('receipt', 'depositDate', e.target.value)
                     }
-                    disabled={!canEdit}
-                  />
-
-                  <FormInput
-                    label="Número de Movimiento Bancario"
-                    value={formData.receipt.movementNumber}
-                    onChange={e =>
-                      handleDataChange(
-                        'receipt',
-                        'movementNumber',
-                        e.target.value
-                      )
-                    }
-                    placeholder="Número de movimiento bancario"
                     disabled={!canEdit}
                   />
 
@@ -1004,6 +1061,16 @@ export const PaymentDetails: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title={`🏢 ${payment.purchaseOrder.supplier?.businessName ?? ''}`}
+      >
+        {payment.purchaseOrder.supplier && (
+          <SupplierDetails supplier={payment.purchaseOrder.supplier} />
+        )}
+      </Modal>
     </div>
   );
 };

@@ -4,9 +4,10 @@ import { CostCenterService } from '../services/costCenter.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CostCenter } from '../entities/CostCenter.entity';
 import { EmployeeModule } from './employee.module';
+import { ExcelImportModule } from './excel-import.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CostCenter]), EmployeeModule],
+  imports: [TypeOrmModule.forFeature([CostCenter]), EmployeeModule, ExcelImportModule],
   controllers: [CostCenterController],
   providers: [CostCenterService],
   exports: [CostCenterService],

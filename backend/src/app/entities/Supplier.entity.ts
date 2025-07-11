@@ -34,11 +34,29 @@ export class Supplier {
   @Column('varchar', { length: 100, name: 'email', nullable: true })
   email: string;
 
-  @Column('varchar', { length: 100, name: 'bank_account', nullable: true })
-  bankAccount: string;
+  @Column('varchar', { length: 100, name: 'bank_account_pen', nullable: true })
+  bankAccountPEN: string;
+
+  @Column('varchar', { length: 100, name: 'interbank_account_pen', nullable: true })
+  interbankAccountPEN: string;
+
+  @Column('varchar', { length: 100, name: 'entity_bank_account_pen', nullable: true })
+  entityBankAccountPEN: string;
+
+  @Column('varchar', { length: 100, name: 'bank_account_usd', nullable: true })
+  bankAccountUSD: string;
+
+  @Column('varchar', { length: 100, name: 'interbank_account_usd', nullable: true })
+  interbankAccountUSD: string;
+
+  @Column('varchar', { length: 100, name: 'entity_bank_account_usd', nullable: true })
+  entityBankAccountUSD: string;
 
   @Column('boolean', { name: 'return_policy', default: true })
   returnPolicy: boolean;
+
+  @Column('boolean', { name: 'applies_withholding', default: false })
+  appliesWithholding: boolean;
 
   @Column('numeric', { name: 'rating', default: 50, precision: 10, scale: 2 })
   rating: number;

@@ -136,6 +136,9 @@ export class EmployeeService {
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
+    if (employee.imageUrl) {
+      await this.cloudinaryService.deleteFile(employee.imageUrl);
+    }
     const uploadResult = await this.cloudinaryService.uploadFile(
       file,
       'employees'
@@ -431,6 +434,9 @@ export class EmployeeService {
     const employee = await this.findOne(id);
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
+    if (employee.signature) {
+      await this.cloudinaryService.deleteFile(employee.signature);
     }
     const uploadResult = await this.cloudinaryService.uploadFile(
       file,

@@ -179,7 +179,7 @@ export const PaymentList: React.FC = () => {
         <div>
           <button
             onClick={() => {
-              const url = ROUTES.QUOTATION_DETAILS.replace(
+              const url = ROUTES.PURCHASE_ORDER_DETAILS.replace(
                 ':id',
                 payment.purchaseOrder.id.toString()
               );

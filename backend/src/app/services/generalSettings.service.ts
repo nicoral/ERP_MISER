@@ -5,6 +5,7 @@ import { GeneralSettings } from '../entities/GeneralSettings.entity';
 import { SunatProvider } from '../providers/sunat.provider';
 import { CloudinaryService } from './cloudinary.service';
 import { UpdateGeneralSettingsDto } from '../dto/generalSettings/update-generalSettings.dto';
+import { ApisNetRUCData } from '../interfaces/generalSettings/apisNet.interface';
 
 @Injectable()
 export class GeneralSettingsService {
@@ -54,13 +55,16 @@ export class GeneralSettingsService {
    */
   async updateLogo(file: Express.Multer.File): Promise<GeneralSettings> {
     try {
-      this.logger.log('Subiendo logo de la empresa a Cloudinary...');
+      const settings = await this.getSettings();
+
+      if (settings.companyLogoUrl) {
+        await this.cloudinaryService.deleteFile(settings.companyLogoUrl);
+      }
 
       const uploadResult = await this.cloudinaryService.uploadFile(
         file,
         'logos'
       );
-      const settings = await this.getSettings();
 
       settings.companyLogoUrl = uploadResult.secure_url;
       const updatedSettings =
@@ -195,5 +199,9 @@ export class GeneralSettingsService {
   async getGeneralTax(): Promise<number> {
     const settings = await this.getSettings();
     return settings.generalTax;
+  }
+
+  async getRUCData(ruc: string): Promise<ApisNetRUCData> {
+    return await this.sunatProvider.getRUCData(ruc);
   }
 }

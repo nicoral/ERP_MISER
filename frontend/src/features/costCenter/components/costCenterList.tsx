@@ -9,6 +9,7 @@ import { Table } from '../../../components/common/Table';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useCostCenters, useDeleteCostCenter } from '../hooks/useCostCenter';
+import { CostCenterImportModal } from './CostCenterImportModal';
 
 export const CostCenterList = () => {
   const navigate = useNavigate();
@@ -18,9 +19,10 @@ export const CostCenterList = () => {
   const [filters, setFilters] = useState({ description: '' });
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Hook con datos y estados automáticos de React Query
-  const { data, isLoading, isFetching } = useCostCenters(
+  const { data, isLoading, isFetching, refetch } = useCostCenters(
     page,
     10,
     filters.description
@@ -67,6 +69,11 @@ export const CostCenterList = () => {
   const handleCreate = () => navigate(ROUTES.COST_CENTER_CREATE);
   const handleEdit = (id: number) =>
     navigate(ROUTES.COST_CENTER_EDIT.replace(':id', id.toString()));
+
+  const handleImportSuccess = () => {
+    // Recargar la lista después de importar
+    refetch();
+  };
 
   const handleDelete = async (costCenter: CostCenter) => {
     if (
@@ -123,14 +130,29 @@ export const CostCenterList = () => {
           Centros de Costo
         </h2>
         {hasPermission('create_cost_centers') && (
-          <button
-            onClick={handleCreate}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-fit"
-          >
-            Crear Centro de Costo
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Importar Equipos
+            </button>
+            <button
+              onClick={handleCreate}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Crear Centro de Costo
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Import Modal */}
+      <CostCenterImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
 
       {/* Filtros colapsables */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">

@@ -5,6 +5,7 @@ import {
   ImportArticleDto,
   ImportWarehouseStockDto,
 } from '../dto/article/import-article.dto';
+import { ImportCostCenterRowDto } from '../dto/costCenter/import-costCenter.dto';
 
 export interface ImportArticleResult {
   success: number;
@@ -114,6 +115,103 @@ export class ExcelImportService {
       }
 
       return employees;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        'Error al procesar el archivo Excel: ' + error.message
+      );
+    }
+  }
+
+  /**
+   * Lee un archivo Excel y extrae los datos de centros de costo
+   */
+  async parseCostCenterExcel(
+    file: Express.Multer.File
+  ): Promise<ImportCostCenterRowDto[]> {
+    try {
+      // Leer el archivo Excel
+      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+
+      // Obtener la primera hoja
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // Convertir a JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: null,
+      });
+
+      // Validar que hay datos
+      if (!jsonData || jsonData.length < 2) {
+        throw new BadRequestException(
+          'El archivo Excel debe contener al menos una fila de encabezados y una fila de datos'
+        );
+      }
+
+      // Obtener encabezados (primera fila)
+      const headers = jsonData[0] as string[];
+
+      // Validar encabezados requeridos
+      const requiredHeaders = [
+        'Descripción',
+        'Código',
+        'Serial',
+        'Código Mina',
+        'Modelo',
+        'Marca',
+        'Placa',
+        'Propietario',
+        'Equipo Padre',
+      ];
+
+      const missingHeaders = requiredHeaders.filter(
+        header => !headers.includes(header)
+      );
+
+      if (missingHeaders.length > 0) {
+        throw new BadRequestException(
+          `Faltan encabezados requeridos: ${missingHeaders.join(', ')}`
+        );
+      }
+
+      // Procesar filas de datos
+      const costCenters: ImportCostCenterRowDto[] = [];
+
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i] as (string | number | boolean | null)[];
+        if (
+          !row ||
+          row.every(cell => cell === null || cell === undefined || cell === '')
+        ) {
+          continue;
+        }
+
+        const costCenterData: ImportCostCenterRowDto = {
+          description: String(row[0] || '').trim(),
+          code: String(row[1] || '').trim() || undefined,
+          serial: String(row[2] || '').trim() || undefined,
+          codeMine: String(row[3] || '').trim() || undefined,
+          model: String(row[4] || '').trim() || undefined,
+          brand: String(row[5] || '').trim() || undefined,
+          licensePlate: String(row[6] || '').trim() || undefined,
+          owner: String(row[7] || '').trim() || undefined,
+          parentCode: String(row[8] || '').trim() || undefined,
+        };
+
+        costCenters.push(costCenterData);
+      }
+
+      if (costCenters.length === 0) {
+        throw new BadRequestException(
+          'No se encontraron datos válidos de centros de costo en el archivo'
+        );
+      }
+
+      return costCenters;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -527,6 +625,125 @@ export class ExcelImportService {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Artículos');
+
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  /**
+   * Genera un template de Excel para importación de centros de costo
+   */
+  generateCostCenterTemplate(): Buffer {
+    const template = [
+      [
+        'Descripción',
+        'Código',
+        'Serial',
+        'Código Mina',
+        'Modelo',
+        'Marca',
+        'Placa',
+        'Propietario',
+        'Equipo Padre',
+      ],
+      [
+        'Excavadora CAT 320',
+        'CAT001',
+        'SN123456',
+        'MINA001',
+        '320D',
+        'Caterpillar',
+        'ABC-123',
+        'Empresa Minera S.A.',
+        '',
+      ],
+      [
+        'Cargador Frontal',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'CAT001',
+      ],
+      [
+        'Camión Volquete',
+        'VOL001',
+        'SN345678',
+        'MINA002',
+        'A25G',
+        'Volvo',
+        'DEF-789',
+        'Empresa Minera S.A.',
+        '',
+      ],
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(template);
+
+    // Configurar el ancho de las columnas
+    const columnWidths = [
+      { wch: 30 }, // Descripción
+      { wch: 15 }, // Código
+      { wch: 15 }, // Serial
+      { wch: 15 }, // Código Mina
+      { wch: 15 }, // Modelo
+      { wch: 15 }, // Marca
+      { wch: 15 }, // Placa
+      { wch: 25 }, // Propietario
+      { wch: 15 }, // Equipo Padre
+    ];
+
+    worksheet['!cols'] = columnWidths;
+
+    // Configurar el estilo de la primera fila (encabezados)
+    const headerStyle = {
+      font: { bold: true, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: '366092' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: {
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      },
+    };
+
+    // Aplicar estilo a los encabezados
+    for (let col = 0; col < template[0].length; col++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!worksheet[cellRef]) {
+        worksheet[cellRef] = { v: template[0][col] };
+      }
+      worksheet[cellRef].s = headerStyle;
+    }
+
+    // Configurar el estilo de las filas de ejemplo
+    const exampleStyle = {
+      font: { color: { rgb: '666666' } },
+      fill: { fgColor: { rgb: 'F2F2F2' } },
+      border: {
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      },
+    };
+
+    // Aplicar estilo a las filas de ejemplo
+    for (let row = 1; row < template.length; row++) {
+      for (let col = 0; col < template[row].length; col++) {
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+        if (!worksheet[cellRef]) {
+          worksheet[cellRef] = { v: template[row][col] };
+        }
+        worksheet[cellRef].s = exampleStyle;
+      }
+    }
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Equipos');
 
     return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }

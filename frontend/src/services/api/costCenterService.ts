@@ -78,6 +78,44 @@ export const costCenterService = {
     });
     return response;
   },
+
+  async importFromExcel(file: File): Promise<{
+    success: number;
+    errors: Array<{ row: number; error: string }>;
+    total: number;
+    message: string;
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await createApiCall<{
+      success: number;
+      errors: Array<{ row: number; error: string }>;
+      total: number;
+      message: string;
+    }>(
+      `${BASE_URL}/excel/import`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
+    return response;
+  },
+
+  async downloadTemplate(): Promise<Blob> {
+    const response = await createApiCall<Blob>(
+      `${import.meta.env.VITE_API_URL}/cost-centers/excel/template`,
+      {
+        method: 'GET',
+      },
+      true
+    );
+
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility

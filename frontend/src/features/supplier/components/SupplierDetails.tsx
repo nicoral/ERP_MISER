@@ -54,14 +54,7 @@ export const SupplierDetails: React.FC<Props> = ({ supplier }) => {
               </span>
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              🏦 {WAREHOUSE_TEXTS.suppliers.form.fields.bank_account}:{' '}
-              <span className="text-gray-900 dark:text-white">
-                {supplier.bankAccount || '-'}
-              </span>
-            </p>
-          </div>
+
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               📍 {WAREHOUSE_TEXTS.suppliers.form.fields.address}:{' '}
@@ -95,6 +88,69 @@ export const SupplierDetails: React.FC<Props> = ({ supplier }) => {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Bancos */}
+      <div>
+        <div className="flex justify-between items-center gap-2">
+          <h3 className="text-lg font-semibold mb-2">🏦 Cuentas Bancarias</h3>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {supplier.appliesWithholding ? 'Con retención' : 'Sin retención'}
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {supplier.appliesWithholding ? '💰' : '💵'}
+            </span>
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {WAREHOUSE_TEXTS.suppliers.form.fields.entity_bank_account_pen}:{' '}
+              <span className="text-gray-900 dark:text-white">
+                {supplier.entityBankAccountPEN || '-'}
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {WAREHOUSE_TEXTS.suppliers.form.fields.entity_bank_account_usd}:{' '}
+              <span className="text-gray-900 dark:text-white">
+                {supplier.entityBankAccountUSD || '-'}
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {WAREHOUSE_TEXTS.suppliers.form.fields.bank_account_pen}:{' '}
+              <span className="text-gray-900 dark:text-white">
+                {supplier.bankAccountPEN || '-'}
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {WAREHOUSE_TEXTS.suppliers.form.fields.bank_account_usd}:{' '}
+              <span className="text-gray-900 dark:text-white">
+                {supplier.bankAccountUSD || '-'}
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {WAREHOUSE_TEXTS.suppliers.form.fields.interbank_account_pen}:{' '}
+              <span className="text-gray-900 dark:text-white">
+                {supplier.interbankAccountPEN || '-'}
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {WAREHOUSE_TEXTS.suppliers.form.fields.interbank_account_usd}:{' '}
+              <span className="text-gray-900 dark:text-white">
+                {supplier.interbankAccountUSD || '-'}
+              </span>
+            </p>
+          </div>
         </div>
       </div>
 

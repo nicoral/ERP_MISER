@@ -5,6 +5,7 @@ import {
   createCostCenter,
   updateCostCenter,
   deleteCostCenter,
+  costCenterService,
 } from '../../../services/api/costCenterService';
 import type {
   CostCenter,
@@ -79,5 +80,28 @@ export const useDeleteCostCenter = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['costCenters'] });
     },
+  });
+};
+
+/**
+ * Importa centros de costo desde un archivo Excel.
+ */
+export const useImportCostCenters = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: costCenterService.importFromExcel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['costCenters'] });
+    },
+  });
+};
+
+/**
+ * Descarga el template de Excel para importación.
+ */
+export const useDownloadCostCenterTemplate = () => {
+  return useMutation({
+    mutationFn: costCenterService.downloadTemplate,
   });
 };

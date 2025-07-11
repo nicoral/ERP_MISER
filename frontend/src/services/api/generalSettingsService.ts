@@ -1,42 +1,11 @@
 import { createApiCall } from './httpInterceptor';
-
-export interface GeneralSettings {
-  id: number;
-  companyName: string;
-  companyLogoUrl: string | null;
-  exchangeRateSale: string | null;
-  exchangeRatePurchase: string | null;
-  exchangeRateDate: string | null;
-  exchangeRateDateString: string | null;
-  exchangeRateAutoUpdate: boolean;
-  timezone: string;
-  generalTax: number;
-  additionalSettings: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UpdateGeneralSettingsDto {
-  companyName?: string;
-  companyLogoUrl?: string;
-  exchangeRateSale?: number;
-  exchangeRatePurchase?: number;
-  exchangeRateDateString?: string;
-  exchangeRateAutoUpdate?: boolean;
-  timezone?: string;
-  additionalSettings?: string;
-}
-
-export interface ExchangeRate {
-  date: string;
-  saleRate: number;
-  purchaseRate: number;
-}
-
-export interface SaleRate {
-  date: string;
-  saleRate: number;
-}
+import type {
+  GeneralSettings,
+  UpdateGeneralSettingsDto,
+  ExchangeRate,
+  SaleRate,
+  ApisNetRUCData,
+} from '../../types/generalSettings';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/general-settings`;
 
@@ -142,6 +111,16 @@ export const generalSettingsService = {
     });
     return response;
   },
+
+  async getRUCData(ruc: string): Promise<ApisNetRUCData> {
+    const response = await createApiCall<ApisNetRUCData>(
+      `${BASE_URL}/ruc-data?ruc=${ruc}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility
@@ -156,3 +135,4 @@ export const updateExchangeRate = generalSettingsService.updateExchangeRate;
 export const shouldUpdateExchangeRate =
   generalSettingsService.shouldUpdateExchangeRate;
 export const getGeneralTax = generalSettingsService.getGeneralTax;
+export const getRUCData = generalSettingsService.getRUCData;

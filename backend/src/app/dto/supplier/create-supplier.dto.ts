@@ -35,8 +35,32 @@ export class CreateSupplierDto {
 
   @IsOptional()
   @IsString()
-  bankAccount: string;
+  bankAccountPEN: string;
 
+  @IsOptional()
+  @IsString()
+  interbankAccountPEN: string;
+
+  @IsOptional()
+  @IsString()
+  entityBankAccountPEN: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountUSD: string;
+
+  @IsOptional()
+  @IsString()
+  interbankAccountUSD: string;
+
+  @IsOptional()
+  @IsString()
+  entityBankAccountUSD: string;
+
+  @IsOptional()
+  @IsBoolean()
+  appliesWithholding: boolean;
+  
   @IsOptional()
   @IsBoolean()
   returnPolicy: boolean;

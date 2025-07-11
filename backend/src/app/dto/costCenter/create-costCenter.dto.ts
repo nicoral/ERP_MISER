@@ -25,6 +25,24 @@ export class CreateCostCenterDto {
   @IsString()
   codeMine: string;
 
+  @IsOptional()
+  @IsString()
+  model: string;
+
+  @IsOptional()
+  @IsString()
+  brand: string;
+
+  @IsOptional()
+  @IsString()
+  licensePlate: string;
+
+  @IsOptional()
+  @IsString()
+  owner: string;
+
+
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateCostCenterChildrenDto)

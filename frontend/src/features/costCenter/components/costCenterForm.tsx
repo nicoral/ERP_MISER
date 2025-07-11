@@ -16,9 +16,13 @@ import {
 
 interface FormData {
   description: string;
-  code: string;
-  serial: string;
-  codeMine: string;
+  code?: string;
+  serial?: string;
+  codeMine?: string;
+  model?: string;
+  brand?: string;
+  licensePlate?: string;
+  owner?: string;
   children: CreateCostCenter[];
 }
 
@@ -38,6 +42,10 @@ export const CostCenterForm = () => {
     code: '',
     serial: '',
     codeMine: '',
+    model: '',
+    brand: '',
+    licensePlate: '',
+    owner: '',
     children: [],
   });
 
@@ -122,13 +130,14 @@ export const CostCenterForm = () => {
         code: costCenter.code || '',
         serial: costCenter.serial || '',
         codeMine: costCenter.codeMine || '',
+        model: costCenter.model || '',
+        brand: costCenter.brand || '',
+        licensePlate: costCenter.licensePlate || '',
+        owner: costCenter.owner || '',
         children:
           costCenter.children?.map(child => ({
             id: child.id,
             description: child.description,
-            code: child.code || '',
-            serial: child.serial || '',
-            codeMine: child.codeMine || '',
           })) || [],
       });
     }
@@ -203,34 +212,34 @@ export const CostCenterForm = () => {
             />
 
             <FormInput
-              id="codeMine"
-              name="codeMine"
+              id="model"
+              name="model"
               label="Modelo"
-              value={formData.codeMine}
+              value={formData.model}
               onChange={handleChange}
             />
 
             <FormInput
-              id="codeMine"
-              name="codeMine"
+              id="brand"
+              name="brand"
               label="Marca"
-              value={formData.codeMine}
+              value={formData.brand}
               onChange={handleChange}
             />
 
             <FormInput
-              id="codeMine"
-              name="codeMine"
+              id="licensePlate"
+              name="licensePlate"
               label="Placa"
-              value={formData.codeMine}
+              value={formData.licensePlate}
               onChange={handleChange}
             />
 
             <FormInput
-              id="codeMine"
-              name="codeMine"
+              id="owner"
+              name="owner"
               label="Propietario"
-              value={formData.codeMine}
+              value={formData.owner}
               onChange={handleChange}
             />
           </div>

@@ -9,12 +9,15 @@ export class CloudinaryService {
     folder: string = 'miser',
     withTransformation: boolean = true
   ): Promise<CloudinaryResponse> {
+    const isPDF = file.mimetype === 'application/pdf';
+
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
           {
             folder: `mixer/${folder}`,
-            transformation: withTransformation
+            resource_type: 'auto',
+            transformation: withTransformation && !isPDF
               ? [
                   { width: 500, crop: 'scale' },
                   { quality: 'auto', fetch_format: 'auto' },
@@ -32,5 +35,19 @@ export class CloudinaryService {
     });
 
     return uploadResult as CloudinaryResponse;
+  }
+
+  async deleteFile(urlFile: string) {
+    const urlParts = urlFile.split('/');
+    const uploadIndex = urlParts.findIndex(part => part === 'upload');
+    
+    if (uploadIndex === -1 || uploadIndex + 2 >= urlParts.length) {
+      throw new Error('Invalid Cloudinary URL format');
+    }
+    
+    const pathAfterUpload = urlParts.slice(uploadIndex + 2).join('/');
+    const publicId = pathAfterUpload.split('.')[0];
+
+    await cloudinary.uploader.destroy(publicId);
   }
 }

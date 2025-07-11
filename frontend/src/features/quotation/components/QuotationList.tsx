@@ -189,10 +189,16 @@ export const QuotationList: React.FC<QuotationListProps> = ({
         <div>
           <button
             onClick={() => {
-              const url = ROUTES.REQUIREMENTS_DETAILS.replace(
-                ':id',
-                quotation.requirement.id.toString()
-              );
+              const url =
+                quotation.requirement.type === 'ARTICLE'
+                  ? ROUTES.REQUIREMENTS_ARTICLES_DETAILS.replace(
+                      ':id',
+                      quotation.requirement.id.toString()
+                    )
+                  : ROUTES.REQUIREMENTS_SERVICES_DETAILS.replace(
+                      ':id',
+                      quotation.requirement.id.toString()
+                    );
               window.open(url, '_blank');
             }}
             className="bg-transparent text-left hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors w-full"

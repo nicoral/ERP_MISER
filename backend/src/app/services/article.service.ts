@@ -180,6 +180,9 @@ export class ArticleService {
     if (!article) {
       throw new NotFoundException('Article not found');
     }
+    if (article.imageUrl) {
+      await this.cloudinaryService.deleteFile(article.imageUrl);
+    }
 
     const uploadResult = await this.cloudinaryService.uploadFile(
       file,

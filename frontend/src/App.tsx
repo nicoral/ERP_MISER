@@ -49,6 +49,7 @@ import { PaymentDetails } from './features/payment/components/PaymentDetails';
 import { EntryPartList } from './features/entryPart/EntryPartList';
 import { EntryPartForm } from './features/entryPart/EntryPartForm';
 import { EntryPartDetails } from './features/entryPart/EntryPartDetails';
+import { PurchaseOrder } from './features/puchaseOrder/components/purchaseOrderDetail';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -150,6 +151,10 @@ const AppRoutes = () => {
           <Route
             path={ROUTES.ENTRY_PART_DETAILS}
             element={<EntryPartDetails />}
+          />
+          <Route
+            path={ROUTES.PURCHASE_ORDER_DETAILS}
+            element={<PurchaseOrder />}
           />
         </Route>
       </Route>

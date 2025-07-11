@@ -22,6 +22,16 @@ export const usePurchaseOrderQuery = (
   });
 };
 
+export const usePurchaseOrderByIdQuery = (id: number) => {
+  return useQuery<PurchaseOrder | undefined>({
+    queryKey: ['purchaseOrder', id],
+    queryFn: () => purchaseOrderService.getById(id),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    retry: false,
+  });
+};
+
 export const usePurchaseOrderService = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

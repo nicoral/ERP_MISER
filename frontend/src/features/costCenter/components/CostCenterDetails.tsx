@@ -13,12 +13,14 @@ interface CostCenterCardProps {
   costCenter: CostCenter;
   level?: number;
   isChild?: boolean;
+  showDetails?: boolean;
 }
 
 const CostCenterCard: React.FC<CostCenterCardProps> = ({
   costCenter,
   level = 0,
   isChild = false,
+  showDetails = true,
 }) => {
   return (
     <div
@@ -35,7 +37,7 @@ const CostCenterCard: React.FC<CostCenterCardProps> = ({
               </h3>
               {costCenter.code && (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Código: {costCenter.code}
+                  Código: {costCenter.code} | Propietario: {costCenter.owner}
                 </p>
               )}
             </div>
@@ -44,64 +46,100 @@ const CostCenterCard: React.FC<CostCenterCardProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Serial:
-              </span>
-              <span className="text-sm text-gray-900 dark:text-white">
-                {costCenter.serial || 'No especificado'}
-              </span>
+      {showDetails && (
+        <div className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Serial:
+                </span>
+                <span className="text-sm text-gray-900 dark:text-white">
+                  {costCenter.serial || 'No especificado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Código Mina:
+                </span>
+                <span className="text-sm text-gray-900 dark:text-white">
+                  {costCenter.codeMine || 'No especificado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  ID:
+                </span>
+                <span className="text-sm text-gray-900 dark:text-white font-mono">
+                  #{costCenter.id}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Modelo:
+                </span>
+                <span className="text-sm text-gray-900 dark:text-white">
+                  {costCenter.model || 'No especificado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Marca:
+                </span>
+                <span className="text-sm text-gray-900 dark:text-white">
+                  {costCenter.brand || 'No especificado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Placa:
+                </span>
+                <span className="text-sm text-gray-900 dark:text-white">
+                  {costCenter.licensePlate || 'No especificado'}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Código Mina:
-              </span>
-              <span className="text-sm text-gray-900 dark:text-white">
-                {costCenter.codeMine || 'No especificado'}
-              </span>
+          {/* Children */}
+          {costCenter.children && costCenter.children.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Centros de Costo Secundarios ({costCenter.children.length})
+                </h4>
+              </div>
+              <div className="space-y-4">
+                {costCenter.children.map(child => (
+                  <CostCenterCard
+                    key={child.id}
+                    costCenter={child}
+                    level={level + 1}
+                    isChild={true}
+                    showDetails={false}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                ID:
-              </span>
-              <span className="text-sm text-gray-900 dark:text-white font-mono">
-                #{costCenter.id}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
-
-        {/* Children */}
-        {costCenter.children && costCenter.children.length > 0 && (
-          <div className="mt-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Centros de Costo Secundarios ({costCenter.children.length})
-              </h4>
-            </div>
-            <div className="space-y-4">
-              {costCenter.children.map(child => (
-                <CostCenterCard
-                  key={child.id}
-                  costCenter={child}
-                  level={level + 1}
-                  isChild={true}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

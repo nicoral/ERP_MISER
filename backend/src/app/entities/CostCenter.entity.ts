@@ -16,17 +16,29 @@ export class CostCenter {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column('varchar', { length: 100, name: 'code', nullable: true })
+  @Column('varchar', { length: 255, name: 'code', nullable: true })
   code: string;
 
-  @Column('varchar', { length: 100, name: 'serial', nullable: true })
+  @Column('varchar', { length: 255, name: 'serial', nullable: true })
   serial: string;
 
-  @Column('varchar', { length: 100, name: 'codeMine', nullable: true })
+  @Column('varchar', { length: 255, name: 'codeMine', nullable: true })
   codeMine: string;
 
   @Column('text', { name: 'description', nullable: false })
   description: string;
+
+  @Column('varchar', { length: 255, name: 'model', nullable: true })
+  model: string;
+
+  @Column('varchar', { length: 255, name: 'brand', nullable: true })
+  brand: string;
+
+  @Column('varchar', { length: 255, name: 'licensePlate', nullable: true })
+  licensePlate: string;
+
+  @Column('varchar', { length: 255, name: 'owner', nullable: true })
+  owner: string;
 
   @OneToMany(() => Requirement, requirement => requirement.costCenter)
   requirements: Requirement[];

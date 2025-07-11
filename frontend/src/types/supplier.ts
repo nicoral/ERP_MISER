@@ -12,8 +12,14 @@ export interface Supplier {
   contactPerson: string;
   mobile: string;
   email?: string;
-  bankAccount?: string;
+  bankAccountPEN?: string;
+  interbankAccountPEN?: string;
+  entityBankAccountPEN?: string;
+  bankAccountUSD?: string;
+  interbankAccountUSD?: string;
+  entityBankAccountUSD?: string;
   returnPolicy: boolean;
+  appliesWithholding: boolean;
   rating: number;
   status: SupplierStatus;
   lines: string;

@@ -13,6 +13,7 @@ import {
 import { SupplierStatus, type Supplier } from '../../../types/supplier';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { MultiSelect } from '../../../components/common/MultiSelect';
+import { getRUCData } from '../../../services/api/generalSettingsService';
 
 interface FormData {
   ruc: string;
@@ -21,8 +22,14 @@ interface FormData {
   contactPerson: string;
   mobile: string;
   email: string;
-  bankAccount: string;
+  bankAccountPEN: string;
+  interbankAccountPEN: string;
+  entityBankAccountPEN: string;
+  bankAccountUSD: string;
+  interbankAccountUSD: string;
+  entityBankAccountUSD: string;
   returnPolicy: boolean;
+  appliesWithholding: boolean;
   rating: number;
   status: SupplierStatus;
   lines: string[];
@@ -34,9 +41,8 @@ export const SupplierForm = () => {
   const isEditing = Boolean(params.id);
   const supplierId = params.id ? Number(params.id) : undefined;
 
-  const { data: supplier, isLoading: loadingSupplier } = useSupplier(
-    supplierId
-  );
+  const { data: supplier, isLoading: loadingSupplier } =
+    useSupplier(supplierId);
   const createSupplierMutation = useCreateSupplier();
   const updateSupplierMutation = useUpdateSupplier();
 
@@ -47,8 +53,14 @@ export const SupplierForm = () => {
     contactPerson: '',
     mobile: '',
     email: '',
-    bankAccount: '',
+    bankAccountPEN: '',
+    interbankAccountPEN: '',
+    entityBankAccountPEN: '',
+    bankAccountUSD: '',
+    interbankAccountUSD: '',
+    entityBankAccountUSD: '',
     returnPolicy: false,
+    appliesWithholding: true,
     rating: 0,
     status: SupplierStatus.ACTIVE,
     lines: [],
@@ -80,15 +92,28 @@ export const SupplierForm = () => {
     }
   };
 
-  const handleChange = (
+  const handleChange = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]:
-        type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }));
+    if (name === 'ruc' && value.length === 11 && !isEditing) {
+      setFormData(prev => ({
+        ...prev,
+        ruc: value,
+      }));
+      const rucData = await getRUCData(value);
+      setFormData(prev => ({
+        ...prev,
+        businessName: rucData.razonSocial,
+        address: rucData.direccion,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]:
+          type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+      }));
+    }
   };
 
   useEffect(() => {
@@ -100,8 +125,14 @@ export const SupplierForm = () => {
         contactPerson: supplier.contactPerson,
         mobile: supplier.mobile,
         email: supplier.email ?? '',
-        bankAccount: supplier.bankAccount ?? '',
+        bankAccountPEN: supplier.bankAccountPEN ?? '',
+        interbankAccountPEN: supplier.interbankAccountPEN ?? '',
+        entityBankAccountPEN: supplier.entityBankAccountPEN ?? '',
+        bankAccountUSD: supplier.bankAccountUSD ?? '',
+        interbankAccountUSD: supplier.interbankAccountUSD ?? '',
+        entityBankAccountUSD: supplier.entityBankAccountUSD ?? '',
         returnPolicy: supplier.returnPolicy,
+        appliesWithholding: supplier.appliesWithholding,
         rating: supplier.rating,
         status: supplier.status,
         lines: supplier.lines?.split('-') ?? [],
@@ -123,7 +154,7 @@ export const SupplierForm = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-2">
+    <div className="max-w-6xl mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditing
@@ -142,117 +173,153 @@ export const SupplierForm = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <FormInput
-              id="ruc"
-              name="ruc"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.ruc}
-              value={formData.ruc}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <FormInput
+            id="ruc"
+            name="ruc"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.ruc}
+            value={formData.ruc}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <FormInput
-              id="businessName"
-              name="businessName"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.business_name}
-              value={formData.businessName}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <FormInput
+            id="businessName"
+            name="businessName"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.business_name}
+            value={formData.businessName}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <FormInput
-              id="address"
-              name="address"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.address}
-              value={formData.address}
-              onChange={handleChange}
-            />
-          </div>
+          <FormInput
+            id="address"
+            name="address"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.address}
+            value={formData.address}
+            onChange={handleChange}
+          />
 
-          <div>
-            <FormInput
-              id="contactPerson"
-              name="contactPerson"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.contact_person}
-              value={formData.contactPerson}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <FormInput
+            id="contactPerson"
+            name="contactPerson"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.contact_person}
+            value={formData.contactPerson}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <FormInput
-              id="mobile"
-              name="mobile"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.mobile}
-              value={formData.mobile}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <FormInput
+            id="mobile"
+            name="mobile"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.mobile}
+            value={formData.mobile}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <FormInput
-              id="email"
-              name="email"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.email}
-              value={formData.email}
-              onChange={handleChange}
-              type="email"
-            />
-          </div>
+          <FormInput
+            id="email"
+            name="email"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.email}
+            value={formData.email}
+            onChange={handleChange}
+            type="email"
+          />
 
-          <div>
-            <FormInput
-              id="bankAccount"
-              name="bankAccount"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.bank_account}
-              value={formData.bankAccount}
-              onChange={handleChange}
-            />
-          </div>
+          <FormInput
+            id="entityBankAccountPEN"
+            name="entityBankAccountPEN"
+            label={
+              WAREHOUSE_TEXTS.suppliers.form.fields.entity_bank_account_pen
+            }
+            value={formData.entityBankAccountPEN}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <FormSelect
-              name="status"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.status}
-              value={formData.status}
-              onChange={handleChange}
-              required
-            >
-              <option value={SupplierStatus.ACTIVE}>
-                {WAREHOUSE_TEXTS.suppliers.table.status.active}
-              </option>
-              <option value={SupplierStatus.INACTIVE}>
-                {WAREHOUSE_TEXTS.suppliers.table.status.inactive}
-              </option>
-              <option value={SupplierStatus.BLACKLISTED}>
-                {WAREHOUSE_TEXTS.suppliers.table.status.blacklisted}
-              </option>
-            </FormSelect>
-          </div>
+          <FormInput
+            id="bankAccountPEN"
+            name="bankAccountPEN"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.bank_account_pen}
+            value={formData.bankAccountPEN}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <FormInput
-              id="rating"
-              name="rating"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.rating}
-              value={formData.rating}
-              onChange={handleChange}
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-            />
-          </div>
+          <FormInput
+            id="interbankAccountPEN"
+            name="interbankAccountPEN"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.interbank_account_pen}
+            value={formData.interbankAccountPEN}
+            onChange={handleChange}
+            required
+          />
 
-          <div className="md:col-span-2">
+          <FormInput
+            id="entityBankAccountUSD"
+            name="entityBankAccountUSD"
+            label={
+              WAREHOUSE_TEXTS.suppliers.form.fields.entity_bank_account_usd
+            }
+            value={formData.entityBankAccountUSD}
+            onChange={handleChange}
+            required
+          />
+
+          <FormInput
+            id="bankAccountUSD"
+            name="bankAccountUSD"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.bank_account_usd}
+            value={formData.bankAccountUSD}
+            onChange={handleChange}
+            required
+          />
+
+          <FormInput
+            id="interbankAccountUSD"
+            name="interbankAccountUSD"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.interbank_account_usd}
+            value={formData.interbankAccountUSD}
+            onChange={handleChange}
+            required
+          />
+
+          <FormCheckbox
+            id="appliesWithholding"
+            name="appliesWithholding"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.applies_withholding}
+            checked={formData.appliesWithholding}
+            onChange={handleChange}
+          />
+
+          <FormCheckbox
+            id="returnPolicy"
+            name="returnPolicy"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.return_policy}
+            checked={formData.returnPolicy}
+            onChange={handleChange}
+          />
+
+          <FormSelect
+            name="status"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.status}
+            value={formData.status}
+            onChange={handleChange}
+            required
+          >
+            <option value={SupplierStatus.ACTIVE}>
+              {WAREHOUSE_TEXTS.suppliers.table.status.active}
+            </option>
+            <option value={SupplierStatus.INACTIVE}>
+              {WAREHOUSE_TEXTS.suppliers.table.status.inactive}
+            </option>
+            <option value={SupplierStatus.BLACKLISTED}>
+              {WAREHOUSE_TEXTS.suppliers.table.status.blacklisted}
+            </option>
+          </FormSelect>
+
+          <div className="md:col-span-3">
             <MultiSelect
               label={WAREHOUSE_TEXTS.suppliers.form.fields.categories}
               options={UNIQUE_CATEGORIES.map(category => ({
@@ -263,16 +330,6 @@ export const SupplierForm = () => {
               onChange={selectedLines =>
                 setFormData(prev => ({ ...prev, lines: selectedLines }))
               }
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <FormCheckbox
-              id="returnPolicy"
-              name="returnPolicy"
-              label={WAREHOUSE_TEXTS.suppliers.form.fields.return_policy}
-              checked={formData.returnPolicy}
-              onChange={handleChange}
             />
           </div>
         </div>

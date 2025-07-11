@@ -18,6 +18,13 @@ export const purchaseOrderService = {
     return response;
   },
 
+  async getById(id: number): Promise<PurchaseOrder> {
+    const response = await createApiCall<PurchaseOrder>(`${BASE_URL}/${id}`, {
+      method: 'GET',
+    });
+    return response;
+  },
+
   // Obtener resumen de órdenes de compra por cotización
   async getQuotationSummary(quotationRequestId: number): Promise<{
     totalPurchaseOrders: number;

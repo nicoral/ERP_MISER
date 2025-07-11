@@ -8,6 +8,7 @@ import {
   Logger,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GeneralSettingsService } from '../services/generalSettings.service';
@@ -80,5 +81,11 @@ export class GeneralSettingsController {
   @AuditDescription('Consulta de impuesto general')
   async getGeneralTax() {
     return await this.generalSettingsService.getGeneralTax();
+  }
+
+  @Get('ruc-data')
+  @AuditDescription('Consulta de datos de RUC')
+  async getRUCData(@Query('ruc') ruc: string) {
+    return await this.generalSettingsService.getRUCData(ruc);
   }
 }

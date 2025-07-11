@@ -4,6 +4,10 @@ export interface CostCenter {
   code?: string;
   serial?: string;
   codeMine?: string;
+  model?: string;
+  brand?: string;
+  licensePlate?: string;
+  owner?: string;
   parent?: CostCenter;
   children?: CostCenter[];
   createdAt: Date;
@@ -16,6 +20,10 @@ export interface CreateCostCenter {
   code?: string;
   serial?: string;
   codeMine?: string;
+  model?: string;
+  brand?: string;
+  licensePlate?: string;
+  owner?: string;
   children?: CreateCostCenter[];
 }
 
@@ -33,4 +41,10 @@ export interface UpdateCostCenterChildren {
   code?: string;
   serial?: string;
   codeMine?: string;
+}
+
+export interface ImportCostCenterResult {
+  success: number;
+  errors: Array<{ row: number; error: string }>;
+  total: number;
 }

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ApisNetRUCData } from '../interfaces/generalSettings/apisNet.interface';
 
 export interface SunatExchangeRate {
   date: string;
@@ -128,5 +129,17 @@ export class SunatProvider {
   parseDate(dateStr: string): Date {
     const [day, month, year] = dateStr.split('/').map(Number);
     return new Date(year, month - 1, day);
+  }
+
+  async getRUCData(ruc: string): Promise<ApisNetRUCData> {
+    const response = await fetch(`https://api.apis.net.pe/v2/sunat/ruc?numero=${ruc}`, {
+      method: 'GET',
+      headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${process.env.APIS_NET_TOKEN}`,
+      },
+    });
+
+    return response.json() as Promise<ApisNetRUCData>;
   }
 }

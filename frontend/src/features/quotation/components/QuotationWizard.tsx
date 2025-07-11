@@ -502,6 +502,7 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
       case QuotationStep.SUPPLIER_SELECTION:
         return (
           <SupplierSelection
+            requirement={requirement!}
             selectedSuppliers={selectedSuppliers}
             onComplete={handleStepComplete}
           />

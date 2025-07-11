@@ -343,7 +343,13 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
       {/* Botones de acción */}
       <div className="flex justify-between">
         <button
-          onClick={() => navigate(ROUTES.REQUIREMENTS)}
+          onClick={() =>
+            navigate(
+              type === 'ARTICLE'
+                ? ROUTES.REQUIREMENTS_ARTICLES
+                : ROUTES.REQUIREMENTS_SERVICES
+            )
+          }
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
         >
           Volver

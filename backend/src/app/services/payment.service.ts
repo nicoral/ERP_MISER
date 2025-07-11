@@ -96,6 +96,7 @@ export class PaymentService {
       where: { id },
       relations: [
         'purchaseOrder',
+        'purchaseOrder.supplier',
         'approvedBy',
         'paymentDetails',
         'paymentDetails.createdBy',

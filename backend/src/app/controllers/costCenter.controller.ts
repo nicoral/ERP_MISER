@@ -8,6 +8,10 @@ import {
   Put,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
 import { CostCenterService } from '../services/costCenter.service';
 import { CreateCostCenterDto } from '../dto/costCenter/create-costCenter.dto';
@@ -16,6 +20,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 
 @Controller('cost-centers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -62,5 +68,36 @@ export class CostCenterController {
   @AuditDescription('Eliminación de centro de costo')
   async deleteCostCenter(@Param('id') id: number) {
     return this.costCenterService.deleteCostCenter(id);
+  }
+
+  @Post('excel/import')
+  @UseInterceptors(FileInterceptor('file'))
+  @RequirePermissions('create_cost_centers')
+  @AuditDescription('Importación de equipos desde Excel')
+  async importFromExcel(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No se ha proporcionado ningún archivo');
+    }
+
+    const result = await this.costCenterService.importFromExcel(file);
+    return {
+      message: `Importación completada. ${result.success} equipos importados exitosamente.`,
+      ...result,
+    };
+  }
+
+  @Get('excel/template')
+  @RequirePermissions('create_cost_centers')
+  @AuditDescription('Descarga de template para importación de equipos')
+  async downloadTemplate(@Res() res: Response) {
+    const template = this.costCenterService.generateCostCenterTemplate();
+    
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="template-equipos.xlsx"',
+      'Content-Length': template.length,
+    });
+
+    res.end(template);
   }
 }
