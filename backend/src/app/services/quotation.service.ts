@@ -1554,9 +1554,7 @@ export class QuotationService {
 
     // === AUTOGENERATE PAYMENT GROUP IF QUOTATION BECAME APPROVED ===
     if (becameApproved) {
-      this.purchaseOrderService.approvePurchaseOrders(
-        quotationRequest.id,
-      );
+      this.purchaseOrderService.approvePurchaseOrders(quotationRequest.id);
     }
 
     // Actualizar progreso
@@ -1640,6 +1638,12 @@ export class QuotationService {
           'finalSelection',
         ],
       });
+
+      if (quotationRequest?.status === QuotationRequestStatus.APPROVED) {
+        await this.quotationRequestRepository.update(quotationRequestId, {
+          progress: 100,
+        });
+      }
 
       if (quotationRequest) {
         const progress = this.calculateQuotationProgress(quotationRequest);

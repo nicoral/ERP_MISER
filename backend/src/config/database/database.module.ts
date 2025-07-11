@@ -27,6 +27,8 @@ import { RequirementService } from '../../app/entities/RequirementService.entity
 import { PaymentDetail } from '../../app/entities/PaymentDetail.entity';
 import { PurchaseOrder } from '../../app/entities/PurchaseOrder.entity';
 import { PaymentGroup } from '../../app/entities/PaymentGroup.entity';
+import { EntryPart } from '../../app/entities/EntryPart.entity';
+import { EntryPartArticle } from '../../app/entities/EntryPartArticle.entity';
 
 @Global()
 @Module({
@@ -59,6 +61,8 @@ import { PaymentGroup } from '../../app/entities/PaymentGroup.entity';
         PaymentGroup,
         PaymentDetail,
         PurchaseOrder,
+        EntryPart,
+        EntryPartArticle,
       ],
     }),
   ],

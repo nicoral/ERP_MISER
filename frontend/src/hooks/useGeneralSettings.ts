@@ -7,9 +7,9 @@ import {
   updateExchangeRate,
   shouldUpdateExchangeRate,
   uploadLogo,
-  type UpdateGeneralSettingsDto,
   getGeneralTax,
 } from '../services/api/generalSettingsService';
+import type { UpdateGeneralSettingsDto } from '../types/generalSettings';
 
 /**
  * Hook para obtener las configuraciones generales

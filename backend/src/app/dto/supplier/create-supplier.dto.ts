@@ -60,7 +60,7 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsBoolean()
   appliesWithholding: boolean;
-  
+
   @IsOptional()
   @IsBoolean()
   returnPolicy: boolean;

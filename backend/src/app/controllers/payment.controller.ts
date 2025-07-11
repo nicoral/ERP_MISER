@@ -37,7 +37,7 @@ export class PaymentController {
   @RequirePermissions('create_payment')
   @AuditDescription('Creación de grupo de pagos')
   async createPaymentGroup(
-    @Body() createPaymentGroupDto: CreatePaymentGroupDto,
+    @Body() createPaymentGroupDto: CreatePaymentGroupDto
   ): Promise<PaymentGroup> {
     return await this.paymentService.createPaymentGroup(createPaymentGroupDto);
   }

@@ -91,9 +91,10 @@ export class CostCenterController {
   @AuditDescription('Descarga de template para importación de equipos')
   async downloadTemplate(@Res() res: Response) {
     const template = this.costCenterService.generateCostCenterTemplate();
-    
+
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': 'attachment; filename="template-equipos.xlsx"',
       'Content-Length': template.length,
     });

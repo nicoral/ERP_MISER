@@ -34,7 +34,7 @@ export class PaymentService {
   // ===== PAYMENT GROUP METHODS =====
 
   async createPaymentGroup(
-    createPaymentGroupDto: CreatePaymentGroupDto,
+    createPaymentGroupDto: CreatePaymentGroupDto
   ): Promise<PaymentGroup> {
     const { purchaseOrderId, ...paymentGroupData } = createPaymentGroupDto;
 
@@ -293,8 +293,10 @@ export class PaymentService {
     if (!paymentGroup) return;
 
     // Calcular el monto total pagado
-    const paidAmount = paymentGroup.paymentDetails
-      .reduce((sum, payment) => sum + (+payment.amount), 0);
+    const paidAmount = paymentGroup.paymentDetails.reduce(
+      (sum, payment) => sum + +payment.amount,
+      0
+    );
 
     // Actualizar el PaymentGroup
     paymentGroup.paidAmount = paidAmount;
@@ -315,14 +317,21 @@ export class PaymentService {
     APPROVED: number;
     PARTIAL: number;
     CANCELLED: number;
-  }
-  > {
+  }> {
     const paymentGroups = await this.paymentGroupRepository.find();
     return {
-      PENDING: paymentGroups.filter(group => group.status === PaymentStatus.PENDING).length,
-      APPROVED: paymentGroups.filter(group => group.status === PaymentStatus.COMPLETED).length,
-      PARTIAL: paymentGroups.filter(group => group.status === PaymentStatus.PARTIAL).length,
-      CANCELLED: paymentGroups.filter(group => group.status === PaymentStatus.CANCELLED).length,
+      PENDING: paymentGroups.filter(
+        group => group.status === PaymentStatus.PENDING
+      ).length,
+      APPROVED: paymentGroups.filter(
+        group => group.status === PaymentStatus.COMPLETED
+      ).length,
+      PARTIAL: paymentGroups.filter(
+        group => group.status === PaymentStatus.PARTIAL
+      ).length,
+      CANCELLED: paymentGroups.filter(
+        group => group.status === PaymentStatus.CANCELLED
+      ).length,
     };
   }
 }

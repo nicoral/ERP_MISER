@@ -148,6 +148,7 @@ const AppRoutes = () => {
           <Route path={ROUTES.PAYMENT_DETAILS} element={<PaymentDetails />} />
           <Route path={ROUTES.ENTRY_PARTS} element={<EntryPartList />} />
           <Route path={ROUTES.ENTRY_PART_CREATE} element={<EntryPartForm />} />
+          <Route path={ROUTES.ENTRY_PART_EDIT} element={<EntryPartForm />} />
           <Route
             path={ROUTES.ENTRY_PART_DETAILS}
             element={<EntryPartDetails />}

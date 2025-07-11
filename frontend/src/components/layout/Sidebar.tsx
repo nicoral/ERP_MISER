@@ -124,7 +124,7 @@ const menuItems: MenuItem[] = [
       {
         label: 'Parte de ingreso',
         path: ROUTES.ENTRY_PARTS,
-        permission: [],
+        permission: ['view_entry_parts'],
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
       {

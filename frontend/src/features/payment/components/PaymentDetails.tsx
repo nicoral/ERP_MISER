@@ -443,7 +443,7 @@ export const PaymentDetails: React.FC = () => {
       </div>
 
       {/* General Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             Información General
@@ -529,6 +529,24 @@ export const PaymentDetails: React.FC = () => {
             </div>
           </div>
         </div>
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Proveedor
+          </h3>
+          <div
+            className="mt-1 cursor-pointer hover:underline rounded-md p-2"
+            onClick={() => setShowDetailsModal(true)}
+          >
+            <p className="text-base font-medium text-blue-600 dark:text-blue-400">
+              {payment.purchaseOrder.supplierName}
+            </p>
+            {payment.purchaseOrder.supplierRUC && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                RUC: {payment.purchaseOrder.supplierRUC}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Payment Details - Visual Cards */}
@@ -549,19 +567,6 @@ export const PaymentDetails: React.FC = () => {
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {detail.code}
                     </h4>
-                    <div
-                      className="mt-1 cursor-pointer hover:underline rounded-md p-2"
-                      onClick={() => setShowDetailsModal(true)}
-                    >
-                      <p className="text-base font-medium text-blue-600 dark:text-blue-400">
-                        {payment.purchaseOrder.supplierName}
-                      </p>
-                      {payment.purchaseOrder.supplierRUC && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          RUC: {payment.purchaseOrder.supplierRUC}
-                        </p>
-                      )}
-                    </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <span
@@ -844,7 +849,7 @@ export const PaymentDetails: React.FC = () => {
                       if (newAmount > pendingAmount) {
                         showError(
                           'Error',
-                          `El monto no puede superar S/ ${pendingAmount.toFixed(2)}`
+                          `El monto no puede superar S/ ${(+pendingAmount).toFixed(2)}`
                         );
                         return;
                       }

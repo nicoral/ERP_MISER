@@ -17,6 +17,7 @@ import { Requirement } from './Requirement.entity';
 import { QuotationRequest } from './QuotationRequest.entity';
 import { FinalSelection } from './FinalSelection.entity';
 import { PaymentDetail } from './PaymentDetail.entity';
+import { EntryPart } from './EntryPart.entity';
 
 @Entity()
 export class Employee {
@@ -107,6 +108,9 @@ export class Employee {
 
   @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.createdBy)
   paymentDetails: PaymentDetail[];
+
+  @OneToMany(() => EntryPart, entryPart => entryPart.employee)
+  entryParts: EntryPart[];
 
   @CreateDateColumn({
     name: 'created_at',

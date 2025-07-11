@@ -18,6 +18,8 @@ import * as path from 'path';
 import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
 import { numberToSpanishWordsCurrency } from '../utils/utils';
+import { EntryPartService } from './entryPart.service';
+import { EntryPartStatus, InspectionStatus } from '../common/enum';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -30,7 +32,8 @@ export class PurchaseOrderService {
     private readonly quotationRequestRepository: Repository<QuotationRequest>,
     @InjectRepository(PaymentGroup)
     private readonly paymentGroupRepository: Repository<PaymentGroup>,
-    private readonly qrService: QRService
+    private readonly qrService: QRService,
+    private readonly entryPartService: EntryPartService
   ) {}
 
   // ========================================
@@ -209,7 +212,10 @@ export class PurchaseOrderService {
     const data = {
       code: purchaseOrder.code,
       date: purchaseOrder.issueDate
-        ? new Date(purchaseOrder.issueDate).toISOString().slice(0, 10).replace(/-/g, '/')
+        ? new Date(purchaseOrder.issueDate)
+            .toISOString()
+            .slice(0, 10)
+            .replace(/-/g, '/')
         : new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
       orderNumber: purchaseOrder.orderNumber,
       issueDate: purchaseOrder.issueDate
@@ -395,7 +401,9 @@ export class PurchaseOrderService {
       await this.purchaseOrderRepository.save(purchaseOrder);
 
     // Generamos el código con el formato: {warehouse_id}-{purchase_order_id}
-    const warehouseId = quotationRequest.requirement?.warehouse?.id.toString().padStart(3, '0') || '001';
+    const warehouseId =
+      quotationRequest.requirement?.warehouse?.id.toString().padStart(3, '0') ||
+      '001';
     const purchaseOrderId = savedPurchaseOrder.id.toString().padStart(6, '0');
     const code = `${warehouseId}-${purchaseOrderId}`;
 
@@ -462,7 +470,7 @@ export class PurchaseOrderService {
    * @returns Array de PaymentGroups creados
    */
   async approvePurchaseOrders(
-    quotationRequestId: number,
+    quotationRequestId: number
   ): Promise<PaymentGroup[]> {
     // Obtener todas las órdenes de compra para esta cotización
     const purchaseOrders = await this.purchaseOrderRepository.find({
@@ -475,6 +483,7 @@ export class PurchaseOrderService {
         'requirement.employee',
         'requirement.costCenter',
         'costCenterEntity',
+        'requirement.warehouse',
       ],
     });
 
@@ -519,11 +528,35 @@ export class PurchaseOrderService {
         approvedBy: { id: purchaseOrder.requirement.employee.id },
       });
 
-      const savedPaymentGroup = await this.paymentGroupRepository.save(paymentGroup);
+      const savedPaymentGroup =
+        await this.paymentGroupRepository.save(paymentGroup);
       createdPaymentGroups.push(savedPaymentGroup);
 
       this.logger.log(
         `Grupo de pagos creado: ${savedPaymentGroup.code} para orden de compra ${purchaseOrder.code}`
+      );
+
+      // Generar parte de ingreso
+      await this.entryPartService.create(
+        {
+          warehouseId: purchaseOrder.requirement.warehouse.id,
+          purchaseOrderId: purchaseOrder.id,
+          observation: purchaseOrder.observation,
+          entryDate: new Date().toISOString(),
+          entryPartArticles: purchaseOrder.items.map(item => ({
+            articleId: item.item,
+            quantity: item.quantity,
+            code: item.code,
+            name: item.description,
+            unit: item.unit,
+            received: 0,
+            conform: false,
+            qualityCert: false,
+            guide: false,
+            inspection: InspectionStatus.PENDING,
+          })),
+        },
+        EntryPartStatus.PENDING
       );
     }
 

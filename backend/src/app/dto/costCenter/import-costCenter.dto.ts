@@ -14,4 +14,4 @@ export interface ImportCostCenterResult {
   success: number;
   errors: Array<{ row: number; error: string }>;
   total: number;
-} 
+}

@@ -11,6 +11,7 @@ import { CostCenter } from '../entities/CostCenter.entity';
 import { PaymentGroup } from '../entities/PaymentGroup.entity';
 import { QRService } from '../services/qr.service';
 import { EmployeeModule } from './employee.module';
+import { EntryPartModule } from './entryPart.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EmployeeModule } from './employee.module';
       PaymentGroup,
     ]),
     EmployeeModule,
+    EntryPartModule,
   ],
   controllers: [PurchaseOrderController],
   providers: [PurchaseOrderService, QRService],

@@ -41,8 +41,6 @@ export class CreateCostCenterDto {
   @IsString()
   owner: string;
 
-
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateCostCenterChildrenDto)

@@ -1,11 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { In, Repository } from 'typeorm';
 import { CostCenter } from '../entities/CostCenter.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateCostCenterDto } from '../dto/costCenter/create-costCenter.dto';
 import { UpdateCostCenterDto } from '../dto/costCenter/update-costCenter.dto';
 import { ExcelImportService } from './excel-import.service';
-import { ImportCostCenterRowDto, ImportCostCenterResult } from '../dto/costCenter/import-costCenter.dto';
+import {
+  ImportCostCenterRowDto,
+  ImportCostCenterResult,
+} from '../dto/costCenter/import-costCenter.dto';
 
 @Injectable()
 export class CostCenterService {
@@ -17,7 +24,9 @@ export class CostCenterService {
   async findAllCostCenters(page: number, limit: number, search?: string) {
     const query = this.costCenterRepository.createQueryBuilder('costCenter');
     if (search) {
-      query.where('costCenter.description LIKE :search', { search: `%${search}%` });
+      query.where('costCenter.description LIKE :search', {
+        search: `%${search}%`,
+      });
     }
     const [data, total] = await query
       .leftJoinAndSelect('costCenter.children', 'children')
@@ -109,10 +118,13 @@ export class CostCenterService {
     await this.costCenterRepository.softRemove(costCenter);
   }
 
-  async importFromExcel(file: Express.Multer.File): Promise<ImportCostCenterResult> {
+  async importFromExcel(
+    file: Express.Multer.File
+  ): Promise<ImportCostCenterResult> {
     try {
       // Parsear el archivo Excel
-      const costCentersData = await this.excelImportService.parseCostCenterExcel(file);
+      const costCentersData =
+        await this.excelImportService.parseCostCenterExcel(file);
 
       const results: ImportCostCenterResult = {
         success: 0,
@@ -121,7 +133,8 @@ export class CostCenterService {
       };
 
       // Pre-validar todos los datos antes de procesar
-      const validationResults = await this.preValidateCostCenters(costCentersData);
+      const validationResults =
+        await this.preValidateCostCenters(costCentersData);
       results.errors.push(...validationResults.errors);
 
       // Filtrar centros de costo válidos para procesamiento
@@ -166,7 +179,10 @@ export class CostCenterService {
       const rowNumber = i + 2; // +2 porque Excel empieza en 1 y la primera fila son headers
 
       // Validar descripción
-      if (!costCenter.description || costCenter.description.trim().length === 0) {
+      if (
+        !costCenter.description ||
+        costCenter.description.trim().length === 0
+      ) {
         errors.push({
           row: rowNumber,
           error: 'La descripción es obligatoria',
@@ -206,7 +222,10 @@ export class CostCenterService {
 
   private async processCostCenterBatch(
     costCenters: ImportCostCenterRowDto[]
-  ): Promise<{ success: number; errors: Array<{ row: number; error: string }> }> {
+  ): Promise<{
+    success: number;
+    errors: Array<{ row: number; error: string }>;
+  }> {
     const results = {
       success: 0,
       errors: [] as Array<{ row: number; error: string }>,
@@ -220,9 +239,10 @@ export class CostCenterService {
         // Buscar el centro de costo padre si se especifica
         let parentCostCenter: CostCenter | undefined = undefined;
         if (costCenter.parentCode && costCenter.parentCode.trim().length > 0) {
-          parentCostCenter = await this.costCenterRepository.findOne({
-            where: { code: costCenter.parentCode },
-          }) || undefined;
+          parentCostCenter =
+            (await this.costCenterRepository.findOne({
+              where: { code: costCenter.parentCode },
+            })) || undefined;
         }
 
         // Crear el equipo

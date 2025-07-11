@@ -435,9 +435,7 @@ export class EmployeeService {
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
-    if (employee.signature) {
-      await this.cloudinaryService.deleteFile(employee.signature);
-    }
+
     const uploadResult = await this.cloudinaryService.uploadFile(
       file,
       'employees/signatures'

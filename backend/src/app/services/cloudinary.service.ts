@@ -17,12 +17,13 @@ export class CloudinaryService {
           {
             folder: `mixer/${folder}`,
             resource_type: 'auto',
-            transformation: withTransformation && !isPDF
-              ? [
-                  { width: 500, crop: 'scale' },
-                  { quality: 'auto', fetch_format: 'auto' },
-                ]
-              : [],
+            transformation:
+              withTransformation && !isPDF
+                ? [
+                    { width: 500, crop: 'scale' },
+                    { quality: 'auto', fetch_format: 'auto' },
+                  ]
+                : [],
           },
           (error, uploadResult) => {
             if (error) return reject(error);
@@ -40,11 +41,11 @@ export class CloudinaryService {
   async deleteFile(urlFile: string) {
     const urlParts = urlFile.split('/');
     const uploadIndex = urlParts.findIndex(part => part === 'upload');
-    
+
     if (uploadIndex === -1 || uploadIndex + 2 >= urlParts.length) {
       throw new Error('Invalid Cloudinary URL format');
     }
-    
+
     const pathAfterUpload = urlParts.slice(uploadIndex + 2).join('/');
     const publicId = pathAfterUpload.split('.')[0];
 

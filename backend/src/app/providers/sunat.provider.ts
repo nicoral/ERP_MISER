@@ -132,13 +132,16 @@ export class SunatProvider {
   }
 
   async getRUCData(ruc: string): Promise<ApisNetRUCData> {
-    const response = await fetch(`https://api.apis.net.pe/v2/sunat/ruc?numero=${ruc}`, {
-      method: 'GET',
-      headers: {
+    const response = await fetch(
+      `https://api.apis.net.pe/v2/sunat/ruc?numero=${ruc}`,
+      {
+        method: 'GET',
+        headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${process.env.APIS_NET_TOKEN}`,
-      },
-    });
+        },
+      }
+    );
 
     return response.json() as Promise<ApisNetRUCData>;
   }

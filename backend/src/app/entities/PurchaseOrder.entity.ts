@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToOne,
+  OneToMany,
 } from 'typeorm';
 import { QuotationRequest } from './QuotationRequest.entity';
 import { Supplier } from './Supplier.entity';
@@ -14,6 +15,7 @@ import { Employee } from './Employee.entity';
 import { Requirement } from './Requirement.entity';
 import { CostCenter } from './CostCenter.entity';
 import { PaymentGroup } from './PaymentGroup.entity';
+import { EntryPart } from './EntryPart.entity';
 
 export interface PurchaseOrderItem {
   item: number;
@@ -127,6 +129,10 @@ export class PurchaseOrder {
     nullable: true,
   })
   paymentGroup: PaymentGroup;
+
+  // Relación con las partes de entrada
+  @OneToMany(() => EntryPart, entryPart => entryPart.purchaseOrder)
+  entryParts: EntryPart[];
 
   // Timestamps
   @CreateDateColumn({

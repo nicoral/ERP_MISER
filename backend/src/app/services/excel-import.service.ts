@@ -656,17 +656,7 @@ export class ExcelImportService {
         'Empresa Minera S.A.',
         '',
       ],
-      [
-        'Cargador Frontal',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        'CAT001',
-      ],
+      ['Cargador Frontal', '', '', '', '', '', '', '', 'CAT001'],
       [
         'Camión Volquete',
         'VOL001',

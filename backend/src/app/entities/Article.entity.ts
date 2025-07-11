@@ -12,6 +12,7 @@ import {
 import { WarehouseArticle } from './WarehouseArticle.entity';
 import { Brand } from './Brand.entity';
 import { RequirementArticle } from './RequirementArticle.entity';
+import { EntryPartArticle } from './EntryPartArticle.entity';
 
 @Entity()
 export class Article {
@@ -54,6 +55,12 @@ export class Article {
     requirementArticle => requirementArticle.article
   )
   requirementArticles: RequirementArticle[];
+
+  @OneToMany(
+    () => EntryPartArticle,
+    entryPartArticle => entryPartArticle.article
+  )
+  entryPartArticles: EntryPartArticle[];
 
   @ManyToOne(() => Brand, brand => brand.article)
   @JoinColumn({ name: 'brand_id' })

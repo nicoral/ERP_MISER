@@ -7,7 +7,11 @@ import { EmployeeModule } from './employee.module';
 import { ExcelImportModule } from './excel-import.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CostCenter]), EmployeeModule, ExcelImportModule],
+  imports: [
+    TypeOrmModule.forFeature([CostCenter]),
+    EmployeeModule,
+    ExcelImportModule,
+  ],
   controllers: [CostCenterController],
   providers: [CostCenterService],
   exports: [CostCenterService],

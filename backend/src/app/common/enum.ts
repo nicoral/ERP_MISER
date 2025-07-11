@@ -25,3 +25,14 @@ export enum Currency {
   PEN = 'PEN',
   USD = 'USD',
 }
+
+export enum EntryPartStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum InspectionStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+}

@@ -12,6 +12,7 @@ import {
 import { Employee } from './Employee.entity';
 import { WarehouseArticle } from './WarehouseArticle.entity';
 import { Requirement } from './Requirement.entity';
+import { EntryPart } from './EntryPart.entity';
 
 @Entity()
 export class Warehouse {
@@ -35,6 +36,9 @@ export class Warehouse {
 
   @Column('decimal', { name: 'valued', nullable: false })
   valued: number;
+
+  @OneToMany(() => EntryPart, entryPart => entryPart.warehouse)
+  entryParts: EntryPart[];
 
   @ManyToOne(() => Employee, employee => employee.warehouses)
   manager: Employee;

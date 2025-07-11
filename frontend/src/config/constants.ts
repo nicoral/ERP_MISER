@@ -61,6 +61,7 @@ export const ROUTES = {
   ENTRY_PARTS: '/entry-parts',
   ENTRY_PART_DETAILS: '/entry-parts/:id/details',
   ENTRY_PART_CREATE: '/entry-parts/create',
+  ENTRY_PART_EDIT: '/entry-parts/:id/edit',
 } as const;
 
 export const MODULES = [
