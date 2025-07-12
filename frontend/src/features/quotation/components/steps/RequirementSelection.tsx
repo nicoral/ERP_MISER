@@ -213,21 +213,18 @@ export const RequirementSelection: React.FC<RequirementSelectionProps> = ({
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         {requirement.observation}
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        <div>
-                          <span className="font-medium">Centro de costo:</span>{' '}
-                          {requirement.costCenter.description}
-                        </div>
-                        <div>
-                          <span className="font-medium">Solicitante:</span>{' '}
-                          {requirement.employee.firstName}{' '}
-                          {requirement.employee.lastName}
-                        </div>
-                        <div>
-                          <span className="font-medium">Artículos:</span>{' '}
-                          {requirement.requirementArticles?.length || 0}{' '}
-                          productos
-                        </div>
+                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                        <span>
+                          📦 {requirement.requirementArticles?.length || 0} artículos
+                        </span>
+                        {requirement.requirementServices && requirement.requirementServices.length > 0 && (
+                          <span>
+                            🔧 {requirement.requirementServices.length} servicios
+                          </span>
+                        )}
+                        <span>
+                          📅 {new Date(requirement.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                     <div className="ml-4">

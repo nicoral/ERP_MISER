@@ -56,19 +56,19 @@ const OrderStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-// Componente para la selección de productos
-const ProductSelection: React.FC<{
+// Componente para la selección de artículos
+const ArticleSelection: React.FC<{
   supplierId: number;
   requirementArticles: Requirement['requirementArticles'];
-  selectedProducts: Set<number>;
-  onProductToggle: (supplierId: number, articleId: number) => void;
+  selectedArticles: Set<number>;
+  onArticleToggle: (supplierId: number, articleId: number) => void;
   onSelectAll: (supplierId: number) => void;
   onDeselectAll: (supplierId: number) => void;
 }> = ({
   supplierId,
   requirementArticles,
-  selectedProducts,
-  onProductToggle,
+  selectedArticles,
+  onArticleToggle,
   onSelectAll,
   onDeselectAll,
 }) => {
@@ -76,7 +76,7 @@ const ProductSelection: React.FC<{
     <div>
       <div className="flex items-center justify-between mb-2">
         <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-          Seleccionar productos
+          Seleccionar artículos
         </h5>
         <div className="flex space-x-2">
           <Button onClick={() => onSelectAll(supplierId)} className="text-xs">
@@ -89,7 +89,7 @@ const ProductSelection: React.FC<{
       </div>
       <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded">
         {requirementArticles.map(article => {
-          const isSelected = selectedProducts.has(article.id);
+          const isSelected = selectedArticles.has(article.id);
           return (
             <div
               key={article.id}
@@ -100,7 +100,7 @@ const ProductSelection: React.FC<{
               <input
                 type="checkbox"
                 checked={isSelected}
-                onChange={() => onProductToggle(supplierId, article.id)}
+                onChange={() => onArticleToggle(supplierId, article.id)}
                 className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <div className="flex-1">
@@ -119,20 +119,90 @@ const ProductSelection: React.FC<{
   );
 };
 
+// Componente para la selección de servicios
+const ServiceSelection: React.FC<{
+  supplierId: number;
+  requirementServices: Requirement['requirementServices'];
+  selectedServices: Set<number>;
+  onServiceToggle: (supplierId: number, serviceId: number) => void;
+  onSelectAll: (supplierId: number) => void;
+  onDeselectAll: (supplierId: number) => void;
+}> = ({
+  supplierId,
+  requirementServices,
+  selectedServices,
+  onServiceToggle,
+  onSelectAll,
+  onDeselectAll,
+}) => {
+  if (!requirementServices || requirementServices.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          Seleccionar servicios
+        </h5>
+        <div className="flex space-x-2">
+          <Button onClick={() => onSelectAll(supplierId)} className="text-xs">
+            Seleccionar todos
+          </Button>
+          <Button onClick={() => onDeselectAll(supplierId)} className="text-xs">
+            Deseleccionar
+          </Button>
+        </div>
+      </div>
+      <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded">
+        {requirementServices.map(service => {
+          const isSelected = selectedServices.has(service.id);
+          return (
+            <div
+              key={service.id}
+              className={`flex items-center space-x-3 p-2 text-xs border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
+                isSelected ? 'bg-green-50 dark:bg-green-900/20' : ''
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onServiceToggle(supplierId, service.id)}
+                className="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 dark:text-white">
+                  {service.service.name}
+                </div>
+                <div className="text-gray-500 dark:text-gray-400">
+                  {service.service.code} - {service.duration}{' '}
+                  {service.durationType}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // Componente para la vista previa de la orden
 const OrderPreview: React.FC<{
   order: QuotationOrder | undefined;
   deadline: Date;
-  selectedCount: number;
-  totalQuantity: number;
+  selectedArticlesCount: number;
+  selectedServicesCount: number;
   totalArticles: number;
+  totalServices: number;
   orderNumber: string | undefined;
 }> = ({
   order,
   deadline,
-  selectedCount,
-  totalQuantity,
+  selectedArticlesCount,
+  selectedServicesCount,
   totalArticles,
+  totalServices,
   orderNumber,
 }) => {
   return (
@@ -148,12 +218,15 @@ const OrderPreview: React.FC<{
           <strong>Fecha límite:</strong> {deadline.toLocaleDateString()}
         </div>
         <div>
-          <strong>Productos seleccionados:</strong> {selectedCount} de{' '}
+          <strong>Artículos seleccionados:</strong> {selectedArticlesCount} de{' '}
           {totalArticles} artículos
         </div>
-        <div>
-          <strong>Cantidad total:</strong> {totalQuantity} unidades
-        </div>
+        {totalServices > 0 && (
+          <div>
+            <strong>Servicios seleccionados:</strong> {selectedServicesCount} de{' '}
+            {totalServices} servicios
+          </div>
+        )}
         <div>
           <strong>Términos:</strong> {order?.terms || 'No definidos'}
         </div>
@@ -166,7 +239,8 @@ const OrderPreview: React.FC<{
 const ActionButtons: React.FC<{
   supplierId: number;
   order: QuotationOrder | undefined;
-  selectedCount: number;
+  selectedArticlesCount: number;
+  selectedServicesCount: number;
   loadingStates: LoadingStates;
   onEditTerms: (supplierId: number) => void;
   onExportPDF: (supplierId: number) => void;
@@ -175,13 +249,16 @@ const ActionButtons: React.FC<{
 }> = ({
   supplierId,
   order,
-  selectedCount,
+  selectedArticlesCount,
+  selectedServicesCount,
   loadingStates,
   onEditTerms,
   onExportPDF,
   onSaveOrder,
   onSendOrder,
 }) => {
+  const totalSelected = selectedArticlesCount + selectedServicesCount;
+
   return (
     <div className="flex flex-wrap gap-2">
       <Button
@@ -196,7 +273,7 @@ const ActionButtons: React.FC<{
         className="text-xs"
         disabled={
           !order ||
-          selectedCount === 0 ||
+          totalSelected === 0 ||
           loadingStates.exportingPdf === supplierId
         }
       >
@@ -213,9 +290,7 @@ const ActionButtons: React.FC<{
         onClick={() => onSaveOrder(supplierId)}
         className="text-xs"
         disabled={
-          !order ||
-          selectedCount === 0 ||
-          loadingStates.savingOrder === supplierId
+          totalSelected === 0 || loadingStates.savingOrder === supplierId
         }
       >
         {loadingStates.savingOrder === supplierId ? (
@@ -232,8 +307,7 @@ const ActionButtons: React.FC<{
         className="text-xs"
         disabled={
           !order ||
-          selectedCount === 0 ||
-          order.status === 'SENT' ||
+          totalSelected === 0 ||
           loadingStates.sendingOrder === supplierId
         }
         variant={order?.status === 'SENT' ? 'outline' : 'primary'}
@@ -286,7 +360,10 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
 
   // Estados principales
   const [orders, setOrders] = useState<Record<number, QuotationOrder>>({});
-  const [selectedProducts, setSelectedProducts] = useState<
+  const [selectedArticles, setSelectedArticles] = useState<
+    Record<number, Set<number>>
+  >({});
+  const [selectedServices, setSelectedServices] = useState<
     Record<number, Set<number>>
   >({});
   const [editingOrder, setEditingOrder] = useState<number | null>(null);
@@ -334,34 +411,50 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
 
     if (quotationRequest) {
       const initialOrders: Record<number, QuotationOrder> = {};
-      const initialSelectedProducts: Record<number, Set<number>> = {};
+      const initialSelectedArticles: Record<number, Set<number>> = {};
+      const initialSelectedServices: Record<number, Set<number>> = {};
 
       quotationRequest.quotationSuppliers.forEach(quotationSupplier => {
         const supplierId = quotationSupplier.supplier.id;
 
         if (quotationSupplier.quotationSupplierArticles.length > 0) {
-          initialOrders[supplierId] = {
-            id: Date.now(),
-            supplierId,
-            requirementId: requirement.id,
-            orderNumber: quotationSupplier.orderNumber,
-            terms: quotationSupplier.terms || 'Términos estándar de cotización',
-            deadline: new Date(deadline),
-            status: quotationSupplier.status,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          const selectedArticleIds = new Set(
+          initialSelectedArticles[supplierId] = new Set(
             quotationSupplier.quotationSupplierArticles.map(
               qsa => qsa.requirementArticle.id
             )
           );
-          initialSelectedProducts[supplierId] = selectedArticleIds;
+        } else {
+          initialSelectedArticles[supplierId] = new Set();
         }
+
+        if (
+          quotationSupplier.quotationSupplierServices &&
+          quotationSupplier.quotationSupplierServices.length > 0
+        ) {
+          initialSelectedServices[supplierId] = new Set(
+            quotationSupplier.quotationSupplierServices.map(
+              qss => qss.requirementService.id
+            )
+          );
+        } else {
+          initialSelectedServices[supplierId] = new Set();
+        }
+
+        initialOrders[supplierId] = {
+          id: Date.now(),
+          supplierId,
+          requirementId: quotationRequest.requirement.id,
+          orderNumber: quotationSupplier.orderNumber,
+          terms: quotationSupplier.terms || 'Términos estándar de cotización',
+          deadline: new Date(deadline),
+          status: quotationSupplier.status,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
       });
       setOrders(initialOrders);
-      setSelectedProducts(initialSelectedProducts);
+      setSelectedArticles(initialSelectedArticles);
+      setSelectedServices(initialSelectedServices);
     }
   }, [quotationRequest, requirement.id, deadline, hasLoadedData]);
 
@@ -376,18 +469,24 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
   );
 
   const handleSaveTerms = useCallback(
-    async (supplierId: number, terms: string) => {
+    async (supplierId: number) => {
       setLoadingStates(prev => ({ ...prev, savingTerms: supplierId }));
 
       try {
         const existingOrder = orders[supplierId];
         // No modificar el orderNumber existente, solo actualizar términos
-        const selectedArticles = Array.from(selectedProducts[supplierId] || []);
+        const selectedArticlesToSend = Array.from(
+          selectedArticles[supplierId] || []
+        );
+        const selectedServicesToSend = Array.from(
+          selectedServices[supplierId] || []
+        );
 
         const updateData: UpdateQuotationOrderDto = {
           supplierId,
-          terms,
-          selectedArticles,
+          terms: editingTerms,
+          selectedArticles: selectedArticlesToSend,
+          selectedServices: selectedServicesToSend,
         };
 
         const result = await updateQuotationOrder(
@@ -408,7 +507,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                 status: QuotationSupplierStatus.PENDING,
                 createdAt: new Date(),
               }),
-              terms,
+              terms: editingTerms,
               updatedAt: new Date(),
             },
           }));
@@ -431,7 +530,8 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     },
     [
       orders,
-      selectedProducts,
+      selectedArticles,
+      selectedServices,
       requirement.code,
       deadline,
       updateQuotationOrder,
@@ -482,7 +582,8 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
           supplierId,
           orderNumber: order.orderNumber,
           terms: order.terms,
-          selectedArticles: Array.from(selectedProducts[supplierId] || []),
+          selectedArticles: Array.from(selectedArticles[supplierId] || []),
+          selectedServices: Array.from(selectedServices[supplierId] || []),
         };
 
         const result = await updateQuotationOrder(
@@ -495,7 +596,10 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
             ...prev,
             [supplierId]: {
               ...prev[supplierId]!,
-              status: QuotationSupplierStatus.PENDING,
+              status:
+                result.quotationSuppliers.find(
+                  qs => qs.supplier.id === supplierId
+                )?.status || QuotationSupplierStatus.PENDING,
               updatedAt: new Date(),
             },
           }));
@@ -516,7 +620,8 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     },
     [
       orders,
-      selectedProducts,
+      selectedArticles,
+      selectedServices,
       updateQuotationOrder,
       quotationRequestId,
       selectedSuppliers,
@@ -624,15 +729,23 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
       const result = await applyGeneralTermsToAll(quotationRequestId, {
         terms: generalTerms,
         deadline: new Date(deadline),
-        selectedArticles: requirement.requirementArticles.map(ra => ({
-          articleId: ra.id,
-          quantity: ra.quantity,
-        })),
+        selectedArticles:
+          requirement.requirementArticles.map(ra => ({
+            articleId: ra.id,
+            quantity: ra.quantity,
+          })) || [],
+        selectedServices:
+          requirement.requirementServices?.map(rs => ({
+            serviceId: rs.service.id,
+            duration: rs.duration || 0,
+            durationType: rs.durationType || '',
+          })) || [],
       });
 
       if (result) {
         const newOrders: Record<number, QuotationOrder> = {};
-        const newSelectedProducts: Record<number, Set<number>> = {};
+        const newSelectedArticles: Record<number, Set<number>> = {};
+        const newSelectedServices: Record<number, Set<number>> = {};
 
         result.quotationSuppliers.forEach(quotationSupplier => {
           const supplierId = quotationSupplier.supplier.id;
@@ -649,20 +762,25 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
             updatedAt: new Date(quotationSupplier.updatedAt),
           };
 
-          const selectedArticleIds = new Set(
+          newSelectedArticles[supplierId] = new Set(
             quotationSupplier.quotationSupplierArticles.map(
               qsa => qsa.requirementArticle.id
             )
           );
-          newSelectedProducts[supplierId] = selectedArticleIds;
+          newSelectedServices[supplierId] = new Set(
+            quotationSupplier.quotationSupplierServices.map(
+              qss => qss.requirementService.id
+            )
+          );
         });
 
         setOrders(newOrders);
-        setSelectedProducts(newSelectedProducts);
+        setSelectedArticles(newSelectedArticles);
+        setSelectedServices(newSelectedServices);
 
         showSuccess(
           'Términos aplicados',
-          'Se han aplicado los términos generales y guardado todas las órdenes con todos los artículos seleccionados'
+          'Se han aplicado los términos generales y guardado todas las órdenes con todos los artículos y servicios seleccionados'
         );
       }
     } catch {
@@ -679,13 +797,14 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     generalTerms,
     deadline,
     requirement.requirementArticles,
+    requirement.requirementServices,
     showSuccess,
     showError,
   ]);
 
   const handleProductToggle = useCallback(
     (supplierId: number, requirementArticleId: number) => {
-      setSelectedProducts(prev => {
+      setSelectedArticles(prev => {
         const currentSelection = prev[supplierId] || new Set();
         const newSelection = new Set(currentSelection);
 
@@ -709,7 +828,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
       const allRequirementArticleIds = new Set(
         requirement.requirementArticles.map(ra => ra.id)
       );
-      setSelectedProducts(prev => ({
+      setSelectedArticles(prev => ({
         ...prev,
         [supplierId]: allRequirementArticleIds,
       }));
@@ -718,7 +837,53 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
   );
 
   const handleDeselectAllProducts = useCallback((supplierId: number) => {
-    setSelectedProducts(prev => ({
+    setSelectedArticles(prev => ({
+      ...prev,
+      [supplierId]: new Set(),
+    }));
+  }, []);
+
+  const handleServiceToggle = useCallback(
+    (supplierId: number, requirementServiceId: number) => {
+      setSelectedServices(prev => {
+        const currentSelection = prev[supplierId] || new Set();
+        const newSelection = new Set(currentSelection);
+
+        if (newSelection.has(requirementServiceId)) {
+          newSelection.delete(requirementServiceId);
+        } else {
+          newSelection.add(requirementServiceId);
+        }
+
+        return {
+          ...prev,
+          [supplierId]: newSelection,
+        };
+      });
+    },
+    []
+  );
+
+  const handleSelectAllServices = useCallback(
+    (supplierId: number) => {
+      if (
+        requirement.requirementServices &&
+        requirement.requirementServices.length > 0
+      ) {
+        const allRequirementServiceIds = new Set(
+          requirement.requirementServices.map(rs => rs.id)
+        );
+        setSelectedServices(prev => ({
+          ...prev,
+          [supplierId]: allRequirementServiceIds,
+        }));
+      }
+    },
+    [requirement.requirementServices]
+  );
+
+  const handleDeselectAllServices = useCallback((supplierId: number) => {
+    setSelectedServices(prev => ({
       ...prev,
       [supplierId]: new Set(),
     }));
@@ -751,30 +916,49 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
       const order = orders[supplierId];
       if (!order) return 'PENDIENTE';
       return order.status === QuotationSupplierStatus.PENDING
-        ? 'GUARDADA'
+        ? 'PENDIENTE'
         : order.status === QuotationSupplierStatus.SENT
           ? 'ENVIADA'
-          : 'BORRADOR';
+          : 'GUARDADA';
     },
     [orders]
   );
 
-  const getSelectedProductsCount = useCallback(
+  const getSelectedArticlesCount = useCallback(
     (supplierId: number) => {
-      return selectedProducts[supplierId]?.size || 0;
+      return selectedArticles[supplierId]?.size || 0;
     },
-    [selectedProducts]
+    [selectedArticles]
   );
 
-  const getTotalSelectedQuantity = useCallback(
+  const getSelectedServicesCount = useCallback(
     (supplierId: number) => {
-      const selectedIds = selectedProducts[supplierId] || new Set();
-      return requirement.requirementArticles
-        .filter(ra => selectedIds.has(ra.id))
-        .reduce((total, ra) => +total + +ra.quantity, 0);
+      return selectedServices[supplierId]?.size || 0;
     },
-    [selectedProducts, requirement.requirementArticles]
+    [selectedServices]
   );
+
+  /* const getTotalSelectedQuantity = useCallback(
+    (supplierId: number) => {
+      const selectedArticleIds = selectedArticles[supplierId] || new Set();
+      const selectedServiceIds = selectedServices[supplierId] || new Set();
+
+      return (
+        requirement.requirementArticles
+          .filter(ra => selectedArticleIds.has(ra.id))
+          .reduce((total, ra) => +total + +ra.quantity, 0) +
+        (requirement.requirementServices || [])
+          .filter(rs => selectedServiceIds.has(rs.id))
+          .reduce((total, rs) => +total + (rs.duration || 0), 0)
+      );
+    },
+    [
+      selectedArticles,
+      selectedServices,
+      requirement.requirementArticles,
+      requirement.requirementServices,
+    ]
+  ); */
 
   // Estadísticas memoizadas
   const statistics = useMemo(() => {
@@ -848,8 +1032,8 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
           const order = orders[supplier.id];
           const status = getOrderStatus(supplier.id);
           const isEditing = editingOrder === supplier.id;
-          const selectedCount = getSelectedProductsCount(supplier.id);
-          const totalQuantity = getTotalSelectedQuantity(supplier.id);
+          const selectedArticlesCount = getSelectedArticlesCount(supplier.id);
+          const selectedServicesCount = getSelectedServicesCount(supplier.id);
           const orderNumber = selectedSupplier.quotationOrder?.orderNumber;
 
           return (
@@ -885,9 +1069,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                     />
                     <div className="flex space-x-2">
                       <Button
-                        onClick={() =>
-                          handleSaveTerms(supplier.id, editingTerms)
-                        }
+                        onClick={() => handleSaveTerms(supplier.id)}
                         className="text-sm"
                         disabled={loadingStates.savingTerms === supplier.id}
                       >
@@ -915,27 +1097,45 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                     <OrderPreview
                       order={order}
                       deadline={deadline}
-                      selectedCount={selectedCount}
-                      totalQuantity={totalQuantity}
+                      selectedArticlesCount={selectedArticlesCount}
+                      selectedServicesCount={selectedServicesCount}
                       totalArticles={totalArticles}
+                      totalServices={
+                        requirement.requirementServices?.length || 0
+                      }
                       orderNumber={orderNumber}
                     />
 
-                    <ProductSelection
+                    <ArticleSelection
                       supplierId={supplier.id}
                       requirementArticles={requirement.requirementArticles}
-                      selectedProducts={
-                        selectedProducts[supplier.id] || new Set()
+                      selectedArticles={
+                        selectedArticles[supplier.id] || new Set()
                       }
-                      onProductToggle={handleProductToggle}
+                      onArticleToggle={handleProductToggle}
                       onSelectAll={handleSelectAllProducts}
                       onDeselectAll={handleDeselectAllProducts}
                     />
 
+                    {requirement.requirementServices &&
+                      requirement.requirementServices.length > 0 && (
+                        <ServiceSelection
+                          supplierId={supplier.id}
+                          requirementServices={requirement.requirementServices}
+                          selectedServices={
+                            selectedServices[supplier.id] || new Set()
+                          }
+                          onServiceToggle={handleServiceToggle}
+                          onSelectAll={handleSelectAllServices}
+                          onDeselectAll={handleDeselectAllServices}
+                        />
+                      )}
+
                     <ActionButtons
                       supplierId={supplier.id}
                       order={order}
-                      selectedCount={selectedCount}
+                      selectedArticlesCount={selectedArticlesCount}
+                      selectedServicesCount={selectedServicesCount}
                       loadingStates={loadingStates}
                       onEditTerms={handleEditTerms}
                       onExportPDF={handleExportPDF}

@@ -92,7 +92,14 @@ const AppRoutes = () => {
           <Route path={ROUTES.SUPPLIERS_CREATE} element={<SupplierForm />} />
           <Route path={ROUTES.SUPPLIERS_EDIT} element={<SupplierForm />} />
           <Route path={ROUTES.PROFILE} element={<Profile />} />
-          <Route path={ROUTES.QUOTATIONS} element={<Quotations />} />
+          <Route
+            path={ROUTES.QUOTATIONS_ARTICLES}
+            element={<QuotationsArticlesRoute />}
+          />
+          <Route
+            path={ROUTES.QUOTATIONS_SERVICES}
+            element={<QuotationsServicesRoute />}
+          />
           <Route
             path={ROUTES.QUOTATION_DETAILS}
             element={<QuotationDetails />}
@@ -176,6 +183,9 @@ const RequirementServicesDetailsRoute = () => (
 );
 const RequirementArticlesEditRoute = () => <RequirementForm type="ARTICLE" />;
 const RequirementServicesEditRoute = () => <RequirementForm type="SERVICE" />;
+
+const QuotationsArticlesRoute = () => <Quotations type="ARTICLE" />;
+const QuotationsServicesRoute = () => <Quotations type="SERVICE" />;
 
 function App() {
   return (

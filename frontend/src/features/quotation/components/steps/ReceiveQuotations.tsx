@@ -13,6 +13,8 @@ import { Button } from '../../../../components/common/Button';
 import { FormInput } from '../../../../components/common/FormInput';
 import type { Requirement } from '../../../../types/requirement';
 import { useCurrentExchangeRate } from '../../../../hooks/useGeneralSettings';
+import type { RequirementService } from '../../../../types/requirement';
+import type { ServiceQuotationItem } from '../../../../types/quotation';
 
 interface ReceiveQuotationsProps {
   requirement: Requirement;
@@ -88,6 +90,11 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
     Record<number, number[]>
   >({});
 
+  // 1. Agregar hooks y tipos para manejar servicios
+  const [servicesQuotationItems, setServicesQuotationItems] = useState<
+    Record<number, ServiceQuotationItem[]>
+  >({});
+
   // Cargar productos seleccionados y cotizaciones guardadas desde los datos recibidos
   useEffect(() => {
     const loadSelectedProducts = () => {
@@ -141,6 +148,33 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
 
     loadSelectedProducts();
   }, [quotationRequest.id, requirement.id]);
+
+  // 3. Al inicializar cotización, también inicializar los servicios si existen
+  useEffect(() => {
+    if (editingSupplier && !servicesQuotationItems[editingSupplier]) {
+      const selectedServices = requirement.requirementServices || [];
+      const initialServiceItems = selectedServices.map(
+        (rs: RequirementService) => ({
+          id: -1,
+          requirementServiceId: rs.id,
+          service: rs.service,
+          unitPrice: 0,
+          totalPrice: 0,
+          currency: rs.currency || 'PEN',
+          deliveryTime: 0,
+          duration: rs.duration || 0,
+          durationType: rs.durationType || '',
+          notes: '',
+          status: QuotationItemStatus.NOT_QUOTED,
+          reasonNotAvailable: '',
+        })
+      );
+      setServicesQuotationItems(prev => ({
+        ...prev,
+        [editingSupplier]: initialServiceItems,
+      }));
+    }
+  }, [editingSupplier, requirement.id]);
 
   const getSelectedProductsForSupplier = (supplierId: number) => {
     const selectedArticleIds = selectedProductsBySupplier[supplierId] || [];
@@ -314,6 +348,74 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
     });
   };
 
+  // 4. Handlers para editar servicios
+  const handleServiceChange = (
+    supplierId: number,
+    serviceId: number,
+    field: string,
+    value: string | number
+  ) => {
+    setServicesQuotationItems(prev => {
+      const current = prev[supplierId] || [];
+      const updated = current.map(item => {
+        if (item.service.id === serviceId) {
+          const updatedItem = { ...item };
+          if (field === 'unitPrice') {
+            const numValue = value === '' ? 0 : Number(value);
+            updatedItem.unitPrice = isNaN(numValue) ? 0 : numValue;
+            updatedItem.totalPrice = updatedItem.unitPrice * 1;
+            updatedItem.status = QuotationItemStatus.QUOTED;
+          } else if (field === 'deliveryTime') {
+            const numValue = value === '' ? 0 : Number(value);
+            updatedItem.deliveryTime = isNaN(numValue) ? 0 : numValue;
+          } else if (field === 'duration') {
+            const numValue = value === '' ? 0 : Number(value);
+            updatedItem.duration = isNaN(numValue) ? 0 : numValue;
+          } else if (field === 'durationType') {
+            updatedItem.durationType = String(value);
+          } else if (field === 'notes') {
+            updatedItem.notes = String(value);
+          } else if (field === 'reasonNotAvailable') {
+            updatedItem.reasonNotAvailable = String(value);
+          } else if (field === 'currency') {
+            updatedItem.currency = String(value);
+          }
+          return updatedItem;
+        }
+        return item;
+      });
+      return { ...prev, [supplierId]: updated };
+    });
+  };
+
+  const handleServiceStatusChange = (
+    supplierId: number,
+    serviceId: number,
+    status: QuotationItemStatus
+  ) => {
+    setServicesQuotationItems(prev => {
+      const current = prev[supplierId] || [];
+      const updated = current.map(item => {
+        if (item.service.id === serviceId) {
+          const updatedItem = { ...item, status };
+          if (status === QuotationItemStatus.NOT_AVAILABLE) {
+            updatedItem.unitPrice = 0;
+            updatedItem.totalPrice = 0;
+            updatedItem.deliveryTime = 0;
+          } else if (status === QuotationItemStatus.NOT_QUOTED) {
+            updatedItem.unitPrice = 0;
+            updatedItem.totalPrice = 0;
+            updatedItem.deliveryTime = 0;
+            updatedItem.reasonNotAvailable = '';
+          }
+          return updatedItem;
+        }
+        return item;
+      });
+      return { ...prev, [supplierId]: updated };
+    });
+  };
+
   const handleSaveDraft = async (supplierId: number) => {
     const quotation = quotations[supplierId];
     if (!quotation) return;
@@ -351,6 +453,25 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
           notes: item.notes || undefined,
           status: item.status,
           reasonNotAvailable: item.reasonNotAvailable || undefined,
+        })),
+      serviceItems: (servicesQuotationItems[supplierId] || [])
+        .filter(item => item.requirementServiceId)
+        .map(item => ({
+          serviceId: item.requirementServiceId,
+          unitPrice:
+            item.status === QuotationItemStatus.QUOTED
+              ? item.unitPrice
+              : undefined,
+          deliveryTime:
+            item.status === QuotationItemStatus.QUOTED
+              ? item.deliveryTime
+              : undefined,
+          currency: item.currency || 'PEN',
+          notes: item.notes || undefined,
+          status: item.status,
+          reasonNotAvailable: item.reasonNotAvailable || undefined,
+          duration: item.duration,
+          durationType: item.durationType,
         })),
     };
 
@@ -904,6 +1025,228 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
           </div>
         </div>
       )}
+
+      {/* Servicios */}
+      {editingSupplier &&
+        servicesQuotationItems[editingSupplier] &&
+        servicesQuotationItems[editingSupplier].length > 0 && (
+          <div className="mt-8">
+            <h5 className="text-md font-semibold text-gray-900 dark:text-white mb-2">
+              Servicios
+            </h5>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Servicio
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Cantidad
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Duración
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Moneda
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Precio Unitario
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Tiempo Entrega (días)
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Notas
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {servicesQuotationItems[editingSupplier].map(item => (
+                    <tr
+                      key={item.service.id}
+                      className={getItemStatusColor(item.status)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {item.service.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {item.service.code}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="space-y-2">
+                          <select
+                            value={item.status}
+                            onChange={e =>
+                              handleServiceStatusChange(
+                                editingSupplier,
+                                item.service.id,
+                                e.target.value as QuotationItemStatus
+                              )
+                            }
+                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                          >
+                            <option value={QuotationItemStatus.QUOTED}>
+                              Cotizado
+                            </option>
+                            <option value={QuotationItemStatus.NOT_AVAILABLE}>
+                              No Disponible
+                            </option>
+                            <option value={QuotationItemStatus.NOT_QUOTED}>
+                              No Cotizado
+                            </option>
+                          </select>
+                          {item.status ===
+                            QuotationItemStatus.NOT_AVAILABLE && (
+                            <FormInput
+                              placeholder="Razón de no disponibilidad..."
+                              value={item.reasonNotAvailable || ''}
+                              onChange={e =>
+                                handleServiceChange(
+                                  editingSupplier,
+                                  item.service.id,
+                                  'reasonNotAvailable',
+                                  e.target.value
+                                )
+                              }
+                              className="text-xs"
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        1
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <FormInput
+                          type="number"
+                          min="0"
+                          value={item.duration || ''}
+                          onChange={e =>
+                            handleServiceChange(
+                              editingSupplier,
+                              item.service.id,
+                              'duration',
+                              e.target.value
+                            )
+                          }
+                          className="w-20"
+                          disabled={item.status !== QuotationItemStatus.QUOTED}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <FormInput
+                          value={item.durationType || ''}
+                          onChange={e =>
+                            handleServiceChange(
+                              editingSupplier,
+                              item.service.id,
+                              'durationType',
+                              e.target.value
+                            )
+                          }
+                          className="w-20"
+                          disabled={item.status !== QuotationItemStatus.QUOTED}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={item.currency || 'PEN'}
+                          onChange={e =>
+                            handleServiceChange(
+                              editingSupplier,
+                              item.service.id,
+                              'currency',
+                              e.target.value
+                            )
+                          }
+                          className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                          disabled={item.status !== QuotationItemStatus.QUOTED}
+                        >
+                          <option value="PEN">PEN</option>
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <FormInput
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.unitPrice || ''}
+                          onChange={e =>
+                            handleServiceChange(
+                              editingSupplier,
+                              item.service.id,
+                              'unitPrice',
+                              e.target.value
+                            )
+                          }
+                          className="w-24"
+                          disabled={item.status !== QuotationItemStatus.QUOTED}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {item.currency || 'PEN'}{' '}
+                        {item.unitPrice && !isNaN(+item.unitPrice)
+                          ? (+item.unitPrice * 1).toFixed(2)
+                          : '0.00'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <FormInput
+                          type="number"
+                          min="0"
+                          value={item.deliveryTime || ''}
+                          onChange={e =>
+                            handleServiceChange(
+                              editingSupplier,
+                              item.service.id,
+                              'deliveryTime',
+                              e.target.value
+                            )
+                          }
+                          className="w-20"
+                          disabled={item.status !== QuotationItemStatus.QUOTED}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <FormInput
+                          value={item.notes}
+                          onChange={e =>
+                            handleServiceChange(
+                              editingSupplier,
+                              item.service.id,
+                              'notes',
+                              e.target.value
+                            )
+                          }
+                          placeholder="Comentarios..."
+                          className="w-32"
+                          disabled={
+                            item.status === QuotationItemStatus.NOT_AVAILABLE
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       {/* Summary */}
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6">

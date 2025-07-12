@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   type FinalSelectionItem,
+  type FinalSelectionServiceItem,
   type SelectedSupplier,
   type QuotationRequest,
   QuotationItemStatus,
@@ -9,6 +10,7 @@ import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { Button } from '../../../../components/common/Button';
 import type { Requirement } from '../../../../types/requirement';
+import { useCurrentExchangeRate } from '../../../../hooks/useGeneralSettings';
 
 interface FinalSelectionProps {
   requirement: Requirement;
@@ -67,6 +69,26 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
 
   const { approveFinalSelection, updateFinalSelection } = useQuotationService();
   const { showSuccess, showError } = useToast();
+  const { data: exchangeRate } = useCurrentExchangeRate();
+
+  // Función para convertir precios a PEN usando el tipo de cambio
+  const convertToPEN = (price: number, currency: string): number => {
+    if (currency === 'PEN') return price;
+    if (currency === 'USD' && exchangeRate?.saleRate) {
+      return price * exchangeRate.saleRate;
+    }
+    return price; // Fallback si no hay tipo de cambio
+  };
+
+  // Función auxiliar para mostrar precio convertido
+  const getConvertedPriceDisplay = (
+    price: number,
+    currency: string
+  ): string => {
+    if (currency === 'PEN' || !exchangeRate?.saleRate) return '';
+    const convertedPrice = convertToPEN(price, currency);
+    return `(PEN ${convertedPrice.toFixed(2)})`;
+  };
 
   // Helper function to safely format numbers
   const formatNumber = (
@@ -186,6 +208,76 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
     );
   }
 
+  // Calcular totales con conversión de moneda
+  const totalArticles =
+    finalSelectionData.finalSelectionItems?.reduce(
+      (total: number, item: FinalSelectionItem) => {
+        const priceInPEN = convertToPEN(
+          Number(item.totalPrice) || 0,
+          item.currency || 'PEN'
+        );
+        return total + priceInPEN;
+      },
+      0
+    ) || 0;
+
+  const totalServices =
+    finalSelectionData.finalSelectionServiceItems?.reduce(
+      (total: number, item: FinalSelectionServiceItem) => {
+        const priceInPEN = convertToPEN(
+          Number(item.unitPrice) || 0,
+          item.currency || 'PEN'
+        );
+        return total + priceInPEN;
+      },
+      0
+    ) || 0;
+
+  const totalAmount = totalArticles + totalServices;
+
+  // Calcular totales por moneda para mostrar
+  const totalsByCurrency = {
+    PEN: 0,
+    USD: 0,
+  };
+
+  // Sumar artículos por moneda
+  finalSelectionData.finalSelectionItems?.forEach(
+    (item: FinalSelectionItem) => {
+      const currency = item.currency || 'PEN';
+      const amount = Number(item.totalPrice) || 0;
+      if (currency === 'PEN' || currency === 'USD') {
+        totalsByCurrency[currency] += amount;
+      }
+    }
+  );
+
+  // Sumar servicios por moneda
+  finalSelectionData.finalSelectionServiceItems?.forEach(
+    (item: FinalSelectionServiceItem) => {
+      const currency = item.currency || 'PEN';
+      const amount = Number(item.unitPrice) || 0;
+      if (currency === 'PEN' || currency === 'USD') {
+        totalsByCurrency[currency] += amount;
+      }
+    }
+  );
+
+  // Contar proveedores únicos
+  const uniqueSuppliers = new Set([
+    ...(finalSelectionData.finalSelectionItems?.map(
+      item => item.supplier?.id
+    ) || []),
+    ...(finalSelectionData.finalSelectionServiceItems?.map(
+      item => item.supplier?.id
+    ) || []),
+  ]);
+
+  // Contar items únicos
+  const totalItems =
+    (finalSelectionData.finalSelectionItems?.length || 0) +
+    (finalSelectionData.finalSelectionServiceItems?.length || 0);
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -291,7 +383,8 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             Resumen de Selección Final
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Productos y proveedores seleccionados para la orden de compra
+            Productos, servicios y proveedores seleccionados para la orden de
+            compra
           </p>
         </div>
 
@@ -300,7 +393,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Producto
+                  Item
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Cantidad
@@ -317,6 +410,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Artículos */}
               {finalSelectionData.finalSelectionItems
                 ?.map((item: FinalSelectionItem, index: number) => {
                   // Validar que item tenga las propiedades necesarias
@@ -333,7 +427,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                   );
 
                   return (
-                    <tr key={index}>
+                    <tr key={`article-${index}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -353,28 +447,128 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                           'Proveedor no encontrado'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <span className="font-medium">
-                          {item.currency} {formatNumber(item.unitPrice)}
-                        </span>
+                        <div>
+                          <span className="font-medium">
+                            {item.currency} {formatNumber(item.unitPrice)}
+                          </span>
+                          {item.currency !== 'PEN' && (
+                            <div className="text-xs text-blue-500">
+                              {getConvertedPriceDisplay(
+                                Number(item.unitPrice) || 0,
+                                item.currency
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <span className="font-medium">
-                          {item.currency} {formatNumber(item.totalPrice)}
-                        </span>
+                        <div>
+                          <span className="font-medium">
+                            {item.currency} {formatNumber(item.totalPrice)}
+                          </span>
+                          {item.currency !== 'PEN' && (
+                            <div className="text-xs text-blue-500">
+                              {getConvertedPriceDisplay(
+                                Number(item.totalPrice) || 0,
+                                item.currency
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
                 })
-                .filter(Boolean) || (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    No hay items en la selección final
-                  </td>
-                </tr>
-              )}
+                .filter(Boolean) || []}
+
+              {/* Servicios */}
+              {finalSelectionData.finalSelectionServiceItems
+                ?.map((item: FinalSelectionServiceItem, index: number) => {
+                  // Validar que item tenga las propiedades necesarias
+                  if (!item || !item.requirementService || !item.supplier) {
+                    return null;
+                  }
+
+                  const requirementService =
+                    requirement.requirementServices?.find(
+                      rs => rs.id === item.requirementService?.id
+                    );
+                  const supplier = selectedSuppliers.find(
+                    s => s.supplier.id === item.supplier?.id
+                  );
+
+                  return (
+                    <tr key={`service-${index}`}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {requirementService?.service.name ||
+                              'Servicio no encontrado'}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {requirementService?.service.code || ''}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {requirementService?.duration || '-'}
+                        {requirementService?.durationType && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            {requirementService.durationType}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {supplier?.supplier.businessName ||
+                          'Proveedor no encontrado'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <div>
+                          <span className="font-medium">
+                            {item.currency} {formatNumber(item.unitPrice)}
+                          </span>
+                          {item.currency !== 'PEN' && (
+                            <div className="text-xs text-blue-500">
+                              {getConvertedPriceDisplay(
+                                Number(item.unitPrice) || 0,
+                                item.currency
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <div>
+                          <span className="font-medium">
+                            {item.currency} {formatNumber(item.unitPrice)}
+                          </span>
+                          {item.currency !== 'PEN' && (
+                            <div className="text-xs text-blue-500">
+                              {getConvertedPriceDisplay(
+                                Number(item.unitPrice) || 0,
+                                item.currency
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+                .filter(Boolean) || []}
+
+              {/* Mensaje si no hay items */}
+              {!finalSelectionData.finalSelectionItems?.length &&
+                !finalSelectionData.finalSelectionServiceItems?.length && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
+                      No hay items en la selección final
+                    </td>
+                  </tr>
+                )}
             </tbody>
           </table>
         </div>
@@ -388,29 +582,23 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             Proveedores Seleccionados
           </h4>
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {finalSelectionData.finalSelectionItems
-              ? new Set(
-                  finalSelectionData.finalSelectionItems
-                    .filter(item => item && item.supplier)
-                    .map((item: FinalSelectionItem) => item.supplier.id)
-                ).size
-              : 0}
+            {uniqueSuppliers.size}
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
             Proveedores únicos
           </div>
         </div>
 
-        {/* Selected Products */}
+        {/* Selected Items */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-            Productos Seleccionados
+            Items Seleccionados
           </h4>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {finalSelectionData.finalSelectionItems?.length || 0}
+            {totalItems}
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Productos únicos
+            Artículos y servicios únicos
           </div>
         </div>
 
@@ -420,18 +608,15 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             Total Estimado
           </h4>
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            PEN{' '}
-            {formatNumber(
-              finalSelectionData.finalSelectionItems?.reduce(
-                (total: number, item: FinalSelectionItem) => {
-                  return total + (+item.totalPrice || 0);
-                },
-                0
-              ) || 0
-            )}
+            PEN {formatNumber(totalAmount)}
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Monto total
+            {totalsByCurrency.PEN > 0 && (
+              <div>PEN {formatNumber(totalsByCurrency.PEN)}</div>
+            )}
+            {totalsByCurrency.USD > 0 && (
+              <div>USD {formatNumber(totalsByCurrency.USD)}</div>
+            )}
           </div>
         </div>
       </div>
@@ -447,36 +632,28 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             type="text"
             value={internalNotes}
             onChange={handleNotesChange}
-            placeholder="Escribe tus observaciones aquí..."
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="Ingresa notas internas sobre la selección final..."
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
           />
         ) : (
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {internalNotes || 'No hay notas adicionales'}
+            {internalNotes || 'Sin notas'}
           </div>
         )}
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            {loading || finalSelectionData.status === 'APPROVED'
-              ? 'La selección está aprobada. No se permiten cambios.'
-              : ''}
-          </div>
-          <Button
-            onClick={onBack}
-            disabled={loading || finalSelectionData.status === 'APPROVED'}
-          >
-            ← Volver
-          </Button>
-        </div>
-        <div className="text-right">
-          <Button onClick={handleGeneratePurchaseOrder} disabled={loading}>
-            {loading ? '🔄 Completando...' : 'Completar proceso de cotización'}
-          </Button>
-        </div>
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          ← Volver al paso anterior
+        </Button>
+        <Button
+          onClick={handleGeneratePurchaseOrder}
+          disabled={loading}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          {loading ? '🔄 Generando...' : '✅ Completar Proceso'}
+        </Button>
       </div>
     </div>
   );

@@ -13,11 +13,13 @@ import {
 import { QuotationRequest } from './QuotationRequest.entity';
 import { Supplier } from './Supplier.entity';
 import { QuotationSupplierArticle } from './QuotationSupplierArticle.entity';
+import { QuotationSupplierService } from './QuotationSupplierService.entity';
 import { SupplierQuotation } from './SupplierQuotation.entity';
 
 export enum QuotationSupplierStatus {
   PENDING = 'PENDING',
   SENT = 'SENT',
+  SAVED = 'SAVED',
   RESPONDED = 'RESPONDED',
   CANCELLED = 'CANCELLED',
 }
@@ -62,6 +64,12 @@ export class QuotationSupplier {
     quotationSupplierArticle => quotationSupplierArticle.quotationSupplier
   )
   quotationSupplierArticles: QuotationSupplierArticle[];
+
+  @OneToMany(
+    () => QuotationSupplierService,
+    quotationSupplierService => quotationSupplierService.quotationSupplier
+  )
+  quotationSupplierServices: QuotationSupplierService[];
 
   @OneToOne(
     () => SupplierQuotation,

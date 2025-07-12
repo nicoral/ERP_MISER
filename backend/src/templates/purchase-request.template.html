@@ -84,54 +84,5 @@
   </div>
   <div class="dashed"></div>
 
-  <!-- Firmas -->
-  <div style="margin-top: 20px;">
-    <table style="width: 100%; border-collapse: collapse; border: 1px solid #333;">
-      <tr style="height: 60px;">
-        <td style="width: 25%; border: 1px solid #333; text-align: center; vertical-align: middle;">
-          {{#if firstSignature}}
-            <img src="{{firstSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
-        <td style="width: 25%; border: 1px solid #333; text-align: center; vertical-align: middle;">
-          {{#if secondSignature}}
-            <img src="{{secondSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
-        <td style="width: 25%; border: 1px solid #333; text-align: center; vertical-align: middle;">
-          {{#if thirdSignature}}
-            <img src="{{thirdSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
-        <td style="width: 25%; border: 1px solid #333; text-align: center; vertical-align: middle;">
-          {{#if fourthSignature}}
-            <img src="{{fourthSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
-      </tr>
-      <tr style="background: #f5f5f5; font-weight: bold; text-align: center; font-size: 11px;">
-        <td style="border: 1px solid #333; padding: 4px;">
-          V°B° LOGÍSTICA<br>ELABORA<br><small>{{firstSignedAt}}</small>
-        </td>
-        <td style="border: 1px solid #333; padding: 4px;">
-          V°B° OFICINA TÉCNICA<br>REVISA<br><small>{{secondSignedAt}}</small>
-        </td>
-        <td style="border: 1px solid #333; padding: 4px;">
-          V°B° ADMINISTRACIÓN<br>REVISIÓN<br><small>{{thirdSignedAt}}</small>
-        </td>
-        <td style="border: 1px solid #333; padding: 4px;">
-          V°B° GERENCIA<br>APRUEBA<br><small>{{fourthSignedAt}}</small>
-        </td>
-      </tr>
-    </table>
-  </div>
-
-  <!-- QR Code -->
-  {{#if qrCode}}
-  <div style="margin-top: 15px; text-align: center;">
-    <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">Código QR para acceso digital:</div>
-    <img src="{{qrCode}}" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
-  </div>
-  {{/if}}
 </body>
 </html> 

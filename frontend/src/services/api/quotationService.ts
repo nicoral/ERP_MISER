@@ -36,7 +36,8 @@ export const quotationService = {
   async getQuotationRequests(
     page: number,
     limit: number,
-    filters?: QuotationFilters
+    filters?: QuotationFilters,
+    type?: 'ARTICLE' | 'SERVICE'
   ): Promise<{ quotationRequests: QuotationRequest[]; total: number }> {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
@@ -46,6 +47,7 @@ export const quotationService = {
       params.append('dateFrom', filters.dateFrom.toISOString());
     if (filters?.dateTo) params.append('dateTo', filters.dateTo.toISOString());
     if (filters?.search) params.append('search', filters.search);
+    if (type) params.append('type', type);
 
     const response = await createApiCall<{
       quotationRequests: QuotationRequest[];

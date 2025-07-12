@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import {
   QuotationRequest,
   QuotationRequestStatus,
@@ -14,6 +14,7 @@ import {
   QuotationSupplierStatus,
 } from '../entities/QuotationSupplier.entity';
 import { QuotationSupplierArticle } from '../entities/QuotationSupplierArticle.entity';
+import { QuotationSupplierService } from '../entities/QuotationSupplierService.entity';
 import {
   SupplierQuotation,
   SupplierQuotationStatus,
@@ -23,10 +24,15 @@ import {
   QuotationItemStatus,
 } from '../entities/SupplierQuotationItem.entity';
 import {
+  SupplierQuotationServiceItem,
+  QuotationServiceItemStatus,
+} from '../entities/SupplierQuotationServiceItem.entity';
+import {
   FinalSelection,
   FinalSelectionStatus,
 } from '../entities/FinalSelection.entity';
 import { FinalSelectionItem } from '../entities/FinalSelectionItem.entity';
+import { FinalSelectionServiceItem } from '../entities/FinalSelectionServiceItem.entity';
 import { RequirementService } from './requirement.service';
 import { SupplierService } from './supplier.service';
 import { calculateApprovalProgress } from '../utils/approvalFlow.utils';
@@ -46,6 +52,7 @@ import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.d
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
+import { RequirementService as RequirementServiceEntity } from '../entities/RequirementService.entity';
 import { arraysAreEqual, compareArraysNumbers } from '../utils/utils';
 import { Employee } from '../entities/Employee.entity';
 import * as fs from 'fs';
@@ -68,22 +75,64 @@ export class QuotationService {
     private readonly quotationSupplierRepository: Repository<QuotationSupplier>,
     @InjectRepository(QuotationSupplierArticle)
     private readonly quotationSupplierArticleRepository: Repository<QuotationSupplierArticle>,
+    @InjectRepository(QuotationSupplierService)
+    private readonly quotationSupplierServiceRepository: Repository<QuotationSupplierService>,
     @InjectRepository(SupplierQuotation)
     private readonly supplierQuotationRepository: Repository<SupplierQuotation>,
     @InjectRepository(SupplierQuotationItem)
     private readonly supplierQuotationItemRepository: Repository<SupplierQuotationItem>,
+    @InjectRepository(SupplierQuotationServiceItem)
+    private readonly supplierQuotationServiceIR: Repository<SupplierQuotationServiceItem>,
     @InjectRepository(FinalSelection)
     private readonly finalSelectionRepository: Repository<FinalSelection>,
     @InjectRepository(FinalSelectionItem)
     private readonly finalSelectionItemRepository: Repository<FinalSelectionItem>,
+    @InjectRepository(FinalSelectionServiceItem)
+    private readonly finalSelectionServiceItemRepository: Repository<FinalSelectionServiceItem>,
     @InjectRepository(RequirementArticle)
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
+    @InjectRepository(RequirementServiceEntity)
+    private readonly requirementServiceEntityRepository: Repository<RequirementServiceEntity>,
     private readonly requirementService: RequirementService,
     private readonly supplierService: SupplierService,
     private readonly purchaseOrderService: PurchaseOrderService,
     private readonly qrService: QRService,
     private readonly generalSettingsService: GeneralSettingsService
   ) {}
+
+  // ========================================
+  // VALIDATION METHODS
+  // ========================================
+
+  /**
+   * Validates that a requirement doesn't mix articles and services
+   */
+  private async validateRequirementType(
+    requirementId: number
+  ): Promise<'ARTICLE' | 'SERVICE'> {
+    const requirement = await this.requirementService.findOne(requirementId);
+
+    const hasArticles =
+      requirement.requirementArticles &&
+      requirement.requirementArticles.length > 0;
+    const hasServices =
+      requirement.requirementServices &&
+      requirement.requirementServices.length > 0;
+
+    if (hasArticles && hasServices) {
+      throw new BadRequestException(
+        'No se pueden mezclar artículos y servicios en el mismo requerimiento'
+      );
+    }
+
+    if (!hasArticles && !hasServices) {
+      throw new BadRequestException(
+        'El requerimiento debe tener al menos un artículo o un servicio'
+      );
+    }
+
+    return hasArticles ? 'ARTICLE' : 'SERVICE';
+  }
 
   // ========================================
   // QUOTATION REQUEST CRUD METHODS
@@ -97,11 +146,13 @@ export class QuotationService {
       requirementId,
       suppliers = [],
       supplierArticles = [],
+      supplierServices = [],
       ...quotationData
     } = createQuotationRequestDto;
 
-    // Verify requirement exists using service
+    // Verify requirement exists and validate type
     await this.requirementService.findOne(requirementId);
+    await this.validateRequirementType(requirementId);
 
     // Create quotation request
     const quotationRequest: Partial<QuotationRequest> =
@@ -158,6 +209,19 @@ export class QuotationService {
       );
     }
 
+    // Create quotation supplier services if provided
+    if (supplierServices.length > 0) {
+      const quotationSupplierServices = supplierServices.map(service => ({
+        quotationRequest: { id: savedQuotationRequest.id },
+        requirementService: { id: service.requirementServiceId },
+        quantity: service.quantity || 1, // Default to 1 if not provided
+      }));
+
+      await this.quotationSupplierServiceRepository.save(
+        quotationSupplierServices
+      );
+    }
+
     // Update progress asynchronously (don't await to avoid blocking)
     this.updateQuotationProgress(savedQuotationRequest.id).catch(error => {
       console.error('Error updating initial progress:', error);
@@ -170,7 +234,8 @@ export class QuotationService {
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters: QuotationFiltersDto
+    filters: QuotationFiltersDto,
+    type?: 'ARTICLE' | 'SERVICE'
   ): Promise<{ quotationRequests: QuotationRequest[]; total: number }> {
     const { status, search } = filters;
 
@@ -237,6 +302,11 @@ export class QuotationService {
       });
     }
 
+    // Filtrar por tipo de requerimiento
+    if (type) {
+      queryBuilder.andWhere('requirement.type = :type', { type });
+    }
+
     // Aplicar paginación y ordenamiento
     queryBuilder
       .orderBy('quotation.id', 'DESC')
@@ -256,6 +326,8 @@ export class QuotationService {
         'requirement.requirementArticles',
         'requirement.requirementArticles.article',
         'requirement.requirementArticles.article.brand',
+        'requirement.requirementServices',
+        'requirement.requirementServices.service',
         'requirement.employee',
         'requirement.costCenter',
         'createdBy',
@@ -265,15 +337,25 @@ export class QuotationService {
         'quotationSuppliers.quotationSupplierArticles.requirementArticle',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle.article',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle.article.brand',
+        'quotationSuppliers.quotationSupplierServices',
+        'quotationSuppliers.quotationSupplierServices.requirementService',
+        'quotationSuppliers.quotationSupplierServices.requirementService.service',
         'quotationSuppliers.supplierQuotation',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems.requirementArticle',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems.requirementArticle.article',
+        'quotationSuppliers.supplierQuotation.supplierQuotationServiceItems',
+        'quotationSuppliers.supplierQuotation.supplierQuotationServiceItems.requirementService',
+        'quotationSuppliers.supplierQuotation.supplierQuotationServiceItems.requirementService.service',
         'finalSelection',
         'finalSelection.finalSelectionItems',
         'finalSelection.finalSelectionItems.requirementArticle',
         'finalSelection.finalSelectionItems.requirementArticle.article',
         'finalSelection.finalSelectionItems.supplier',
+        'finalSelection.finalSelectionServiceItems',
+        'finalSelection.finalSelectionServiceItems.requirementService',
+        'finalSelection.finalSelectionServiceItems.requirementService.service',
+        'finalSelection.finalSelectionServiceItems.supplier',
       ],
     });
 
@@ -468,14 +550,24 @@ export class QuotationService {
   async createSupplierQuotation(
     createSupplierQuotationDto: CreateSupplierQuotationDto
   ): Promise<SupplierQuotation> {
-    const { quotationRequestId, supplierId, notes, items } =
+    const { quotationRequestId, supplierId, notes, items, serviceItems } =
       createSupplierQuotationDto;
 
-    // Verify quotation request exists
+    // Verify quotation request exists and validate type
     const quotationRequest = await this.getQuotationRequestOrders(
       +quotationRequestId,
       ['quotationSuppliers', 'quotationSuppliers.supplier', 'createdBy']
     );
+
+    // Validate that we're not mixing articles and services
+    const hasArticles = items && items.length > 0;
+    const hasServices = serviceItems && serviceItems.length > 0;
+
+    if (hasArticles && hasServices) {
+      throw new BadRequestException(
+        'No se pueden mezclar artículos y servicios en la misma cotización'
+      );
+    }
 
     // Verify supplier exists in this quotation request
     const quotationSupplier = quotationRequest.quotationSuppliers.find(
@@ -619,6 +711,37 @@ export class QuotationService {
       totalAmount,
     });
 
+    // Handle service items if provided
+    if (serviceItems && serviceItems.length > 0) {
+      const serviceQuotationItems = serviceItems.map(item => ({
+        status:
+          (item.status as QuotationServiceItemStatus) ||
+          QuotationServiceItemStatus.QUOTED,
+        unitPrice: item.unitPrice || 0,
+        currency: item.currency || 'PEN',
+        deliveryTime: item.deliveryTime || 0,
+        notes: item.notes || '',
+        reasonNotAvailable: item.reasonNotAvailable,
+        supplierQuotation: { id: savedSupplierQuotation.id },
+        requirementService: { id: +item.serviceId },
+      }));
+
+      await this.supplierQuotationServiceIR.save(
+        serviceQuotationItems
+      );
+
+      // Calculate total amount including services (only quoted items)
+      const serviceTotalAmount = serviceItems
+        .filter(item => item.status === QuotationServiceItemStatus.QUOTED)
+        .reduce((sum, item) => sum + (item.unitPrice || 0), 0);
+
+      const totalAmountWithServices = totalAmount + serviceTotalAmount;
+
+      await this.supplierQuotationRepository.update(savedSupplierQuotation.id, {
+        totalAmount: totalAmountWithServices,
+      });
+    }
+
     return this.findOneSupplierQuotation(savedSupplierQuotation.id);
   }
 
@@ -632,6 +755,9 @@ export class QuotationService {
         'supplierQuotationItems',
         'supplierQuotationItems.requirementArticle',
         'supplierQuotationItems.requirementArticle.article',
+        'supplierQuotationServiceItems',
+        'supplierQuotationServiceItems.requirementService',
+        'supplierQuotationServiceItems.requirementService.service',
       ],
     });
 
@@ -800,6 +926,7 @@ export class QuotationService {
     await this.quotationSupplierRepository.update(quotationSupplier.id, {
       orderNumber: orderNumber || quotationSupplier.orderNumber,
       terms: terms || quotationSupplier.terms,
+      status: QuotationSupplierStatus.SAVED,
     });
 
     // Update articles if provided
@@ -882,7 +1009,7 @@ export class QuotationService {
     const quotationSuppliers = await this.quotationSupplierRepository.find({
       where: {
         quotationRequest: { id: quotationRequestId },
-        status: QuotationSupplierStatus.PENDING,
+        status: Not(QuotationSupplierStatus.SENT),
       },
     });
 
@@ -967,7 +1094,12 @@ export class QuotationService {
   async createFinalSelection(
     createFinalSelectionDto: CreateFinalSelectionDto
   ): Promise<FinalSelection> {
-    const { quotationRequestId, notes, items } = createFinalSelectionDto;
+    const {
+      quotationRequestId,
+      notes,
+      items = [],
+      serviceItems = [],
+    } = createFinalSelectionDto;
 
     // Verify quotation request exists
     const quotationRequest = await this.getQuotationRequestOrders(
@@ -978,12 +1110,15 @@ export class QuotationService {
     // Check if final selection already exists
     const existingFinalSelection = await this.finalSelectionRepository.findOne({
       where: { quotationRequest: { id: +quotationRequestId } },
-      relations: ['finalSelectionItems'],
+      relations: ['finalSelectionItems', 'finalSelectionServiceItems'],
     });
 
     if (existingFinalSelection) {
       // Si ya existe una selección final, eliminar todos los items existentes y recrearlos
       await this.finalSelectionItemRepository.delete({
+        finalSelection: { id: existingFinalSelection.id },
+      });
+      await this.finalSelectionServiceItemRepository.delete({
         finalSelection: { id: existingFinalSelection.id },
       });
 
@@ -992,71 +1127,121 @@ export class QuotationService {
         notes,
       });
 
-      // Crear nuevos items
+      // Crear nuevos items de artículos
       const finalSelectionItems = await Promise.all(
-        items.map(async item => {
-          // Get requirement article to get quantity and other details
+        (items || []).map(async item => {
           const requirementArticle =
             await this.requirementArticleRepository.findOne({
-              where: { id: +item.articleId },
+              where: { id: item.articleId },
               relations: ['article'],
             });
-
           if (!requirementArticle) {
             throw new BadRequestException(
               `RequirementArticle with id ${item.articleId} not found`
             );
           }
-
-          // Get supplier quotation item to get currency and other details
           const supplierQuotationItem =
             await this.supplierQuotationItemRepository.findOne({
               where: {
-                requirementArticle: { id: +item.articleId },
+                requirementArticle: { id: item.articleId },
                 supplierQuotation: {
                   quotationSupplier: {
-                    supplier: { id: +item.supplierId },
+                    supplier: { id: item.supplierId },
                     quotationRequest: { id: +quotationRequestId },
                   },
                 },
               },
               relations: ['supplierQuotation'],
             });
-
           const quantity = requirementArticle.quantity;
           const unitPrice = item.selectedPrice;
           const totalPrice = unitPrice * quantity;
           const currency = supplierQuotationItem?.currency || 'PEN';
-
-          const finalSelectionItemData = {
+          const finalSelectionItemData: Record<string, unknown> = {
             finalSelection: { id: existingFinalSelection.id },
-            requirementArticle: { id: +item.articleId },
-            supplier: { id: +item.supplierId },
+            requirementArticle: { id: item.articleId },
+            supplier: { id: item.supplierId },
             unitPrice,
             totalPrice,
             quantity,
             currency,
             notes: item.notes,
           };
-
-          // Add supplierQuotationItem if found
           if (supplierQuotationItem) {
             finalSelectionItemData['supplierQuotationItem'] = {
               id: supplierQuotationItem.id,
             };
           }
-
           return finalSelectionItemData;
         })
       );
-
       await this.finalSelectionItemRepository.save(finalSelectionItems);
 
-      // Actualizar el total adjudicado en cada SupplierQuotation
+      // Crear nuevos items de servicios
+      const finalSelectionServiceItems = await Promise.all(
+        (serviceItems || []).map(async item => {
+          const requirementService =
+            await this.requirementServiceEntityRepository.findOne({
+              where: { id: item.requirementServiceId },
+              relations: ['service'],
+            });
+          if (!requirementService) {
+            throw new BadRequestException(
+              `RequirementService with id ${item.requirementServiceId} not found`
+            );
+          }
+          const supplierQuotationServiceItem =
+            await this.supplierQuotationServiceIR.findOne({
+              where: {
+                requirementService: { id: item.requirementServiceId },
+                supplierQuotation: {
+                  quotationSupplier: {
+                    supplier: { id: item.supplierId },
+                    quotationRequest: { id: +quotationRequestId },
+                  },
+                },
+              },
+              relations: ['supplierQuotation'],
+            });
+          const unitPrice = item.unitPrice;
+          const currency =
+            item.currency || supplierQuotationServiceItem?.currency || 'PEN';
+          const finalSelectionServiceItemData: Record<string, unknown> = {
+            finalSelection: { id: existingFinalSelection.id },
+            requirementService: { id: item.requirementServiceId },
+            supplier: { id: item.supplierId },
+            unitPrice,
+            currency,
+            notes: item.notes,
+            deliveryTime: item.deliveryTime,
+            durationType: item.durationType,
+            duration: item.duration,
+          };
+          if (supplierQuotationServiceItem) {
+            finalSelectionServiceItemData['supplierQuotationServiceItem'] = {
+              id: supplierQuotationServiceItem.id,
+            };
+          }
+          return finalSelectionServiceItemData;
+        })
+      );
+      await this.finalSelectionServiceItemRepository.save(
+        finalSelectionServiceItems
+      );
+
+      // Actualizar el total adjudicado en cada SupplierQuotation (artículos y servicios)
       const adjudicadosPorProveedor = new Map<number, number>();
       for (const item of finalSelectionItems) {
-        const supplierId = item.supplier.id;
-        const total = Number(item.totalPrice) || 0;
+        const supplierId = (item.supplier as { id: number }).id;
+        const total = Number((item.totalPrice as number) || 0);
+        adjudicadosPorProveedor.set(
+          supplierId,
+          (adjudicadosPorProveedor.get(supplierId) || 0) + total
+        );
+      }
+      for (const item of finalSelectionServiceItems) {
+        const supplierId = (item.supplier as { id: number }).id;
+        const total = Number(item.unitPrice) || 0;
         adjudicadosPorProveedor.set(
           supplierId,
           (adjudicadosPorProveedor.get(supplierId) || 0) + total
@@ -1080,11 +1265,16 @@ export class QuotationService {
       }
 
       // Update final selection with calculated totals
+      const totalArticulos = finalSelectionItems.reduce(
+        (sum, item) => sum + ((item.totalPrice as number) || 0),
+        0
+      );
+      const totalServicios = finalSelectionServiceItems.reduce(
+        (sum, item) => sum + (Number(item.unitPrice) || 0),
+        0
+      );
       await this.finalSelectionRepository.update(existingFinalSelection.id, {
-        totalAmount: finalSelectionItems.reduce(
-          (sum, item) => sum + item.totalPrice,
-          0
-        ),
+        totalAmount: totalArticulos + totalServicios,
       });
 
       // Update progress asynchronously after creating final selection
@@ -1109,71 +1299,121 @@ export class QuotationService {
     const savedFinalSelection =
       await this.finalSelectionRepository.save(finalSelection);
 
-    // Create final selection items with proper calculations
+    // Crear items de artículos
     const finalSelectionItems = await Promise.all(
-      items.map(async item => {
-        // Get requirement article to get quantity and other details
+      (items || []).map(async item => {
         const requirementArticle =
           await this.requirementArticleRepository.findOne({
-            where: { id: +item.articleId },
+            where: { id: item.articleId },
             relations: ['article'],
           });
-
         if (!requirementArticle) {
           throw new BadRequestException(
             `RequirementArticle with id ${item.articleId} not found`
           );
         }
-
-        // Get supplier quotation item to get currency and other details
         const supplierQuotationItem =
           await this.supplierQuotationItemRepository.findOne({
             where: {
-              requirementArticle: { id: +item.articleId },
+              requirementArticle: { id: item.articleId },
               supplierQuotation: {
                 quotationSupplier: {
-                  supplier: { id: +item.supplierId },
+                  supplier: { id: item.supplierId },
                   quotationRequest: { id: +quotationRequestId },
                 },
               },
             },
             relations: ['supplierQuotation'],
           });
-
         const quantity = requirementArticle.quantity;
         const unitPrice = item.selectedPrice;
         const totalPrice = unitPrice * quantity;
         const currency = supplierQuotationItem?.currency || 'PEN';
-
-        const finalSelectionItemData = {
+        const finalSelectionItemData: Record<string, unknown> = {
           finalSelection: { id: savedFinalSelection.id },
-          requirementArticle: { id: +item.articleId },
-          supplier: { id: +item.supplierId },
+          requirementArticle: { id: item.articleId },
+          supplier: { id: item.supplierId },
           unitPrice,
           totalPrice,
           quantity,
           currency,
           notes: item.notes,
         };
-
-        // Add supplierQuotationItem if found
         if (supplierQuotationItem) {
           finalSelectionItemData['supplierQuotationItem'] = {
             id: supplierQuotationItem.id,
           };
         }
-
         return finalSelectionItemData;
       })
     );
-
     await this.finalSelectionItemRepository.save(finalSelectionItems);
 
-    // Actualizar el total adjudicado en cada SupplierQuotation
+    // Crear items de servicios
+    const finalSelectionServiceItems = await Promise.all(
+      (serviceItems || []).map(async item => {
+        const requirementService =
+          await this.requirementServiceEntityRepository.findOne({
+            where: { id: item.requirementServiceId },
+            relations: ['service'],
+          });
+        if (!requirementService) {
+          throw new BadRequestException(
+            `RequirementService with id ${item.requirementServiceId} not found`
+          );
+        }
+        const supplierQuotationServiceItem =
+          await this.supplierQuotationServiceIR.findOne({
+            where: {
+              requirementService: { id: item.requirementServiceId },
+              supplierQuotation: {
+                quotationSupplier: {
+                  supplier: { id: item.supplierId },
+                  quotationRequest: { id: +quotationRequestId },
+                },
+              },
+            },
+            relations: ['supplierQuotation'],
+          });
+        const unitPrice = item.unitPrice;
+        const currency =
+          item.currency || supplierQuotationServiceItem?.currency || 'PEN';
+        const finalSelectionServiceItemData: Record<string, unknown> = {
+          finalSelection: { id: savedFinalSelection.id },
+          requirementService: { id: item.requirementServiceId },
+          supplier: { id: item.supplierId },
+          unitPrice,
+          currency,
+          notes: item.notes,
+          deliveryTime: item.deliveryTime,
+          durationType: item.durationType,
+          duration: item.duration,
+        };
+        if (supplierQuotationServiceItem) {
+          finalSelectionServiceItemData['supplierQuotationServiceItem'] = {
+            id: supplierQuotationServiceItem.id,
+          };
+        }
+        return finalSelectionServiceItemData;
+      })
+    );
+    await this.finalSelectionServiceItemRepository.save(
+      finalSelectionServiceItems
+    );
+
+    // Actualizar el total adjudicado en cada SupplierQuotation (artículos y servicios)
     const adjudicadosPorProveedor = new Map<number, number>();
     for (const item of finalSelectionItems) {
-      const supplierId = item.supplier.id;
-      const total = Number(item.totalPrice) || 0;
+      const supplierId = (item.supplier as { id: number }).id;
+      const total = Number((item.totalPrice as number) || 0);
+      adjudicadosPorProveedor.set(
+        supplierId,
+        (adjudicadosPorProveedor.get(supplierId) || 0) + total
+      );
+    }
+    for (const item of finalSelectionServiceItems) {
+      const supplierId = (item.supplier as { id: number }).id;
+      const total = Number(item.unitPrice) || 0;
       adjudicadosPorProveedor.set(
         supplierId,
         (adjudicadosPorProveedor.get(supplierId) || 0) + total
@@ -1196,11 +1436,16 @@ export class QuotationService {
     }
 
     // Update final selection with calculated totals
+    const totalArticulos = finalSelectionItems.reduce(
+      (sum, item) => sum + ((item.totalPrice as number) || 0),
+      0
+    );
+    const totalServicios = finalSelectionServiceItems.reduce(
+      (sum, item) => sum + (Number(item.unitPrice) || 0),
+      0
+    );
     await this.finalSelectionRepository.update(savedFinalSelection.id, {
-      totalAmount: finalSelectionItems.reduce(
-        (sum, item) => sum + item.totalPrice,
-        0
-      ),
+      totalAmount: totalArticulos + totalServicios,
     });
 
     // Update progress asynchronously after creating final selection
@@ -1262,7 +1507,11 @@ export class QuotationService {
     updateFinalSelectionDto: UpdateFinalSelectionDto
   ): Promise<FinalSelection> {
     const finalSelection = await this.findOneFinalSelection(id);
-    const { notes, items } = updateFinalSelectionDto;
+    const {
+      notes,
+      items = [],
+      serviceItems = [],
+    } = updateFinalSelectionDto;
 
     // Update basic data if notes are provided
     if (notes !== undefined) {
@@ -1272,15 +1521,16 @@ export class QuotationService {
     }
 
     // Update items if provided
-    if (items && items.length > 0) {
-      // Get current final selection items to calculate quantities
-      const currentItems = await this.finalSelectionItemRepository.find({
-        where: { finalSelection: { id } },
-        relations: ['requirementArticle'],
-      });
-
+    if (
+      (items && items.length > 0) ||
+      (serviceItems && serviceItems.length > 0)
+    ) {
+      // Actualizar ítems de artículos existentes
       for (const item of items) {
-        const currentItem = currentItems.find(ci => ci.id === +item.id);
+        const currentItem = await this.finalSelectionItemRepository.findOne({
+          where: { id: +item.id },
+          relations: ['requirementArticle'],
+        });
         if (!currentItem) {
           throw new BadRequestException(
             `FinalSelectionItem with id ${item.id} not found`
@@ -1299,8 +1549,33 @@ export class QuotationService {
         });
       }
 
-      // Recalculate totals for all suppliers involved
+      // Actualizar ítems de servicios existentes
+      for (const item of serviceItems) {
+        const currentServiceItem = await this.finalSelectionServiceItemRepository.findOne({
+          where: { id: +item.id },
+        });
+        if (!currentServiceItem) {
+          throw new BadRequestException(
+            `FinalSelectionServiceItem with id ${item.id} not found`
+          );
+        }
+
+        await this.finalSelectionServiceItemRepository.update(+item.id, {
+          unitPrice: item.unitPrice || currentServiceItem.unitPrice,
+          notes: item.notes,
+          currency: item.currency,
+          deliveryTime: item.deliveryTime,
+          durationType: item.durationType as 'HORA' | 'CONTRATO' | 'DIA' | 'JORNADA',
+          duration: item.duration,
+        });
+      }
+
+      // Recalcular totales para todos los proveedores involucrados
       const updatedItems = await this.finalSelectionItemRepository.find({
+        where: { finalSelection: { id } },
+        relations: ['supplier'],
+      });
+      const updatedServiceItems = await this.finalSelectionServiceItemRepository.find({
         where: { finalSelection: { id } },
         relations: ['supplier'],
       });
@@ -1315,8 +1590,16 @@ export class QuotationService {
           (adjudicadosPorProveedor.get(supplierId) || 0) + total
         );
       }
+      for (const item of updatedServiceItems) {
+        const supplierId = item.supplier.id;
+        const total = Number(item.unitPrice) || 0;
+        adjudicadosPorProveedor.set(
+          supplierId,
+          (adjudicadosPorProveedor.get(supplierId) || 0) + total
+        );
+      }
 
-      // Update SupplierQuotation totals
+      // Actualizar SupplierQuotation totals
       const quotationRequestId = finalSelection.quotationRequest.id;
       for (const [supplierId, total] of adjudicadosPorProveedor.entries()) {
         const quotationSupplier =
@@ -1336,12 +1619,16 @@ export class QuotationService {
       }
 
       // Update final selection total
-      const finalSelectionTotal = updatedItems.reduce(
+      const totalArticulos = updatedItems.reduce(
         (sum, item) => sum + (Number(item.totalPrice) || 0),
         0
       );
+      const totalServicios = updatedServiceItems.reduce(
+        (sum, item) => sum + (Number(item.unitPrice) || 0),
+        0
+      );
       await this.finalSelectionRepository.update(id, {
-        totalAmount: finalSelectionTotal,
+        totalAmount: totalArticulos + totalServicios,
       });
     }
 
@@ -1805,14 +2092,6 @@ export class QuotationService {
       throw new NotFoundException('Supplier quotation not found');
     }
 
-    // Generar QR para la solicitud de compra
-    const qrUrl = this.qrService.generateQuotationURL(id, {
-      includeTimestamp: true,
-      includeVersion: true,
-      version: '1.0',
-    });
-    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
-
     // Preparar datos para el template
     const data = {
       code: quotationSupplier.orderNumber || '',
@@ -1840,43 +2119,6 @@ export class QuotationService {
           image: article.requirementArticle?.article?.imageUrl || null,
         })
       ),
-
-      // Firmas
-      firstSignature: quotation.firstSignature,
-      firstSignedAt: quotation.firstSignedAt
-        ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      secondSignature: quotation.secondSignature,
-      secondSignedAt: quotation.secondSignedAt
-        ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      thirdSignature: quotation.thirdSignature,
-      thirdSignedAt: quotation.thirdSignedAt
-        ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      fourthSignature: quotation.fourthSignature,
-      fourthSignedAt: quotation.fourthSignedAt
-        ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-
-      // QR Code
-      qrCode: qrDataUrl,
     };
 
     // Leer y compilar el template

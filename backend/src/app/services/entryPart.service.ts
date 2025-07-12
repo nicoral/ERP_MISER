@@ -199,7 +199,7 @@ export class EntryPartService {
       ? new Date(entryPartData.entryDate)
       : new Date();
     entryPart.employee = entryPartData.employeeId
-      ? { id: entryPartData.employeeId } as Employee
+      ? ({ id: entryPartData.employeeId } as Employee)
       : entryPart.employee;
     entryPart.status = EntryPartStatus.COMPLETED;
 

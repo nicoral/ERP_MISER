@@ -61,13 +61,15 @@ export class QuotationController {
     @Request() req: { user: { id: number } },
     @Query('page') page: number,
     @Query('limit') limit: number,
-    @Query() filters: QuotationFiltersDto
+    @Query() filters: QuotationFiltersDto,
+    @Query('type') type?: 'ARTICLE' | 'SERVICE'
   ) {
     return this.quotationService.findAllQuotationRequests(
       req.user.id,
       page,
       limit,
-      filters
+      filters,
+      type
     );
   }
 

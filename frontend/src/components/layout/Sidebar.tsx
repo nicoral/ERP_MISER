@@ -111,7 +111,7 @@ const menuItems: MenuItem[] = [
       },
       {
         label: SIDEBAR_TEXTS.quotation,
-        path: ROUTES.QUOTATIONS,
+        path: ROUTES.QUOTATIONS_ARTICLES,
         permission: ['view_quotations'],
         icon: <CalculatorIcon className="w-4 h-4" />,
       },
@@ -148,7 +148,7 @@ const menuItems: MenuItem[] = [
       },
       {
         label: SIDEBAR_TEXTS.quotation,
-        path: ROUTES.QUOTATIONS,
+        path: ROUTES.QUOTATIONS_SERVICES,
         permission: ['view_quotations'],
         icon: <CalculatorIcon className="w-4 h-4" />,
       },

@@ -25,6 +25,16 @@ export class CreateQuotationSupplierArticleDto {
   quantity: number; // Cantidad específica para este proveedor (puede ser diferente al requerimiento original)
 }
 
+export class CreateQuotationSupplierServiceDto {
+  @IsNotEmpty()
+  @IsNumber()
+  requirementServiceId: number; // ID del RequirementService del requerimiento original
+
+  @IsOptional()
+  @IsNumber()
+  quantity?: number; // Cantidad opcional para servicios (puede ser diferente al requerimiento original)
+}
+
 export class CreateQuotationRequestDto {
   @IsNotEmpty()
   @IsNumber()
@@ -49,4 +59,10 @@ export class CreateQuotationRequestDto {
   @ValidateNested({ each: true })
   @Type(() => CreateQuotationSupplierArticleDto)
   supplierArticles?: CreateQuotationSupplierArticleDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateQuotationSupplierServiceDto)
+  supplierServices?: CreateQuotationSupplierServiceDto[];
 }

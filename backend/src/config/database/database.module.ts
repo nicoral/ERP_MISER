@@ -18,10 +18,13 @@ import { GeneralSettings } from '../../app/entities/GeneralSettings.entity';
 import { QuotationRequest } from '../../app/entities/QuotationRequest.entity';
 import { QuotationSupplier } from '../../app/entities/QuotationSupplier.entity';
 import { QuotationSupplierArticle } from '../../app/entities/QuotationSupplierArticle.entity';
+import { QuotationSupplierService } from '../../app/entities/QuotationSupplierService.entity';
 import { SupplierQuotation } from '../../app/entities/SupplierQuotation.entity';
 import { SupplierQuotationItem } from '../../app/entities/SupplierQuotationItem.entity';
+import { SupplierQuotationServiceItem } from '../../app/entities/SupplierQuotationServiceItem.entity';
 import { FinalSelection } from '../../app/entities/FinalSelection.entity';
 import { FinalSelectionItem } from '../../app/entities/FinalSelectionItem.entity';
+import { FinalSelectionServiceItem } from '../../app/entities/FinalSelectionServiceItem.entity';
 import { Service } from '../../app/entities/Service.entity';
 import { RequirementService } from '../../app/entities/RequirementService.entity';
 import { PaymentDetail } from '../../app/entities/PaymentDetail.entity';
@@ -52,10 +55,13 @@ import { EntryPartArticle } from '../../app/entities/EntryPartArticle.entity';
         QuotationRequest,
         QuotationSupplier,
         QuotationSupplierArticle,
+        QuotationSupplierService,
         SupplierQuotation,
         SupplierQuotationItem,
+        SupplierQuotationServiceItem,
         FinalSelection,
         FinalSelectionItem,
+        FinalSelectionServiceItem,
         Service,
         RequirementService,
         PaymentGroup,

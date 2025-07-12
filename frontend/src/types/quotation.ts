@@ -80,7 +80,18 @@ export interface QuotationSupplier {
   quotationRequest: QuotationRequest;
   supplier: Supplier;
   quotationSupplierArticles: QuotationSupplierArticle[];
+  quotationSupplierServices: QuotationSupplierService[];
   supplierQuotation?: SupplierQuotation;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+}
+
+export interface QuotationSupplierService {
+  id: number;
+  quantity: number;
+  quotationSupplier: QuotationSupplier;
+  requirementService: RequirementService;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -109,6 +120,7 @@ export interface SupplierQuotation {
   igv?: string;
   quotationSupplier: QuotationSupplier;
   supplierQuotationItems: SupplierQuotationItem[];
+  supplierQuotationServiceItems: SupplierQuotationServiceItem[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -141,6 +153,7 @@ export interface FinalSelection {
   quotationRequest: QuotationRequest;
   createdBy: Employee;
   finalSelectionItems: FinalSelectionItem[];
+  finalSelectionServiceItems: FinalSelectionServiceItem[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -161,6 +174,62 @@ export interface FinalSelectionItem {
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
+}
+
+export interface FinalSelectionServiceItem {
+  id: number;
+  unitPrice: number;
+  currency: string;
+  deliveryTime?: number;
+  notes?: string;
+  durationType?: string;
+  duration?: number;
+  finalSelection: FinalSelection;
+  requirementService: RequirementService;
+  supplier: Supplier;
+  supplierQuotationServiceItem: SupplierQuotationServiceItem;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+}
+
+export interface RequirementService {
+  id: number;
+  requirement: Requirement;
+  service: Service;
+  unitPrice: number;
+  justification?: string;
+  currency: string;
+  durationType?: string;
+  duration?: number;
+  supplierQuotationServiceItems: SupplierQuotationServiceItem[];
+  finalSelectionServiceItems: FinalSelectionServiceItem[];
+}
+
+export interface SupplierQuotationServiceItem {
+  id: number;
+  status: QuotationItemStatus;
+  unitPrice?: number;
+  currency: string;
+  deliveryTime?: number;
+  notes?: string;
+  reasonNotAvailable?: string;
+  durationType?: string;
+  duration?: number;
+  supplierQuotation: SupplierQuotation;
+  requirementService: RequirementService;
+  finalSelectionServiceItems: FinalSelectionServiceItem[];
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+}
+
+export interface Service {
+  id: number;
+  code: string;
+  name: string;
+  active: boolean;
+  requirementServices: RequirementService[];
 }
 
 // DTOs for API requests
@@ -193,6 +262,17 @@ export interface CreateSupplierQuotationDto {
     reasonNotAvailable?: string;
     currency?: string;
   }>;
+  serviceItems?: Array<{
+    serviceId: number;
+    unitPrice?: number;
+    deliveryTime?: number;
+    notes?: string;
+    status?: string;
+    reasonNotAvailable?: string;
+    currency?: string;
+    duration?: number;
+    durationType?: string;
+  }>;
 }
 
 export interface UpdateSupplierQuotationDto {
@@ -214,10 +294,20 @@ export interface CreateFinalSelectionDto {
   quotationRequestId: string;
   notes?: string;
   items: Array<{
-    articleId: string;
-    supplierId: string;
+    articleId: number;
+    supplierId: number;
     selectedPrice: number;
     notes?: string;
+  }>;
+  serviceItems?: Array<{
+    requirementServiceId: number;
+    supplierId: number;
+    unitPrice: number;
+    notes?: string;
+    currency?: string;
+    deliveryTime?: number;
+    durationType?: string;
+    duration?: number;
   }>;
 }
 
@@ -234,6 +324,16 @@ export interface UpdateFinalSelectionDto {
     selectedPrice?: number;
     notes?: string;
   }>;
+  serviceItems?: Array<{
+    id: string;
+    supplierId: number;
+    unitPrice?: number;
+    notes?: string;
+    currency?: string;
+    deliveryTime?: number;
+    durationType?: string;
+    duration?: number;
+  }>;
 }
 
 export interface UpdateQuotationBasicDto {
@@ -246,6 +346,7 @@ export interface UpdateQuotationOrderDto {
   orderNumber?: string;
   terms?: string;
   selectedArticles?: number[];
+  selectedServices?: number[];
 }
 
 export interface SendQuotationOrderDto {
@@ -260,6 +361,11 @@ export interface ApplyGeneralTermsDto {
   selectedArticles?: {
     articleId: number;
     quantity: number;
+  }[];
+  selectedServices?: {
+    serviceId: number;
+    duration: number;
+    durationType: string;
   }[];
 }
 
@@ -300,6 +406,27 @@ export interface QuotationComparison {
   quantity: number;
   supplierQuotes: SupplierQuote[];
   bestPrice?: SupplierQuote;
+}
+
+export interface ServiceQuotationComparison {
+  serviceId: number;
+  service: import('./service').Service;
+  supplierQuotes: ServiceSupplierQuote[];
+  bestPrice?: ServiceSupplierQuote;
+}
+
+export interface ServiceSupplierQuote {
+  supplierId: number;
+  supplier: Supplier;
+  unitPrice: number;
+  totalPrice: number;
+  currency: string;
+  deliveryTime?: number;
+  duration?: number;
+  durationType?: string;
+  isBestPrice: boolean;
+  status: QuotationItemStatus;
+  reasonNotAvailable?: string;
 }
 
 export interface SupplierQuote {
@@ -382,4 +509,19 @@ export interface QuotationWizardState {
   requirement: Requirement;
   selectedSuppliers: SelectedSupplier[];
   currentStep: QuotationStep;
+}
+
+export interface ServiceQuotationItem {
+  id: number;
+  requirementServiceId: number;
+  service: import('./service').Service;
+  unitPrice: number;
+  totalPrice: number;
+  currency: string;
+  deliveryTime: number;
+  duration: number;
+  durationType: string;
+  notes: string;
+  status: QuotationItemStatus;
+  reasonNotAvailable: string;
 }

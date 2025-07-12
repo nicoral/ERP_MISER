@@ -1,6 +1,9 @@
 import { createApiCall } from './httpInterceptor';
 import type { EntryPart } from '../../types/entryPart';
-import type { CreateEntryPartDto, UpdateEntryPartDto } from '../../types/entryPart';
+import type {
+  CreateEntryPartDto,
+  UpdateEntryPartDto,
+} from '../../types/entryPart';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/entry-parts`;
 
@@ -27,7 +30,10 @@ export const entryPartService = {
     return response;
   },
 
-  async updateEntryPart(id: number, data: UpdateEntryPartDto): Promise<EntryPart> {
+  async updateEntryPart(
+    id: number,
+    data: UpdateEntryPartDto
+  ): Promise<EntryPart> {
     const response = await createApiCall<EntryPart>(`${BASE_URL}/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -55,4 +61,4 @@ export const entryPartService = {
 // Legacy exports for backward compatibility
 export const getEntryParts = entryPartService.getEntryParts;
 export const getEntryPart = entryPartService.getEntryPart;
-export const createEntryPart = entryPartService.createEntryPart; 
+export const createEntryPart = entryPartService.createEntryPart;

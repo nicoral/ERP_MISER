@@ -3,6 +3,8 @@
 /node_modules
 /build
 
+.jest-cache
+
 # Logs
 logs
 *.log

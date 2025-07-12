@@ -8,7 +8,11 @@ import { type QuotationRequest } from '../types/quotation';
 // import { useToast } from '../contexts/ToastContext';
 import { ROUTES } from '../config/constants';
 
-export const Quotations: React.FC = () => {
+interface QuotationsProps {
+  type?: 'ARTICLE' | 'SERVICE';
+}
+
+export const Quotations: React.FC<QuotationsProps> = ({ type = 'ARTICLE' }) => {
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [selectedQuotation, setSelectedQuotation] =
@@ -65,6 +69,7 @@ export const Quotations: React.FC = () => {
     <div>
       {/* Main Content */}
       <QuotationList
+        type={type}
         onViewQuotation={handleViewQuotation}
         onEditQuotation={handleEditQuotation}
         onCreateQuotation={handleCreateQuotation}

@@ -42,6 +42,36 @@ export class CreateSupplierQuotationItemDto {
   currency?: string;
 }
 
+export class CreateSupplierQuotationServiceItemDto {
+  @IsNotEmpty()
+  @IsNumber()
+  serviceId: number;
+
+  @IsOptional()
+  @IsNumber()
+  unitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  deliveryTime?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  reasonNotAvailable?: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+}
+
 export class CreateSupplierQuotationDto {
   @IsNotEmpty()
   @IsNumber()
@@ -59,4 +89,10 @@ export class CreateSupplierQuotationDto {
   @ValidateNested({ each: true })
   @Type(() => CreateSupplierQuotationItemDto)
   items: CreateSupplierQuotationItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSupplierQuotationServiceItemDto)
+  serviceItems?: CreateSupplierQuotationServiceItemDto[];
 }

@@ -118,14 +118,23 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
     return Array.from(locations).sort();
   };
 
-  const totalRequirement = requirement.requirementArticles.reduce(
-    (acc, item) =>
-      acc +
-      (item.currency === 'USD'
-        ? item.quantity * item.unitPrice * (exchangeRate?.saleRate || 1)
-        : item.quantity * item.unitPrice),
-    0
-  );
+  const totalRequirement = 
+    requirement.requirementArticles.reduce(
+      (acc, item) =>
+        acc +
+        (item.currency === 'USD'
+          ? item.quantity * item.unitPrice * (exchangeRate?.saleRate || 1)
+          : item.quantity * item.unitPrice),
+      0
+    ) +
+    (requirement.requirementServices?.reduce(
+      (acc, item) =>
+        acc +
+        (item.currency === 'USD'
+          ? item.unitPrice * (exchangeRate?.saleRate || 1)
+          : item.unitPrice),
+      0
+    ) || 0);
   const minSuppliers = totalRequirement >= 1000 ? 2 : 1;
 
   if (loading) {

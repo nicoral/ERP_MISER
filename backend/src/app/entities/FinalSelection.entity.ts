@@ -13,6 +13,7 @@ import {
 import { QuotationRequest } from './QuotationRequest.entity';
 import { Employee } from './Employee.entity';
 import { FinalSelectionItem } from './FinalSelectionItem.entity';
+import { FinalSelectionServiceItem } from './FinalSelectionServiceItem.entity';
 
 export enum FinalSelectionStatus {
   DRAFT = 'DRAFT',
@@ -54,6 +55,12 @@ export class FinalSelection {
     finalSelectionItem => finalSelectionItem.finalSelection
   )
   finalSelectionItems: FinalSelectionItem[];
+
+  @OneToMany(
+    () => FinalSelectionServiceItem,
+    finalSelectionServiceItem => finalSelectionServiceItem.finalSelection
+  )
+  finalSelectionServiceItems: FinalSelectionServiceItem[];
 
   @CreateDateColumn({
     name: 'created_at',

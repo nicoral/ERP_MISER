@@ -1,7 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { Service } from './Service.entity';
 import { Requirement } from './Requirement.entity';
 import { Currency } from '../common/enum';
+import { QuotationSupplierService } from './QuotationSupplierService.entity';
+import { SupplierQuotationServiceItem } from './SupplierQuotationServiceItem.entity';
+import { FinalSelectionServiceItem } from './FinalSelectionServiceItem.entity';
 
 export enum ServiceDurationType {
   HORA = 'HORA',
@@ -44,4 +53,23 @@ export class RequirementService {
 
   @Column({ type: 'integer', nullable: true })
   duration: number;
+
+  @OneToMany(
+    () => QuotationSupplierService,
+    quotationSupplierService => quotationSupplierService.requirementService
+  )
+  quotationSupplierServices: QuotationSupplierService[];
+
+  @OneToMany(
+    () => SupplierQuotationServiceItem,
+    supplierQuotationServiceItem =>
+      supplierQuotationServiceItem.requirementService
+  )
+  supplierQuotationServiceItems: SupplierQuotationServiceItem[];
+
+  @OneToMany(
+    () => FinalSelectionServiceItem,
+    finalSelectionServiceItem => finalSelectionServiceItem.requirementService
+  )
+  finalSelectionServiceItems: FinalSelectionServiceItem[];
 }

@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { QuotationSupplier } from './QuotationSupplier.entity';
 import { SupplierQuotationItem } from './SupplierQuotationItem.entity';
+import { SupplierQuotationServiceItem } from './SupplierQuotationServiceItem.entity';
 
 export enum SupplierQuotationStatus {
   DRAFT = 'DRAFT',
@@ -67,6 +68,13 @@ export class SupplierQuotation {
     supplierQuotationItem => supplierQuotationItem.supplierQuotation
   )
   supplierQuotationItems: SupplierQuotationItem[];
+
+  @OneToMany(
+    () => SupplierQuotationServiceItem,
+    supplierQuotationServiceItem =>
+      supplierQuotationServiceItem.supplierQuotation
+  )
+  supplierQuotationServiceItems: SupplierQuotationServiceItem[];
 
   @CreateDateColumn({
     name: 'created_at',

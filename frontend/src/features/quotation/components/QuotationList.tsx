@@ -22,12 +22,14 @@ import { FormInput } from '../../../components/common/FormInput';
 import { ROUTES } from '../../../config/constants';
 
 interface QuotationListProps {
+  type?: 'ARTICLE' | 'SERVICE';
   onViewQuotation: (quotation: QuotationRequest) => void;
   onEditQuotation: (quotation: QuotationRequest) => void;
   onCreateQuotation: () => void;
 }
 
 export const QuotationList: React.FC<QuotationListProps> = ({
+  type = 'ARTICLE',
   onViewQuotation,
   onEditQuotation,
   onCreateQuotation,
@@ -78,7 +80,7 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   };
 
   const loadQuotations = async (page = 1) => {
-    const result = await getQuotationRequests(page, pageSize, filters);
+    const result = await getQuotationRequests(page, pageSize, filters, type);
     if (result) {
       setQuotations(result.quotationRequests);
       setTotal(result.total);
@@ -305,7 +307,9 @@ export const QuotationList: React.FC<QuotationListProps> = ({
   return (
     <div className="space-y-6 sm:px-8 p-2">
       <div className="flex justify-between items-center sm:mb-6 mb-2">
-        <h1 className="text-2xl font-bold">Cotizaciones</h1>
+        <h1 className="text-2xl font-bold">
+          Cotizaciones de {type === 'ARTICLE' ? 'Artículos' : 'Servicios'}
+        </h1>
         <Button onClick={onCreateQuotation} className="hidden">
           <Plus className="h-4 w-4 mr-2" />
           Nueva Cotización

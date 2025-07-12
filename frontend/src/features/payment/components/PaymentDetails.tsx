@@ -704,7 +704,7 @@ export const PaymentDetails: React.FC = () => {
                     </h5>
                     <div className="space-y-2">
                       {/* Add Invoice Image Button */}
-                      {detail.paymentReceipt &&
+                      {detail.movementNumber &&
                         !detail.invoiceImage &&
                         canEdit && (
                           <Button
@@ -951,7 +951,7 @@ export const PaymentDetails: React.FC = () => {
                     onClick={() => {
                       // Find the payment detail that needs invoice image
                       const paymentDetail = payment.paymentDetails.find(
-                        d => d.paymentReceipt && !d.invoiceImage
+                        d => d.movementNumber && !d.invoiceImage
                       );
                       if (paymentDetail) {
                         handleSaveInvoiceImage(paymentDetail.id);

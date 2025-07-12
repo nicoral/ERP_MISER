@@ -517,7 +517,13 @@ export const QuotationDetails = () => {
       {/* Botones fuera del bloque enmarcado */}
       <div className="flex justify-between mt-4">
         <button
-          onClick={() => navigate(ROUTES.QUOTATIONS)}
+          onClick={() =>
+            navigate(
+              quotation.requirement.type === 'ARTICLE'
+                ? ROUTES.QUOTATIONS_ARTICLES
+                : ROUTES.QUOTATIONS_SERVICES
+            )
+          }
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
         >
           Volver

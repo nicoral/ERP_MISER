@@ -10,6 +10,7 @@ import {
 import { SupplierStatus } from '../common/enum';
 import { QuotationSupplier } from './QuotationSupplier.entity';
 import { FinalSelectionItem } from './FinalSelectionItem.entity';
+import { FinalSelectionServiceItem } from './FinalSelectionServiceItem.entity';
 
 @Entity()
 export class Supplier {
@@ -99,6 +100,12 @@ export class Supplier {
     finalSelectionItem => finalSelectionItem.supplier
   )
   finalSelectionItems: FinalSelectionItem[];
+
+  @OneToMany(
+    () => FinalSelectionServiceItem,
+    finalSelectionServiceItem => finalSelectionServiceItem.supplier
+  )
+  finalSelectionServiceItems: FinalSelectionServiceItem[];
 
   @CreateDateColumn({
     name: 'created_at',

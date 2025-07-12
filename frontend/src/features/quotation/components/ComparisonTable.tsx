@@ -4,6 +4,7 @@ import { formatCurrency } from '../../../utils/quotationUtils';
 import {
   QuotationItemStatus,
   type SupplierQuotationItem,
+  type SupplierQuotationServiceItem,
 } from '../../../types/quotation';
 import type { ComparisonTableProps } from '../types';
 import quotationService from '../../../services/api/quotationService';
@@ -23,6 +24,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const { data: exchangeRate } = useCurrentExchangeRate();
   const { showError, showSuccess } = useToast();
+
   const handleDownloadPdf = async () => {
     if (!selectedSupplierId) return;
 
@@ -66,7 +68,43 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
     );
   };
 
-  // Totales por proveedor
+  // Mapear servicios a filas y proveedores a columnas
+  const getSupplierServiceItem = (
+    supplierId: number,
+    requirementServiceId: number
+  ): SupplierQuotationServiceItem | undefined => {
+    const qs = quotation.quotationSuppliers.find(
+      qs => qs.supplier.id === supplierId
+    );
+    return qs?.supplierQuotation?.supplierQuotationServiceItems?.find(
+      (item: SupplierQuotationServiceItem) =>
+        item.requirementService.id === requirementServiceId
+    );
+  };
+
+  // Obtener servicios seleccionados para el proveedor actual
+  const getSelectedServices = () => {
+    if (!quotation.finalSelection || !selectedSupplierId) return [];
+
+    const selectedServiceIds =
+      quotation.finalSelection.finalSelectionServiceItems
+        .filter(item => item.supplier.id === selectedSupplierId)
+        .map(item => item.requirementService.id);
+
+    return (
+      quotation.requirement.requirementServices
+        ?.filter(reqService => selectedServiceIds.includes(reqService.id))
+        .map(reqService => ({
+          id: reqService.id,
+          service: reqService.service,
+          duration: reqService.duration,
+          durationType: reqService.durationType,
+          unitPrice: reqService.unitPrice,
+        })) || []
+    );
+  };
+
+  // Totales por proveedor (artículos + servicios)
   const getSupplierTotal = (supplierId: number): number => {
     if (!selectedSupplierId) return 0;
 
@@ -76,30 +114,60 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
         .filter(item => item.supplier.id === selectedSupplierId)
         .map(item => item.requirementArticle.article.id) || [];
 
-    if (selectedArticles.length === 0) return 0;
+    // Obtener los servicios adjudicados al proveedor seleccionado
+    const selectedServices =
+      quotation.finalSelection?.finalSelectionServiceItems
+        .filter(item => item.supplier.id === selectedSupplierId)
+        .map(item => item.requirementService.id) || [];
+
+    if (selectedArticles.length === 0 && selectedServices.length === 0)
+      return 0;
 
     const qs = quotation.quotationSuppliers.find(
       qs => qs.supplier.id === supplierId
     );
 
-    if (!qs?.supplierQuotation?.supplierQuotationItems) return 0;
+    if (!qs?.supplierQuotation) return 0;
 
-    // Calcular el total solo para los artículos adjudicados al proveedor seleccionado
-    // y que estén cotizados (no NOT_AVAILABLE)
-    const total = qs.supplierQuotation.supplierQuotationItems
-      .filter(
-        item =>
-          selectedArticles.includes(item.requirementArticle.article.id) &&
-          item.status === QuotationItemStatus.QUOTED
-      )
-      .reduce(
-        (sum, item) =>
-          sum +
-          (item.currency === 'PEN'
-            ? item.totalPrice || 0
-            : (item.totalPrice || 0) * (exchangeRate?.saleRate || 1)),
-        0
-      );
+    let total = 0;
+
+    // Calcular total de artículos
+    if (qs.supplierQuotation.supplierQuotationItems) {
+      const articlesTotal = qs.supplierQuotation.supplierQuotationItems
+        .filter(
+          item =>
+            selectedArticles.includes(item.requirementArticle.article.id) &&
+            item.status === QuotationItemStatus.QUOTED
+        )
+        .reduce(
+          (sum: number, item: SupplierQuotationItem) =>
+            sum +
+            (item.currency === 'PEN'
+              ? +(item.totalPrice || 0)
+              : +(item.totalPrice || 0) * (exchangeRate?.saleRate || 1)),
+          0
+        );
+      total += articlesTotal;
+    }
+
+    // Calcular total de servicios
+    if (qs.supplierQuotation.supplierQuotationServiceItems) {
+      const servicesTotal = qs.supplierQuotation.supplierQuotationServiceItems
+        .filter(
+          (item: SupplierQuotationServiceItem) =>
+            selectedServices.includes(item.requirementService.id) &&
+            item.status === QuotationItemStatus.QUOTED
+        )
+        .reduce(
+          (sum: number, item: SupplierQuotationServiceItem) =>
+            sum +
+            (item.currency === 'PEN'
+              ? +(item.unitPrice || 0)
+              : +(item.unitPrice || 0) * (exchangeRate?.saleRate || 1)),
+          0
+        );
+      total += servicesTotal;
+    }
 
     return total;
   };
@@ -137,8 +205,16 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
       quotation.finalSelection?.finalSelectionItems
         .filter(item => item.supplier.id === supplierId)
         .reduce((sum, item) => sum + (+item.totalPrice || 0), 0) || 0;
-    return total >= 10000;
+
+    const servicesTotal =
+      quotation.finalSelection?.finalSelectionServiceItems
+        .filter(item => item.supplier.id === supplierId)
+        .reduce((sum, item) => sum + (+item.unitPrice || 0), 0) || 0;
+
+    return total + servicesTotal >= 10000;
   };
+
+  const selectedServices = getSelectedServices();
 
   return (
     <>
@@ -334,8 +410,9 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Artículos */}
               {selectedArticles.map((art, idx) => (
-                <tr key={art.id}>
+                <tr key={`article-${art.id}`}>
                   <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
                     {idx + 1}
                   </td>
@@ -397,6 +474,75 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   })}
                 </tr>
               ))}
+
+              {/* Servicios */}
+              {selectedServices.map((service, idx) => (
+                <tr key={`service-${service.id}`}>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
+                    {selectedArticles.length + idx + 1}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
+                    {service.durationType || '-'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
+                    {service.duration || '-'}
+                  </td>
+                  <td className="px-3 py-2 text-sm">{service.service.name}</td>
+                  {relevantSuppliers.map((s, idx) => {
+                    const item = getSupplierServiceItem(
+                      s.supplier.id,
+                      service.id
+                    );
+                    return (
+                      <td
+                        key={s.supplier.id}
+                        className={`px-3 py-2 text-sm text-center align-top${idx > 0 ? ' border-l border-gray-200 dark:border-gray-700' : ''} ${
+                          s.supplier.id === selectedSupplierId
+                            ? 'shadow-md ring-2 ring-blue-300 dark:ring-blue-600'
+                            : ''
+                        }`}
+                      >
+                        {item ? (
+                          <>
+                            {item.status ===
+                            QuotationItemStatus.NOT_AVAILABLE ? (
+                              <span className="text-xs text-gray-400 col-span-1">
+                                No disponible
+                              </span>
+                            ) : (
+                              <>
+                                <div className="grid grid-cols-2 gap-x-2">
+                                  <span className="text-xs text-gray-400 col-span-1">
+                                    Precio Unit
+                                  </span>
+                                  <span className="text-xs text-gray-400 col-span-1">
+                                    Total
+                                  </span>
+                                  <span className="font-semibold col-span-1">
+                                    {formatCurrency(
+                                      item.unitPrice || 0,
+                                      item.currency
+                                    )}
+                                  </span>
+                                  <span className="font-semibold col-span-1">
+                                    {formatCurrency(
+                                      item.unitPrice || 0,
+                                      item.currency
+                                    )}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-gray-400 text-xs">-</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+
               {/* Totales */}
               <tr className="bg-gray-50 dark:bg-gray-700">
                 <td className="px-3 py-2 text-right font-medium" colSpan={4}>
@@ -511,7 +657,9 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   </tr>
                 );
               }
-              const total =
+
+              // Calcular total incluyendo artículos y servicios
+              const articlesTotal =
                 quotation.finalSelection?.finalSelectionItems
                   .filter(item => item.supplier.id === selectedSupplierId)
                   .reduce(
@@ -523,6 +671,22 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                           (exchangeRate?.saleRate || 1)),
                     0
                   ) || 0;
+
+              const servicesTotal =
+                quotation.finalSelection?.finalSelectionServiceItems
+                  .filter(item => item.supplier.id === selectedSupplierId)
+                  .reduce(
+                    (sum, item) =>
+                      sum +
+                      (item.currency === 'PEN'
+                        ? +item.unitPrice || 0
+                        : (+item.unitPrice || 0) *
+                          (exchangeRate?.saleRate || 1)),
+                    0
+                  ) || 0;
+
+              const total = articlesTotal + servicesTotal;
+
               return (
                 <tr>
                   <td className="px-3 py-2 text-sm">{selectedSupplier.ruc}</td>

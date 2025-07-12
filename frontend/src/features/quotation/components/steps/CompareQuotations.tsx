@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   type QuotationComparison,
+  type ServiceQuotationComparison,
   type SupplierQuote,
+  type ServiceSupplierQuote,
   QuotationItemStatus,
   type SelectedSupplier,
   type QuotationRequest,
@@ -83,6 +85,10 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
   const [productSupplierSelections, setProductSupplierSelections] = useState<
     Record<number, number>
   >({});
+  // Nuevo estado para selección de proveedores por servicio
+  const [serviceSupplierSelections, setServiceSupplierSelections] = useState<
+    Record<number, number>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cargar productos seleccionados desde los datos recibidos
@@ -140,10 +146,6 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
   const convertToPEN = (price: number, currency: string): number => {
     if (currency === 'PEN') return price;
     if (currency === 'USD' && exchangeRate?.saleRate) {
-      return price * exchangeRate.saleRate;
-    }
-    // Para EUR usamos el mismo tipo de cambio que USD por ahora
-    if (currency === 'EUR' && exchangeRate?.saleRate) {
       return price * exchangeRate.saleRate;
     }
     return price; // Fallback si no hay tipo de cambio
@@ -280,6 +282,120 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
     setSelectedSuppliersForComparison(newSelected);
   };
 
+  // Obtener todos los servicios únicos que están siendo cotizados
+  const getAllQuotedServices = () => {
+    const allServiceIds = new Set<number>();
+
+    selectedSuppliers.forEach(selectedSupplier => {
+      if (selectedSupplier.receivedQuotation) {
+        // Por ahora, usar todos los servicios del requirement
+        requirement.requirementServices?.forEach(rs => {
+          allServiceIds.add(rs.service.id);
+        });
+      }
+    });
+
+    return (
+      requirement.requirementServices?.filter(rs =>
+        allServiceIds.has(rs.service.id)
+      ) || []
+    );
+  };
+
+  // Generar comparación de servicios
+  const serviceComparisonData = useMemo(() => {
+    const comparisons: ServiceQuotationComparison[] = [];
+    const quotedServices = getAllQuotedServices();
+
+    quotedServices.forEach(requirementService => {
+      const supplierQuotes: ServiceSupplierQuote[] = [];
+
+      selectedSuppliers.forEach(selectedSupplier => {
+        if (
+          selectedSupplier.receivedQuotation &&
+          selectedSuppliersForComparison.has(selectedSupplier.supplier.id)
+        ) {
+          // Buscar el servicio en las cotizaciones de servicios
+          // Por ahora, crear una cotización simulada basada en el requirementService
+          const serviceQuote: ServiceSupplierQuote = {
+            supplierId: selectedSupplier.supplier.id,
+            supplier: selectedSupplier.supplier,
+            unitPrice: requirementService.unitPrice || 0,
+            totalPrice: requirementService.unitPrice || 0,
+            currency: requirementService.currency || 'PEN',
+            deliveryTime: 0,
+            duration: requirementService.duration || 0,
+            durationType: requirementService.durationType || '',
+            isBestPrice: false,
+            status: QuotationItemStatus.QUOTED,
+            reasonNotAvailable: '',
+          };
+          supplierQuotes.push(serviceQuote);
+        }
+      });
+
+      // Determinar el mejor precio (solo entre servicios cotizados)
+      const quotedItems = supplierQuotes.filter(
+        q => q.status === QuotationItemStatus.QUOTED
+      );
+      if (quotedItems.length > 0) {
+        const bestPrice = quotedItems.reduce((min, quote) => {
+          const minPriceInPEN = convertToPEN(
+            Number(min.unitPrice) || 0,
+            min.currency
+          );
+          const currentPriceInPEN = convertToPEN(
+            Number(quote.unitPrice) || 0,
+            quote.currency
+          );
+          return currentPriceInPEN < minPriceInPEN ? quote : min;
+        });
+        supplierQuotes.forEach(quote => {
+          quote.isBestPrice = quote.supplierId === bestPrice.supplierId;
+        });
+      }
+
+      comparisons.push({
+        serviceId: requirementService.service.id,
+        service: requirementService.service,
+        supplierQuotes,
+        bestPrice: supplierQuotes.find(q => q.isBestPrice),
+      });
+    });
+
+    return comparisons;
+  }, [requirement, selectedSuppliers, selectedSuppliersForComparison]);
+
+  // Generar selecciones automáticas para servicios basadas en mejores precios
+  const autoServiceSelections = useMemo(() => {
+    const selections: Record<number, number> = {};
+
+    serviceComparisonData.forEach(comparison => {
+      if (comparison.bestPrice) {
+        selections[comparison.serviceId] = comparison.bestPrice.supplierId;
+      }
+    });
+
+    return selections;
+  }, [serviceComparisonData]);
+
+  // Aplicar selecciones automáticas para servicios solo una vez al cargar
+  useEffect(() => {
+    if (Object.keys(serviceSupplierSelections).length === 0) {
+      setServiceSupplierSelections(autoServiceSelections);
+    }
+  }, [serviceComparisonData]);
+
+  const handleServiceSupplierSelection = (
+    serviceId: number,
+    supplierId: number
+  ) => {
+    setServiceSupplierSelections(prev => ({
+      ...prev,
+      [serviceId]: supplierId,
+    }));
+  };
+
   const handleContinue = async () => {
     // Filtrar solo los proveedores seleccionados para la comparación
     const filteredSuppliers = selectedSuppliers.filter(supplier =>
@@ -310,10 +426,25 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       return;
     }
 
+    // Validar que todos los servicios tengan un proveedor seleccionado
+    const unselectedServices = serviceComparisonData.filter(
+      comp => !serviceSupplierSelections[comp.serviceId]
+    );
+
+    if (unselectedServices.length > 0) {
+      showError(
+        'Servicios sin seleccionar',
+        `Debes seleccionar un proveedor para: ${unselectedServices
+          .map(comp => comp.service.name)
+          .join(', ')}`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Crear los items de la selección final
+      // Crear los items de la selección final para artículos
       const finalSelectionItems = comparisonData.map(comparison => {
         const selectedSupplierId =
           productSupplierSelections[comparison.articleId];
@@ -331,16 +462,41 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         );
 
         return {
-          articleId: requirementArticle?.id.toString() || '',
-          supplierId: selectedSupplierId.toString(),
+          articleId: requirementArticle?.id || 0,
+          supplierId: selectedSupplierId,
           selectedPrice: item?.unitPrice || 0,
           notes: item?.notes || '',
         };
       });
 
+      // Crear los items de la selección final para servicios
+      const finalSelectionServiceItems = serviceComparisonData.map(
+        comparison => {
+          const selectedSupplierId =
+            serviceSupplierSelections[comparison.serviceId];
+
+          // Encontrar el requirementService correspondiente
+          const requirementService = requirement.requirementServices?.find(
+            rs => rs.service.id === comparison.serviceId
+          );
+
+          return {
+            requirementServiceId: requirementService?.id || 0,
+            supplierId: selectedSupplierId,
+            unitPrice: requirementService?.unitPrice || 0,
+            notes: '',
+            currency: requirementService?.currency || 'PEN',
+            deliveryTime: 0,
+            durationType: requirementService?.durationType || '',
+            duration: requirementService?.duration || 0,
+          };
+        }
+      );
+
       const finalSelectionData = {
         quotationRequestId: String(quotationRequestId),
         items: finalSelectionItems,
+        serviceItems: finalSelectionServiceItems,
       };
 
       const createdFinalSelection =
@@ -350,9 +506,13 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         // Actualizar proveedores seleccionados
         const updatedSuppliers = selectedSuppliers.map(supplier => ({
           ...supplier,
-          isFinalSelected: finalSelectionItems.some(
-            item => Number(item.supplierId) === supplier.supplier.id
-          ),
+          isFinalSelected:
+            finalSelectionItems.some(
+              item => item.supplierId === supplier.supplier.id
+            ) ||
+            finalSelectionServiceItems.some(
+              item => item.supplierId === supplier.supplier.id
+            ),
         }));
 
         const message = `Selección final completada con ${filteredSuppliers.length} proveedores`;
@@ -554,9 +714,14 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         </div>
       </div>
 
-      {/* Comparison Table */}
-      {selectedSuppliersForComparison.size > 0 && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+      {/* Articles Comparison Table */}
+      {selectedSuppliersForComparison.size > 0 && comparisonData.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden mb-6">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+              Artículos
+            </h4>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
@@ -614,12 +779,15 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                         const isProductSelected = selectedProducts.some(
                           ra => ra.article.id === comparison.articleId
                         );
+                        const isSelectedSupplier =
+                          productSupplierSelections[comparison.articleId] ===
+                          supplierId;
 
                         return (
                           <td
                             key={supplierId}
                             className={`px-6 py-4 whitespace-nowrap ${
-                              isBestPrice
+                              isSelectedSupplier
                                 ? 'bg-green-50 dark:bg-green-900/20'
                                 : ''
                             }`}
@@ -633,7 +801,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                                 <div className="flex items-center space-x-2">
                                   <span
                                     className={`text-sm font-medium ${
-                                      isBestPrice
+                                      isSelectedSupplier
                                         ? 'text-green-600 dark:text-green-400'
                                         : 'text-gray-900 dark:text-white'
                                     }`}
@@ -643,6 +811,9 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                                   </span>
                                   {isBestPrice && (
                                     <span className="text-green-500">🏆</span>
+                                  )}
+                                  {isSelectedSupplier && !isBestPrice && (
+                                    <span className="text-green-500">✓</span>
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -766,6 +937,182 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
           </div>
         </div>
       )}
+
+      {/* Services Comparison Table */}
+      {selectedSuppliersForComparison.size > 0 &&
+        serviceComparisonData.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden mb-6">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                Servicios
+              </h4>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Servicio
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Duración
+                    </th>
+                    {Array.from(selectedSuppliersForComparison).map(
+                      supplierId => {
+                        const supplier = selectedSuppliers.find(
+                          s => s.supplier.id === supplierId
+                        )?.supplier;
+                        return (
+                          <th
+                            key={supplierId}
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                          >
+                            {supplier?.businessName}
+                          </th>
+                        );
+                      }
+                    )}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Proveedor Seleccionado
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {serviceComparisonData.map(comparison => (
+                    <tr key={comparison.serviceId}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {comparison.service.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {comparison.service.code}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white text-center">
+                        {comparison.supplierQuotes[0]?.duration || 0}{' '}
+                        {comparison.supplierQuotes[0]?.durationType || ''}
+                      </td>
+                      {Array.from(selectedSuppliersForComparison).map(
+                        supplierId => {
+                          const quote = comparison.supplierQuotes.find(
+                            q => q.supplierId === supplierId
+                          );
+                          const isBestPrice = quote?.isBestPrice;
+                          const isSelectedSupplier =
+                            serviceSupplierSelections[comparison.serviceId] ===
+                            supplierId;
+
+                          return (
+                            <td
+                              key={supplierId}
+                              className={`px-6 py-4 whitespace-nowrap ${
+                                isSelectedSupplier
+                                  ? 'bg-green-50 dark:bg-green-900/20'
+                                  : ''
+                              }`}
+                            >
+                              {quote ? (
+                                <div className="space-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        isSelectedSupplier
+                                          ? 'text-green-600 dark:text-green-400'
+                                          : 'text-gray-900 dark:text-white'
+                                      }`}
+                                    >
+                                      {quote.currency}{' '}
+                                      {(Number(quote.unitPrice) || 0).toFixed(
+                                        2
+                                      )}
+                                    </span>
+                                    {isBestPrice && (
+                                      <span className="text-green-500">🏆</span>
+                                    )}
+                                    {isSelectedSupplier && !isBestPrice && (
+                                      <span className="text-green-500">✓</span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Total: {quote.currency}{' '}
+                                    {(Number(quote.totalPrice) || 0).toFixed(2)}
+                                    {quote.currency !== 'PEN' && (
+                                      <span className="text-blue-500 ml-1">
+                                        {getConvertedPriceDisplay(
+                                          Number(quote.totalPrice) || 0,
+                                          quote.currency
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {quote.duration && (
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      Duración: {quote.duration}{' '}
+                                      {quote.durationType}
+                                    </div>
+                                  )}
+                                  {quote.deliveryTime && (
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      Entrega: {quote.deliveryTime} días
+                                    </div>
+                                  )}
+                                  {quote.status ===
+                                    QuotationItemStatus.NOT_AVAILABLE && (
+                                    <div className="text-xs text-red-500 dark:text-red-400">
+                                      No disponible:
+                                      {quote.reasonNotAvailable}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-400 dark:text-gray-500">
+                                  No cotizado
+                                </span>
+                              )}
+                            </td>
+                          );
+                        }
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={
+                            serviceSupplierSelections[comparison.serviceId] ||
+                            ''
+                          }
+                          onChange={e =>
+                            handleServiceSupplierSelection(
+                              comparison.serviceId,
+                              Number(e.target.value)
+                            )
+                          }
+                          className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        >
+                          <option value="">Seleccionar proveedor</option>
+                          {comparison.supplierQuotes
+                            .filter(
+                              quote =>
+                                quote.status === QuotationItemStatus.QUOTED
+                            )
+                            .map(quote => (
+                              <option
+                                key={quote.supplierId}
+                                value={quote.supplierId}
+                              >
+                                {quote.supplier.businessName} - {quote.currency}{' '}
+                                {(Number(quote.unitPrice) || 0).toFixed(2)}
+                              </option>
+                            ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       {/* Analysis Section */}
       {selectedSuppliersForComparison.size > 0 && (
@@ -959,7 +1306,8 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
           onClick={handleContinue}
           disabled={
             selectedSuppliersForComparison.size === 0 ||
-            Object.keys(productSupplierSelections).length === 0 ||
+            (Object.keys(productSupplierSelections).length === 0 &&
+              Object.keys(serviceSupplierSelections).length === 0) ||
             isSubmitting ||
             loading
           }

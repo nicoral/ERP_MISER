@@ -50,9 +50,14 @@ export const useQuotationService = () => {
   );
 
   const getQuotationRequests = useCallback(
-    async (page: number, limit: number, filters?: QuotationFilters) => {
+    async (
+      page: number,
+      limit: number,
+      filters?: QuotationFilters,
+      type?: 'ARTICLE' | 'SERVICE'
+    ) => {
       return handleRequest(() =>
-        quotationService.getQuotationRequests(page, limit, filters)
+        quotationService.getQuotationRequests(page, limit, filters, type)
       );
     },
     [handleRequest]
