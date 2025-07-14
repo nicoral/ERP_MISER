@@ -58,21 +58,24 @@ export class SupplierQuotation {
 
   @OneToOne(
     () => QuotationSupplier,
-    quotationSupplier => quotationSupplier.supplierQuotation
+    quotationSupplier => quotationSupplier.supplierQuotation,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'quotation_supplier_id' })
   quotationSupplier: QuotationSupplier;
 
   @OneToMany(
     () => SupplierQuotationItem,
-    supplierQuotationItem => supplierQuotationItem.supplierQuotation
+    supplierQuotationItem => supplierQuotationItem.supplierQuotation,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   supplierQuotationItems: SupplierQuotationItem[];
 
   @OneToMany(
     () => SupplierQuotationServiceItem,
     supplierQuotationServiceItem =>
-      supplierQuotationServiceItem.supplierQuotation
+      supplierQuotationServiceItem.supplierQuotation,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   supplierQuotationServiceItems: SupplierQuotationServiceItem[];
 

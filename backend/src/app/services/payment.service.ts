@@ -17,7 +17,7 @@ import { CreatePaymentDetailDto } from '../dto/payment/create-payment-detail.dto
 import { UpdatePaymentDetailReceiptDto } from '../dto/payment/create-payment-detail.dto';
 import { UpdatePaymentDetailInvoiceDto } from '../dto/payment/create-payment-detail.dto';
 import { UpdatePaymentDetailStatusDto } from '../dto/payment/create-payment-detail.dto';
-import { CloudinaryService } from './cloudinary.service';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class PaymentService {
@@ -28,7 +28,7 @@ export class PaymentService {
     private paymentGroupRepository: Repository<PaymentGroup>,
     @InjectRepository(PaymentDetail)
     private paymentDetailRepository: Repository<PaymentDetail>,
-    private cloudinaryService: CloudinaryService
+    private storageService: StorageService
   ) {}
 
   // ===== PAYMENT GROUP METHODS =====
@@ -187,12 +187,17 @@ export class PaymentService {
 
     // Si se sube una imagen, guardarla en Cloudinary
     if (file) {
-      const uploadResult = await this.cloudinaryService.uploadFile(
-        file,
-        'payments/receipts',
-        false
+      if (paymentDetail.receiptImage) {
+        await this.storageService.removeFileByUrl(paymentDetail.receiptImage);
+      }
+      const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+      const path = `payments/receipts/${fileName}`;
+      const uploadResult = await this.storageService.uploadFile(
+        path,
+        file.buffer,
+        file.mimetype
       );
-      updatePaymentDetailReceiptDto.receiptImage = uploadResult.secure_url;
+      updatePaymentDetailReceiptDto.receiptImage = uploadResult.url;
     }
 
     // Actualizar el pago
@@ -217,12 +222,17 @@ export class PaymentService {
 
     // Si se sube una imagen, guardarla en Cloudinary
     if (file) {
-      const uploadResult = await this.cloudinaryService.uploadFile(
-        file,
-        'payments/invoices',
-        false
+      if (paymentDetail.invoiceImage) {
+        await this.storageService.removeFileByUrl(paymentDetail.invoiceImage);
+      }
+      const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+      const path = `payments/invoices/${fileName}`;
+      const uploadResult = await this.storageService.uploadFile(
+        path,
+        file.buffer,
+        file.mimetype
       );
-      updatePaymentDetailInvoiceDto.invoiceImage = uploadResult.secure_url;
+      updatePaymentDetailInvoiceDto.invoiceImage = uploadResult.url;
     }
 
     // Actualizar el pago

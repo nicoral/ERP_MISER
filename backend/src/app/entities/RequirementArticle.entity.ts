@@ -17,10 +17,10 @@ export class RequirementArticle {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Requirement, requirement => requirement.requirementArticles)
+  @ManyToOne(() => Requirement, requirement => requirement.requirementArticles, { onDelete: 'CASCADE' })
   requirement: Requirement;
 
-  @ManyToOne(() => Article, article => article.requirementArticles)
+  @ManyToOne(() => Article, article => article.requirementArticles, { onDelete: 'CASCADE' })
   article: Article;
 
   @Column('numeric', { name: 'quantity', nullable: false })
@@ -42,19 +42,22 @@ export class RequirementArticle {
 
   @OneToMany(
     () => SupplierQuotationItem,
-    supplierQuotationItem => supplierQuotationItem.requirementArticle
+    supplierQuotationItem => supplierQuotationItem.requirementArticle,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   supplierQuotationItems: SupplierQuotationItem[];
 
   @OneToMany(
     () => QuotationSupplierArticle,
-    quotationSupplierArticle => quotationSupplierArticle.requirementArticle
+    quotationSupplierArticle => quotationSupplierArticle.requirementArticle,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   quotationSupplierArticles: QuotationSupplierArticle[];
 
   @OneToMany(
     () => FinalSelectionItem,
-    finalSelectionItem => finalSelectionItem.requirementArticle
+    finalSelectionItem => finalSelectionItem.requirementArticle,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionItems: FinalSelectionItem[];
 }

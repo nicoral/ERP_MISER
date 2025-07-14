@@ -21,14 +21,16 @@ export class QuotationSupplierService {
 
   @ManyToOne(
     () => QuotationSupplier,
-    quotationSupplier => quotationSupplier.quotationSupplierServices
+    quotationSupplier => quotationSupplier.quotationSupplierServices,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'quotation_supplier_id' })
   quotationSupplier: QuotationSupplier;
 
   @ManyToOne(
     () => RequirementService,
-    requirementService => requirementService.quotationSupplierServices
+    requirementService => requirementService.quotationSupplierServices,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'requirement_service_id' })
   requirementService: RequirementService;

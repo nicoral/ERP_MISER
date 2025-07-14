@@ -29,7 +29,10 @@ export class RoleService {
   async findById(id: number): Promise<Role> {
     const role = await this.roleRepository.findOne({
       where: { id },
-      relations: ['permissions'],
+      relations: {
+        permissions: true,
+        employees: true,
+      },
       withDeleted: true,
     });
     if (!role) {

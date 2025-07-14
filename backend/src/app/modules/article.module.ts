@@ -7,14 +7,14 @@ import { EmployeeModule } from './employee.module';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { Brand } from '../entities/Brand.entity';
 import { Warehouse } from '../entities/Warehouse.entity';
-import { CloudinaryModule } from './cloudinary.module';
 import { ExcelImportService } from '../services/excel-import.service';
+import { StorageModule } from './storage.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Article, WarehouseArticle, Brand, Warehouse]),
+    StorageModule,
     EmployeeModule,
-    CloudinaryModule,
   ],
   controllers: [ArticleController],
   providers: [ArticleService, ExcelImportService],

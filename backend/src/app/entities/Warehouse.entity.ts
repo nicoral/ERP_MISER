@@ -37,10 +37,10 @@ export class Warehouse {
   @Column('decimal', { name: 'valued', nullable: false })
   valued: number;
 
-  @OneToMany(() => EntryPart, entryPart => entryPart.warehouse)
+  @OneToMany(() => EntryPart, entryPart => entryPart.warehouse, { cascade: true, onDelete: 'CASCADE' })
   entryParts: EntryPart[];
 
-  @ManyToOne(() => Employee, employee => employee.warehouses)
+  @ManyToOne(() => Employee, employee => employee.warehouses, { onDelete: 'CASCADE' })
   manager: Employee;
 
   @ManyToMany(() => Employee, employee => employee.warehousesAssigned)
@@ -48,11 +48,12 @@ export class Warehouse {
 
   @OneToMany(
     () => WarehouseArticle,
-    warehouseArticle => warehouseArticle.warehouse
+    warehouseArticle => warehouseArticle.warehouse,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   warehouseArticles: WarehouseArticle[];
 
-  @OneToMany(() => Requirement, requirement => requirement.warehouse)
+  @OneToMany(() => Requirement, requirement => requirement.warehouse, { cascade: true, onDelete: 'CASCADE' })
   requirements: Requirement[];
 
   @CreateDateColumn({

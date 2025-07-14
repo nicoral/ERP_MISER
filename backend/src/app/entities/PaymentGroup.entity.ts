@@ -52,17 +52,17 @@ export class PaymentGroup {
   notes: string; // Notas adicionales
 
   // Relación con la cotización (1:1)
-  @OneToOne(() => PurchaseOrder, purchaseOrder => purchaseOrder.paymentGroup)
+  @OneToOne(() => PurchaseOrder, purchaseOrder => purchaseOrder.paymentGroup, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'purchase_order_id' })
   purchaseOrder: PurchaseOrder;
 
   // Relación con el empleado que aprobó el grupo de pagos
-  @ManyToOne(() => Employee, { nullable: true })
+  @ManyToOne(() => Employee, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'approved_by' })
   approvedBy: Employee;
 
   // Relación con los pagos individuales
-  @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.paymentGroup)
+  @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.paymentGroup, { cascade: true, onDelete: 'CASCADE' })
   paymentDetails: PaymentDetail[];
 
   @CreateDateColumn({

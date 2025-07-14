@@ -9,6 +9,7 @@ import { EmployeeModule } from './employee.module';
 import { RoleModule } from './role.module';
 import { QuotationModule } from './quotation.module';
 import { QRService } from '../services/qr.service';
+import { StorageModule } from './storage.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { QRService } from '../services/qr.service';
       RequirementArticle,
       RequirementServiceEntity,
     ]),
+    StorageModule,
     EmployeeModule,
     RoleModule,
     forwardRef(() => QuotationModule),

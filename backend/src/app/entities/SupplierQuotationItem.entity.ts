@@ -54,21 +54,24 @@ export class SupplierQuotationItem {
 
   @ManyToOne(
     () => SupplierQuotation,
-    supplierQuotation => supplierQuotation.supplierQuotationItems
+    supplierQuotation => supplierQuotation.supplierQuotationItems,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'supplier_quotation_id' })
   supplierQuotation: SupplierQuotation;
 
   @ManyToOne(
     () => RequirementArticle,
-    requirementArticle => requirementArticle.supplierQuotationItems
+    requirementArticle => requirementArticle.supplierQuotationItems,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'requirement_article_id' })
   requirementArticle: RequirementArticle;
 
   @OneToMany(
     () => FinalSelectionItem,
-    finalSelectionItem => finalSelectionItem.supplierQuotationItem
+    finalSelectionItem => finalSelectionItem.supplierQuotationItem,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionItems: FinalSelectionItem[];
 

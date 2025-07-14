@@ -40,23 +40,24 @@ export class EntryPart {
   entryDate: Date;
 
   // Relación con PurchaseOrder (opcional)
-  @ManyToOne(() => PurchaseOrder, { nullable: true })
+  @ManyToOne(() => PurchaseOrder, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'purchase_order_id' })
   purchaseOrder: PurchaseOrder;
 
-  @ManyToOne(() => Warehouse, { nullable: false })
+  @ManyToOne(() => Warehouse, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'warehouse_id' })
   warehouse: Warehouse;
 
   // Relación con Employee (quien registra la entrada)
-  @ManyToOne(() => Employee, { nullable: true })
+  @ManyToOne(() => Employee, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'employee_id' })
   employee: Employee;
 
   // Relación con los artículos de entrada
   @OneToMany(
     () => EntryPartArticle,
-    entryPartArticle => entryPartArticle.entryPart
+    entryPartArticle => entryPartArticle.entryPart,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   entryPartArticles: EntryPartArticle[];
 

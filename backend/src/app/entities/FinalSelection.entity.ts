@@ -41,24 +41,27 @@ export class FinalSelection {
 
   @OneToOne(
     () => QuotationRequest,
-    quotationRequest => quotationRequest.finalSelection
+    quotationRequest => quotationRequest.finalSelection,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'quotation_request_id' })
   quotationRequest: QuotationRequest;
 
-  @ManyToOne(() => Employee, employee => employee.finalSelections)
+  @ManyToOne(() => Employee, employee => employee.finalSelections, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'created_by' })
   createdBy: Employee;
 
   @OneToMany(
     () => FinalSelectionItem,
-    finalSelectionItem => finalSelectionItem.finalSelection
+    finalSelectionItem => finalSelectionItem.finalSelection,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionItems: FinalSelectionItem[];
 
   @OneToMany(
     () => FinalSelectionServiceItem,
-    finalSelectionServiceItem => finalSelectionServiceItem.finalSelection
+    finalSelectionServiceItem => finalSelectionServiceItem.finalSelection,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionServiceItems: FinalSelectionServiceItem[];
 

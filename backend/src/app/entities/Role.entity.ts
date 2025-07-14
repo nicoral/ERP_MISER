@@ -27,7 +27,7 @@ export class Role {
   @JoinTable()
   permissions: Permission[];
 
-  @OneToMany(() => Employee, employee => employee.role)
+  @OneToMany(() => Employee, employee => employee.role, { cascade: true, onDelete: 'CASCADE' })
   employees: Employee[];
 
   @CreateDateColumn({

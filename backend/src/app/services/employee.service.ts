@@ -14,7 +14,7 @@ import { UpdateEmployeeDto } from '../dto/employee/update-employee.dto';
 import { EmployeeProfileDto } from '../dto/employee/employee-profile.dto';
 import { RoleService } from './role.service';
 import { Warehouse } from '../entities/Warehouse.entity';
-import { CloudinaryService } from './cloudinary.service';
+import { StorageService } from './storage.service';
 import { ExcelImportService } from './excel-import.service';
 import { ImportEmployeeRowDto } from '../dto/employee/import-employee.dto';
 import { plainToClass } from 'class-transformer';
@@ -26,7 +26,7 @@ export class EmployeeService {
     private readonly employeeRepository: Repository<Employee>,
     @Inject(forwardRef(() => RoleService))
     private readonly roleService: RoleService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly storageService: StorageService,
     private readonly excelImportService: ExcelImportService
   ) {}
 
@@ -137,13 +137,16 @@ export class EmployeeService {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
     if (employee.imageUrl) {
-      await this.cloudinaryService.deleteFile(employee.imageUrl);
+      await this.storageService.removeFileByUrl(employee.imageUrl);
     }
-    const uploadResult = await this.cloudinaryService.uploadFile(
-      file,
-      'employees'
+    const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `employees/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype
     );
-    employee.imageUrl = uploadResult.secure_url;
+    employee.imageUrl = uploadResult.url;
     return this.employeeRepository.save(employee);
   }
 
@@ -436,11 +439,15 @@ export class EmployeeService {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
 
-    const uploadResult = await this.cloudinaryService.uploadFile(
-      file,
-      'employees/signatures'
+    const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `employees/signatures/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype,
+      false
     );
-    employee.signature = uploadResult.secure_url;
+    employee.signature = uploadResult.path;
     return this.employeeRepository.save(employee);
   }
 

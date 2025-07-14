@@ -1,3 +1,5 @@
+import type { Employee } from './employee';
+
 export interface Permission {
   id: number;
   name: string;
@@ -10,6 +12,7 @@ export interface Role {
   name: string;
   description: string;
   permissions: Permission[];
+  employees?: Employee[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

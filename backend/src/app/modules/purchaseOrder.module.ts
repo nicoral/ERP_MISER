@@ -12,6 +12,7 @@ import { PaymentGroup } from '../entities/PaymentGroup.entity';
 import { QRService } from '../services/qr.service';
 import { EmployeeModule } from './employee.module';
 import { EntryPartModule } from './entryPart.module';
+import { StorageModule } from './storage.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EntryPartModule } from './entryPart.module';
     ]),
     EmployeeModule,
     EntryPartModule,
+    StorageModule,
   ],
   controllers: [PurchaseOrderController],
   providers: [PurchaseOrderService, QRService],

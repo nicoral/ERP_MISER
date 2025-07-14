@@ -112,26 +112,27 @@ export class PurchaseOrder {
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
-  @ManyToOne(() => Employee, { nullable: true })
+  @ManyToOne(() => Employee, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'created_by_id' })
   createdBy: Employee;
 
-  @ManyToOne(() => Requirement, { nullable: true })
+  @ManyToOne(() => Requirement, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'requirement_id' })
   requirement: Requirement;
 
-  @ManyToOne(() => CostCenter, { nullable: true })
+  @ManyToOne(() => CostCenter, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'cost_center_id' })
   costCenterEntity: CostCenter;
 
   // Relación con los detalles de pago
   @OneToOne(() => PaymentGroup, paymentGroup => paymentGroup.purchaseOrder, {
     nullable: true,
+    onDelete: 'SET NULL'
   })
   paymentGroup: PaymentGroup;
 
   // Relación con las partes de entrada
-  @OneToMany(() => EntryPart, entryPart => entryPart.purchaseOrder)
+  @OneToMany(() => EntryPart, entryPart => entryPart.purchaseOrder, { cascade: true, onDelete: 'CASCADE' })
   entryParts: EntryPart[];
 
   // Timestamps

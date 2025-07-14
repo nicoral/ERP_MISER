@@ -8,7 +8,7 @@ import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
 import { Article } from '../entities/Article.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { EmployeeModule } from './employee.module';
-import { CloudinaryModule } from './cloudinary.module';
+import { StorageModule } from './storage.module';
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { CloudinaryModule } from './cloudinary.module';
       WarehouseArticle,
     ]),
     EmployeeModule,
-    CloudinaryModule,
+    StorageModule,
   ],
   controllers: [EntryPartController],
   providers: [EntryPartService],

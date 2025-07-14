@@ -50,7 +50,8 @@ export class QuotationSupplier {
 
   @ManyToOne(
     () => QuotationRequest,
-    quotationRequest => quotationRequest.quotationSuppliers
+    quotationRequest => quotationRequest.quotationSuppliers,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'quotation_request_id' })
   quotationRequest: QuotationRequest;
@@ -61,19 +62,22 @@ export class QuotationSupplier {
 
   @OneToMany(
     () => QuotationSupplierArticle,
-    quotationSupplierArticle => quotationSupplierArticle.quotationSupplier
+    quotationSupplierArticle => quotationSupplierArticle.quotationSupplier,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   quotationSupplierArticles: QuotationSupplierArticle[];
 
   @OneToMany(
     () => QuotationSupplierService,
-    quotationSupplierService => quotationSupplierService.quotationSupplier
+    quotationSupplierService => quotationSupplierService.quotationSupplier,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   quotationSupplierServices: QuotationSupplierService[];
 
   @OneToOne(
     () => SupplierQuotation,
-    supplierQuotation => supplierQuotation.quotationSupplier
+    supplierQuotation => supplierQuotation.quotationSupplier,
+    { onDelete: 'CASCADE' }
   )
   supplierQuotation: SupplierQuotation;
 

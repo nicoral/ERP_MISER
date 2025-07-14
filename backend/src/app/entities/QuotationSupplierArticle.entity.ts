@@ -21,14 +21,16 @@ export class QuotationSupplierArticle {
 
   @ManyToOne(
     () => QuotationSupplier,
-    quotationSupplier => quotationSupplier.quotationSupplierArticles
+    quotationSupplier => quotationSupplier.quotationSupplierArticles,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'quotation_supplier_id' })
   quotationSupplier: QuotationSupplier;
 
   @ManyToOne(
     () => RequirementArticle,
-    requirementArticle => requirementArticle.quotationSupplierArticles
+    requirementArticle => requirementArticle.quotationSupplierArticles,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'requirement_article_id' })
   requirementArticle: RequirementArticle;

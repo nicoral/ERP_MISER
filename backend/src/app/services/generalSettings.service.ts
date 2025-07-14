@@ -3,9 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GeneralSettings } from '../entities/GeneralSettings.entity';
 import { SunatProvider } from '../providers/sunat.provider';
-import { CloudinaryService } from './cloudinary.service';
 import { UpdateGeneralSettingsDto } from '../dto/generalSettings/update-generalSettings.dto';
 import { ApisNetRUCData } from '../interfaces/generalSettings/apisNet.interface';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class GeneralSettingsService {
@@ -15,7 +15,7 @@ export class GeneralSettingsService {
     @InjectRepository(GeneralSettings)
     private generalSettingsRepository: Repository<GeneralSettings>,
     private sunatProvider: SunatProvider,
-    private cloudinaryService: CloudinaryService
+    private storageService: StorageService
   ) {}
 
   /**
@@ -58,21 +58,20 @@ export class GeneralSettingsService {
       const settings = await this.getSettings();
 
       if (settings.companyLogoUrl) {
-        await this.cloudinaryService.deleteFile(settings.companyLogoUrl);
+        await this.storageService.removeFileByUrl(settings.companyLogoUrl);
       }
 
-      const uploadResult = await this.cloudinaryService.uploadFile(
-        file,
-        'logos'
+      const fileName = `logo-${Date.now()}.${file.originalname.split('.').pop()}`;
+      const path = `logos/${fileName}`;
+      const uploadResult = await this.storageService.uploadFile(
+        path,
+        file.buffer,
+        file.mimetype
       );
 
-      settings.companyLogoUrl = uploadResult.secure_url;
+      settings.companyLogoUrl = uploadResult.url;
       const updatedSettings =
         await this.generalSettingsRepository.save(settings);
-
-      this.logger.log(
-        `Logo actualizado exitosamente: ${uploadResult.secure_url}`
-      );
 
       return updatedSettings;
     } catch (error) {

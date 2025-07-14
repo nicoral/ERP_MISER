@@ -50,6 +50,7 @@ import { EntryPartList } from './features/entryPart/EntryPartList';
 import { EntryPartForm } from './features/entryPart/EntryPartForm';
 import { EntryPartDetails } from './features/entryPart/EntryPartDetails';
 import { PurchaseOrder } from './features/puchaseOrder/components/purchaseOrderDetail';
+import RoleDetails from './pages/RoleDetails';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ const AppRoutes = () => {
           <Route path={ROUTES.ROLES} element={<UserRolesForm />} />
           <Route path={ROUTES.ROLE_CREATE} element={<RoleForm />} />
           <Route path={ROUTES.ROLE_EDIT} element={<RoleForm />} />
+          <Route path={ROUTES.ROLE_DETAILS} element={<RoleDetails />} />
           <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogForm />} />
           <Route path={ROUTES.EMPLOYEES} element={<Employees />} />
           <Route path={ROUTES.EMPLOYEE_CREATE} element={<EmployeeForm />} />

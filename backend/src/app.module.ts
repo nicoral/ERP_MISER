@@ -28,12 +28,14 @@ import { ServiceModule } from './app/modules/service.module';
 import { PaymentModule } from './app/modules/payment.module';
 import { EntryPartModule } from './app/modules/entryPart.module';
 import { PurchaseOrderModule } from './app/modules/purchaseOrder.module';
+import { StorageModule } from './app/modules/storage.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(forRootObject),
     ScheduleModule.forRoot(),
     CloudinaryModule,
+    StorageModule,
     DatabaseModule,
     PermissionModule,
     EmployeeModule,

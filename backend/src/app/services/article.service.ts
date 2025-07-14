@@ -7,10 +7,10 @@ import { UpdateArticleDto } from '../dto/article/update-article.dto';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { Brand } from '../entities/Brand.entity';
 import { CreateBrandDto } from '../dto/article/create-brand.dto';
-import { CloudinaryService } from './cloudinary.service';
 import { Warehouse } from '../entities/Warehouse.entity';
 import { ExcelImportService } from './excel-import.service';
 import { ImportArticleDto } from '../dto/article/import-article.dto';
+import { StorageService } from './storage.service';
 
 export interface ImportArticleResult {
   success: number;
@@ -29,9 +29,9 @@ export class ArticleService {
     private readonly brandRepository: Repository<Brand>,
     @InjectRepository(Warehouse)
     private readonly warehouseRepository: Repository<Warehouse>,
-    private readonly cloudinaryService: CloudinaryService,
     private readonly excelImportService: ExcelImportService,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly storageService: StorageService
   ) {}
 
   async create(createArticleDto: CreateArticleDto): Promise<Article> {
@@ -181,14 +181,16 @@ export class ArticleService {
       throw new NotFoundException('Article not found');
     }
     if (article.imageUrl) {
-      await this.cloudinaryService.deleteFile(article.imageUrl);
+      await this.storageService.removeFileByUrl(article.imageUrl);
     }
-
-    const uploadResult = await this.cloudinaryService.uploadFile(
-      file,
-      'articles'
+    const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `articles/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype
     );
-    article.imageUrl = uploadResult.secure_url;
+    article.imageUrl = uploadResult.url;
     return this.articleRepository.save(article);
   }
 
@@ -207,11 +209,14 @@ export class ArticleService {
   ): Promise<Brand> {
     const brand = this.brandRepository.create(createBrandDto);
     if (file) {
-      const uploadResult = await this.cloudinaryService.uploadFile(
-        file,
-        'brands'
+      const fileName = `${brand.id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+      const path = `brands/${fileName}`;
+      const uploadResult = await this.storageService.uploadFile(
+        path,
+        file.buffer,
+        file.mimetype
       );
-      brand.imageUrl = uploadResult.secure_url;
+      brand.imageUrl = uploadResult.url;
     }
     return this.brandRepository.save(brand);
   }

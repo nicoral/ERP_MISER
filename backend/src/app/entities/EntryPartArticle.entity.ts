@@ -54,7 +54,7 @@ export class EntryPartArticle {
   @Column({ type: 'text', nullable: true })
   observation: string;
 
-  @ManyToOne(() => EntryPart, entryPart => entryPart.entryPartArticles)
+  @ManyToOne(() => EntryPart, entryPart => entryPart.entryPartArticles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'entry_part_id' })
   entryPart: EntryPart;
 

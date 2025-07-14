@@ -791,180 +791,391 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
             </div>
 
             {/* Products Table */}
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Producto
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Cantidad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Moneda
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Precio Unitario
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Tiempo Entrega (días)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Notas
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {quotations[editingSupplier].items.map(item => (
-                    <tr
-                      key={item.article.id}
-                      className={getItemStatusColor(item.status)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.article.name}
+            {quotations[editingSupplier].items.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Producto
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Cantidad
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Moneda
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Precio Unitario
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Tiempo Entrega (días)
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Notas
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {quotations[editingSupplier].items.map(item => (
+                      <tr
+                        key={item.article.id}
+                        className={getItemStatusColor(item.status)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {item.article.name}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {item.article.code}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {item.article.code}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="space-y-2">
+                            <select
+                              value={item.status}
+                              onChange={e =>
+                                handleStatusChange(
+                                  editingSupplier,
+                                  item.article.id,
+                                  e.target.value as QuotationItemStatus
+                                )
+                              }
+                              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                            >
+                              <option value={QuotationItemStatus.QUOTED}>
+                                Cotizado
+                              </option>
+                              <option value={QuotationItemStatus.NOT_AVAILABLE}>
+                                No Disponible
+                              </option>
+                              <option value={QuotationItemStatus.NOT_QUOTED}>
+                                No Cotizado
+                              </option>
+                            </select>
+
+                            {item.status ===
+                              QuotationItemStatus.NOT_AVAILABLE && (
+                              <FormInput
+                                placeholder="Razón de no disponibilidad..."
+                                value={item.reasonNotAvailable || ''}
+                                onChange={e =>
+                                  handlePriceChange(
+                                    editingSupplier,
+                                    item.article.id,
+                                    'reasonNotAvailable',
+                                    e.target.value
+                                  )
+                                }
+                                className="text-xs"
+                              />
+                            )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="space-y-2">
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <select
-                            value={item.status}
+                            value={item.currency || 'PEN'}
                             onChange={e =>
-                              handleStatusChange(
+                              handlePriceChange(
                                 editingSupplier,
                                 item.article.id,
-                                e.target.value as QuotationItemStatus
+                                'currency',
+                                e.target.value
                               )
                             }
                             className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
                           >
-                            <option value={QuotationItemStatus.QUOTED}>
-                              Cotizado
-                            </option>
-                            <option value={QuotationItemStatus.NOT_AVAILABLE}>
-                              No Disponible
-                            </option>
-                            <option value={QuotationItemStatus.NOT_QUOTED}>
-                              No Cotizado
-                            </option>
+                            <option value="PEN">PEN</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
                           </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <FormInput
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.unitPrice || ''}
+                            onChange={e =>
+                              handlePriceChange(
+                                editingSupplier,
+                                item.article.id,
+                                'unitPrice',
+                                e.target.value
+                              )
+                            }
+                            className="w-24"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {item.currency || 'PEN'}{' '}
+                          {item.unitPrice && !isNaN(+item.unitPrice)
+                            ? (+item.unitPrice * item.quantity).toFixed(2)
+                            : '0.00'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <FormInput
+                            type="number"
+                            min="0"
+                            value={item.deliveryTime || ''}
+                            onChange={e =>
+                              handlePriceChange(
+                                editingSupplier,
+                                item.article.id,
+                                'deliveryTime',
+                                e.target.value
+                              )
+                            }
+                            className="w-20"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <FormInput
+                            value={item.notes}
+                            onChange={e =>
+                              handlePriceChange(
+                                editingSupplier,
+                                item.article.id,
+                                'notes',
+                                e.target.value
+                              )
+                            }
+                            placeholder="Comentarios..."
+                            className="w-32"
+                            disabled={
+                              item.status === QuotationItemStatus.NOT_AVAILABLE
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-                          {item.status ===
-                            QuotationItemStatus.NOT_AVAILABLE && (
-                            <FormInput
-                              placeholder="Razón de no disponibilidad..."
-                              value={item.reasonNotAvailable || ''}
+            {/* Services Table */}
+            {servicesQuotationItems[editingSupplier].length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Servicio
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Estado
+                      </th>
+
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Duración
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Tipo
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Moneda
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Precio Unitario
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Notas
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {servicesQuotationItems[editingSupplier].map(item => (
+                      <tr
+                        key={item.service.id}
+                        className={getItemStatusColor(item.status)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {item.service.name}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {item.service.code}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="space-y-2">
+                            <select
+                              value={item.status}
                               onChange={e =>
-                                handlePriceChange(
+                                handleServiceStatusChange(
                                   editingSupplier,
-                                  item.article.id,
-                                  'reasonNotAvailable',
-                                  e.target.value
+                                  item.service.id,
+                                  e.target.value as QuotationItemStatus
                                 )
                               }
-                              className="text-xs"
-                            />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.quantity}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={item.currency || 'PEN'}
-                          onChange={e =>
-                            handlePriceChange(
-                              editingSupplier,
-                              item.article.id,
-                              'currency',
-                              e.target.value
-                            )
-                          }
-                          className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        >
-                          <option value="PEN">PEN</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={item.unitPrice || ''}
-                          onChange={e =>
-                            handlePriceChange(
-                              editingSupplier,
-                              item.article.id,
-                              'unitPrice',
-                              e.target.value
-                            )
-                          }
-                          className="w-24"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {item.currency || 'PEN'}{' '}
-                        {item.unitPrice && !isNaN(+item.unitPrice)
-                          ? (+item.unitPrice * item.quantity).toFixed(2)
-                          : '0.00'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          type="number"
-                          min="0"
-                          value={item.deliveryTime || ''}
-                          onChange={e =>
-                            handlePriceChange(
-                              editingSupplier,
-                              item.article.id,
-                              'deliveryTime',
-                              e.target.value
-                            )
-                          }
-                          className="w-20"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          value={item.notes}
-                          onChange={e =>
-                            handlePriceChange(
-                              editingSupplier,
-                              item.article.id,
-                              'notes',
-                              e.target.value
-                            )
-                          }
-                          placeholder="Comentarios..."
-                          className="w-32"
-                          disabled={
-                            item.status === QuotationItemStatus.NOT_AVAILABLE
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                            >
+                              <option value={QuotationItemStatus.QUOTED}>
+                                Cotizado
+                              </option>
+                              <option value={QuotationItemStatus.NOT_AVAILABLE}>
+                                No Disponible
+                              </option>
+                              <option value={QuotationItemStatus.NOT_QUOTED}>
+                                No Cotizado
+                              </option>
+                            </select>
+                            {item.status ===
+                              QuotationItemStatus.NOT_AVAILABLE && (
+                              <FormInput
+                                placeholder="Razón de no disponibilidad..."
+                                value={item.reasonNotAvailable || ''}
+                                onChange={e =>
+                                  handleServiceChange(
+                                    editingSupplier,
+                                    item.service.id,
+                                    'reasonNotAvailable',
+                                    e.target.value
+                                  )
+                                }
+                                className="text-xs"
+                              />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <FormInput
+                            type="number"
+                            min="0"
+                            value={item.duration || ''}
+                            onChange={e =>
+                              handleServiceChange(
+                                editingSupplier,
+                                item.service.id,
+                                'duration',
+                                e.target.value
+                              )
+                            }
+                            className="w-20"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
+                          />
+                        </td>
+                        <td className="px-1 py-4 whitespace-nowrap">
+                          <select
+                            value={item.durationType || ''}
+                            onChange={e =>
+                              handleServiceChange(
+                                editingSupplier,
+                                item.service.id,
+                                'durationType',
+                                e.target.value
+                              )
+                            }
+                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
+                          >
+                            <option value="DIA">Día</option>
+                            <option value="HORA">Hora</option>
+                            <option value="CONTRATO">Contrato</option>
+                            <option value="JORNADA">Jornada</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <select
+                            value={item.currency || 'PEN'}
+                            onChange={e =>
+                              handleServiceChange(
+                                editingSupplier,
+                                item.service.id,
+                                'currency',
+                                e.target.value
+                              )
+                            }
+                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
+                          >
+                            <option value="PEN">PEN</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <FormInput
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.unitPrice || ''}
+                            onChange={e =>
+                              handleServiceChange(
+                                editingSupplier,
+                                item.service.id,
+                                'unitPrice',
+                                e.target.value
+                              )
+                            }
+                            className="w-24"
+                            disabled={
+                              item.status !== QuotationItemStatus.QUOTED
+                            }
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {item.currency || 'PEN'}{' '}
+                          {item.unitPrice && !isNaN(+item.unitPrice)
+                            ? (+item.unitPrice * 1).toFixed(2)
+                            : '0.00'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <FormInput
+                            value={item.notes}
+                            onChange={e =>
+                              handleServiceChange(
+                                editingSupplier,
+                                item.service.id,
+                                'notes',
+                                e.target.value
+                              )
+                            }
+                            placeholder="Comentarios..."
+                            className="w-32"
+                            disabled={
+                              item.status === QuotationItemStatus.NOT_AVAILABLE
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Total by Currency */}
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -1025,228 +1236,6 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
           </div>
         </div>
       )}
-
-      {/* Servicios */}
-      {editingSupplier &&
-        servicesQuotationItems[editingSupplier] &&
-        servicesQuotationItems[editingSupplier].length > 0 && (
-          <div className="mt-8">
-            <h5 className="text-md font-semibold text-gray-900 dark:text-white mb-2">
-              Servicios
-            </h5>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Servicio
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Cantidad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Duración
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Moneda
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Precio Unitario
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Tiempo Entrega (días)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Notas
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {servicesQuotationItems[editingSupplier].map(item => (
-                    <tr
-                      key={item.service.id}
-                      className={getItemStatusColor(item.status)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.service.name}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {item.service.code}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="space-y-2">
-                          <select
-                            value={item.status}
-                            onChange={e =>
-                              handleServiceStatusChange(
-                                editingSupplier,
-                                item.service.id,
-                                e.target.value as QuotationItemStatus
-                              )
-                            }
-                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
-                          >
-                            <option value={QuotationItemStatus.QUOTED}>
-                              Cotizado
-                            </option>
-                            <option value={QuotationItemStatus.NOT_AVAILABLE}>
-                              No Disponible
-                            </option>
-                            <option value={QuotationItemStatus.NOT_QUOTED}>
-                              No Cotizado
-                            </option>
-                          </select>
-                          {item.status ===
-                            QuotationItemStatus.NOT_AVAILABLE && (
-                            <FormInput
-                              placeholder="Razón de no disponibilidad..."
-                              value={item.reasonNotAvailable || ''}
-                              onChange={e =>
-                                handleServiceChange(
-                                  editingSupplier,
-                                  item.service.id,
-                                  'reasonNotAvailable',
-                                  e.target.value
-                                )
-                              }
-                              className="text-xs"
-                            />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        1
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          type="number"
-                          min="0"
-                          value={item.duration || ''}
-                          onChange={e =>
-                            handleServiceChange(
-                              editingSupplier,
-                              item.service.id,
-                              'duration',
-                              e.target.value
-                            )
-                          }
-                          className="w-20"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          value={item.durationType || ''}
-                          onChange={e =>
-                            handleServiceChange(
-                              editingSupplier,
-                              item.service.id,
-                              'durationType',
-                              e.target.value
-                            )
-                          }
-                          className="w-20"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={item.currency || 'PEN'}
-                          onChange={e =>
-                            handleServiceChange(
-                              editingSupplier,
-                              item.service.id,
-                              'currency',
-                              e.target.value
-                            )
-                          }
-                          className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-xs"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        >
-                          <option value="PEN">PEN</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={item.unitPrice || ''}
-                          onChange={e =>
-                            handleServiceChange(
-                              editingSupplier,
-                              item.service.id,
-                              'unitPrice',
-                              e.target.value
-                            )
-                          }
-                          className="w-24"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {item.currency || 'PEN'}{' '}
-                        {item.unitPrice && !isNaN(+item.unitPrice)
-                          ? (+item.unitPrice * 1).toFixed(2)
-                          : '0.00'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          type="number"
-                          min="0"
-                          value={item.deliveryTime || ''}
-                          onChange={e =>
-                            handleServiceChange(
-                              editingSupplier,
-                              item.service.id,
-                              'deliveryTime',
-                              e.target.value
-                            )
-                          }
-                          className="w-20"
-                          disabled={item.status !== QuotationItemStatus.QUOTED}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <FormInput
-                          value={item.notes}
-                          onChange={e =>
-                            handleServiceChange(
-                              editingSupplier,
-                              item.service.id,
-                              'notes',
-                              e.target.value
-                            )
-                          }
-                          placeholder="Comentarios..."
-                          className="w-32"
-                          disabled={
-                            item.status === QuotationItemStatus.NOT_AVAILABLE
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
       {/* Summary */}
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6">

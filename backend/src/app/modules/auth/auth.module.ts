@@ -6,6 +6,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthService } from '../../services/auth.service';
 import { AuthController } from '../../controllers/auth.controller';
 import { EmployeeModule } from '../employee.module';
+import { StorageModule } from '../storage.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EmployeeModule } from '../employee.module';
       }),
     }),
     EmployeeModule,
+    StorageModule,
   ],
   controllers: [AuthController],
   providers: [JwtStrategy, AuthService],

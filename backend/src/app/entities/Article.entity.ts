@@ -46,23 +46,26 @@ export class Article {
 
   @OneToMany(
     () => WarehouseArticle,
-    warehouseArticle => warehouseArticle.article
+    warehouseArticle => warehouseArticle.article,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   warehouseArticles: WarehouseArticle[];
 
   @OneToMany(
     () => RequirementArticle,
-    requirementArticle => requirementArticle.article
+    requirementArticle => requirementArticle.article,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   requirementArticles: RequirementArticle[];
 
   @OneToMany(
     () => EntryPartArticle,
-    entryPartArticle => entryPartArticle.article
+    entryPartArticle => entryPartArticle.article,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   entryPartArticles: EntryPartArticle[];
 
-  @ManyToOne(() => Brand, brand => brand.article)
+  @ManyToOne(() => Brand, brand => brand.article, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 

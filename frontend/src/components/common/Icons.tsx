@@ -646,3 +646,57 @@ export const DatabaseIcon: React.FC<{ className?: string }> = ({
     <path d="M3 12a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H3zm0-2a3 3 0 0 1-3-3V3a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3 3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H3a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3zm0-8a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3zm2 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 10a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm-3 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
   </svg>
 );
+
+export const EntryPartIcon: React.FC<{ className?: string }> = ({
+  className,
+}) => (
+  <svg
+    className={className}
+    viewBox="0 0 64 64"
+    stroke="currentColor"
+    strokeWidth="3"
+    fill="none"
+  >
+    <polyline points="33.16 21.45 43.07 31.36 33.16 41.27" />
+    <line x1="43.07" y1="31.36" x2="6.72" y2="31.36" />
+    <path d="M22.3,37.69V51.45a2.8,2.8,0,0,0,2.8,2.81H50.33a2.8,2.8,0,0,0,2.8-2.81V11.27a2.8,2.8,0,0,0-2.8-2.8H25.1a2.8,2.8,0,0,0-2.8,2.8V24.51" />
+  </svg>
+);
+
+export const ExitPartIcon: React.FC<{ className?: string }> = ({
+  className,
+}) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <g clipPath="url(#clip0_105_1815)">
+      <path
+        d="M15 4.00098H5V18.001C5 19.1055 5.89543 20.001 7 20.001H15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+
+      <path
+        d="M16 15.001L19 12.001M19 12.001L16 9.00098M19 12.001H9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </g>
+
+    <defs>
+      <clipPath id="clip0_105_1815">
+        <rect
+          fill="white"
+          height="24"
+          transform="translate(0 0.000976562)"
+          width="24"
+        />
+      </clipPath>
+    </defs>
+  </svg>
+);

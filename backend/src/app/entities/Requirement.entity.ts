@@ -16,6 +16,7 @@ import { RequirementService } from './RequirementService.entity';
 import { Warehouse } from './Warehouse.entity';
 import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
 import { QuotationRequest } from './QuotationRequest.entity';
+import { PurchaseOrder } from './PurchaseOrder.entity';
 
 @Entity()
 export class Requirement extends ApprovalFlowBase {
@@ -41,35 +42,45 @@ export class Requirement extends ApprovalFlowBase {
   })
   type: 'ARTICLE' | 'SERVICE';
 
-  @ManyToOne(() => Employee, employee => employee.requirements)
+  @ManyToOne(() => Employee, employee => employee.requirements, { onDelete: 'CASCADE' })
   employee: Employee;
 
-  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements)
+  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements, { onDelete: 'CASCADE' })
   costCenter: CostCenter;
 
-  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements)
+  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements, { onDelete: 'CASCADE' })
   costCenterSecondary: CostCenter;
 
-  @ManyToOne(() => Warehouse, warehouse => warehouse.requirements)
+  @ManyToOne(() => Warehouse, warehouse => warehouse.requirements, { onDelete: 'CASCADE' })
   warehouse: Warehouse;
 
   @OneToMany(
     () => RequirementArticle,
-    requirementArticle => requirementArticle.requirement
+    requirementArticle => requirementArticle.requirement,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   requirementArticles: RequirementArticle[];
 
   @OneToMany(
     () => RequirementService,
-    requirementService => requirementService.requirement
+    requirementService => requirementService.requirement,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   requirementServices: RequirementService[];
 
   @OneToMany(
     () => QuotationRequest,
-    quotationRequest => quotationRequest.requirement
+    quotationRequest => quotationRequest.requirement,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   quotationRequests: QuotationRequest[];
+
+  @OneToMany(
+    () => PurchaseOrder,
+    purchaseOrder => purchaseOrder.requirement,
+    { cascade: true, onDelete: 'CASCADE' }
+  )
+  purchaseOrders: PurchaseOrder[];
 
   @CreateDateColumn({
     name: 'created_at',

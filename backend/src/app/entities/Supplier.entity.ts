@@ -91,19 +91,22 @@ export class Supplier {
 
   @OneToMany(
     () => QuotationSupplier,
-    quotationSupplier => quotationSupplier.supplier
+    quotationSupplier => quotationSupplier.supplier,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   quotationSuppliers: QuotationSupplier[];
 
   @OneToMany(
     () => FinalSelectionItem,
-    finalSelectionItem => finalSelectionItem.supplier
+    finalSelectionItem => finalSelectionItem.supplier,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionItems: FinalSelectionItem[];
 
   @OneToMany(
     () => FinalSelectionServiceItem,
-    finalSelectionServiceItem => finalSelectionServiceItem.supplier
+    finalSelectionServiceItem => finalSelectionServiceItem.supplier,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionServiceItems: FinalSelectionServiceItem[];
 

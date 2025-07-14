@@ -24,10 +24,10 @@ export class RequirementService {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Requirement, requirement => requirement.requirementServices)
+  @ManyToOne(() => Requirement, requirement => requirement.requirementServices, { onDelete: 'CASCADE' })
   requirement: Requirement;
 
-  @ManyToOne(() => Service, service => service.requirementServices)
+  @ManyToOne(() => Service, service => service.requirementServices, { onDelete: 'CASCADE' })
   service: Service;
 
   @Column('decimal', {
@@ -56,20 +56,23 @@ export class RequirementService {
 
   @OneToMany(
     () => QuotationSupplierService,
-    quotationSupplierService => quotationSupplierService.requirementService
+    quotationSupplierService => quotationSupplierService.requirementService,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   quotationSupplierServices: QuotationSupplierService[];
 
   @OneToMany(
     () => SupplierQuotationServiceItem,
     supplierQuotationServiceItem =>
-      supplierQuotationServiceItem.requirementService
+      supplierQuotationServiceItem.requirementService,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   supplierQuotationServiceItems: SupplierQuotationServiceItem[];
 
   @OneToMany(
     () => FinalSelectionServiceItem,
-    finalSelectionServiceItem => finalSelectionServiceItem.requirementService
+    finalSelectionServiceItem => finalSelectionServiceItem.requirementService,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   finalSelectionServiceItems: FinalSelectionServiceItem[];
 }

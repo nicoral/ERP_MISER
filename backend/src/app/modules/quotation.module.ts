@@ -21,6 +21,7 @@ import { EmployeeModule } from './employee.module';
 import { PurchaseOrderModule } from './purchaseOrder.module';
 import { QRService } from '../services/qr.service';
 import { GeneralSettingsModule } from './generalSettings.module';
+import { StorageModule } from './storage.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { GeneralSettingsModule } from './generalSettings.module';
       RequirementArticle,
       RequirementService,
     ]),
+    StorageModule,
     RequirementModule,
     SupplierModule,
     EmployeeModule,

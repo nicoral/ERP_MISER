@@ -25,7 +25,8 @@ export class Service {
 
   @OneToMany(
     () => RequirementService,
-    requirementService => requirementService.service
+    requirementService => requirementService.service,
+    { cascade: true, onDelete: 'CASCADE' }
   )
   requirementServices: RequirementService[];
 

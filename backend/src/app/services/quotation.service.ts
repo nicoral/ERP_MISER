@@ -65,6 +65,7 @@ import { PurchaseOrderService } from './purchaseOrder.service';
 import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
 import { QRService } from './qr.service';
 import { GeneralSettingsService } from './generalSettings.service';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class QuotationService {
@@ -97,7 +98,8 @@ export class QuotationService {
     private readonly supplierService: SupplierService,
     private readonly purchaseOrderService: PurchaseOrderService,
     private readonly qrService: QRService,
-    private readonly generalSettingsService: GeneralSettingsService
+    private readonly generalSettingsService: GeneralSettingsService,
+    private readonly storageService: StorageService
   ) {}
 
   // ========================================
@@ -726,9 +728,7 @@ export class QuotationService {
         requirementService: { id: +item.serviceId },
       }));
 
-      await this.supplierQuotationServiceIR.save(
-        serviceQuotationItems
-      );
+      await this.supplierQuotationServiceIR.save(serviceQuotationItems);
 
       // Calculate total amount including services (only quoted items)
       const serviceTotalAmount = serviceItems
@@ -1507,11 +1507,7 @@ export class QuotationService {
     updateFinalSelectionDto: UpdateFinalSelectionDto
   ): Promise<FinalSelection> {
     const finalSelection = await this.findOneFinalSelection(id);
-    const {
-      notes,
-      items = [],
-      serviceItems = [],
-    } = updateFinalSelectionDto;
+    const { notes, items = [], serviceItems = [] } = updateFinalSelectionDto;
 
     // Update basic data if notes are provided
     if (notes !== undefined) {
@@ -1551,9 +1547,10 @@ export class QuotationService {
 
       // Actualizar ítems de servicios existentes
       for (const item of serviceItems) {
-        const currentServiceItem = await this.finalSelectionServiceItemRepository.findOne({
-          where: { id: +item.id },
-        });
+        const currentServiceItem =
+          await this.finalSelectionServiceItemRepository.findOne({
+            where: { id: +item.id },
+          });
         if (!currentServiceItem) {
           throw new BadRequestException(
             `FinalSelectionServiceItem with id ${item.id} not found`
@@ -1565,7 +1562,11 @@ export class QuotationService {
           notes: item.notes,
           currency: item.currency,
           deliveryTime: item.deliveryTime,
-          durationType: item.durationType as 'HORA' | 'CONTRATO' | 'DIA' | 'JORNADA',
+          durationType: item.durationType as
+            | 'HORA'
+            | 'CONTRATO'
+            | 'DIA'
+            | 'JORNADA',
           duration: item.duration,
         });
       }
@@ -1575,10 +1576,11 @@ export class QuotationService {
         where: { finalSelection: { id } },
         relations: ['supplier'],
       });
-      const updatedServiceItems = await this.finalSelectionServiceItemRepository.find({
-        where: { finalSelection: { id } },
-        relations: ['supplier'],
-      });
+      const updatedServiceItems =
+        await this.finalSelectionServiceItemRepository.find({
+          where: { finalSelection: { id } },
+          relations: ['supplier'],
+        });
 
       // Group by supplier and calculate totals
       const adjudicadosPorProveedor = new Map<number, number>();
@@ -2312,7 +2314,13 @@ export class QuotationService {
       },
 
       // Firmas
-      firstSignature: quotation.firstSignature,
+      firstSignature: quotation.firstSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              quotation.firstSignature
+            )
+          ).url
+        : null,
       firstSignedAt: quotation.firstSignedAt
         ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',
@@ -2320,7 +2328,13 @@ export class QuotationService {
             day: '2-digit',
           })
         : '',
-      secondSignature: quotation.secondSignature,
+      secondSignature: quotation.secondSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              quotation.secondSignature
+            )
+          ).url
+        : null,
       secondSignedAt: quotation.secondSignedAt
         ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',
@@ -2328,7 +2342,13 @@ export class QuotationService {
             day: '2-digit',
           })
         : '',
-      thirdSignature: quotation.thirdSignature,
+      thirdSignature: quotation.thirdSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              quotation.thirdSignature
+            )
+          ).url
+        : null,
       thirdSignedAt: quotation.thirdSignedAt
         ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',
@@ -2336,7 +2356,13 @@ export class QuotationService {
             day: '2-digit',
           })
         : '',
-      fourthSignature: quotation.fourthSignature,
+      fourthSignature: quotation.fourthSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              quotation.fourthSignature
+            )
+          ).url
+        : null,
       fourthSignedAt: quotation.fourthSignedAt
         ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',

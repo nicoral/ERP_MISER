@@ -4,12 +4,14 @@ import { EmployeeService } from './employee.service';
 import * as bcrypt from 'bcrypt';
 import { Employee } from '../entities/Employee.entity';
 import { UpdatePasswordDto } from '../dto/auth/update-password.dto';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly employeeService: EmployeeService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly storageService: StorageService
   ) {}
 
   async getEmployeeWithPermissions(id: number) {
@@ -90,7 +92,11 @@ export class AuthService {
   }
 
   async getProfile(id: number) {
-    return this.employeeService.getProfile(id);
+    const profile = await this.employeeService.getProfile(id);
+    profile.signature = profile.signature
+      ? (await this.storageService.getPrivateFileUrl(profile.signature)).url
+      : '';
+    return profile;
   }
 
   async updateSignature(id: number, file: Express.Multer.File) {

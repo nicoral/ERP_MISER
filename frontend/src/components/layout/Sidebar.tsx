@@ -19,6 +19,8 @@ import {
   CalculatorIcon,
   ServicesIcon,
   ShoppingCartIcon,
+  EntryPartIcon,
+  ExitPartIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
 import { CreditCardIcon, DatabaseIcon } from 'lucide-react';
@@ -122,16 +124,16 @@ const menuItems: MenuItem[] = [
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
       {
-        label: 'Parte de ingreso',
+        label: SIDEBAR_TEXTS.entryPart,
         path: ROUTES.ENTRY_PARTS,
         permission: ['view_entry_parts'],
-        icon: <CreditCardIcon className="w-4 h-4" />,
+        icon: <EntryPartIcon className="w-4 h-4" />,
       },
       {
-        label: 'Parte de salida',
+        label: SIDEBAR_TEXTS.exitPart,
         path: ROUTES.COMING_SOON,
         permission: [],
-        icon: <CreditCardIcon className="w-4 h-4" />,
+        icon: <ExitPartIcon className="w-4 h-4" />,
       },
     ],
   },
@@ -179,7 +181,6 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
       permission => permission.name
     );
 
-    // Función para verificar si el usuario tiene al menos uno de los permisos requeridos
     const hasAnyPermission = (requiredPermissions: string[] | undefined) => {
       if (!requiredPermissions || requiredPermissions.length === 0) return true;
       return requiredPermissions.some(permission =>
@@ -216,7 +217,7 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
 
   return (
     <>
-      {/* Overlay para móvil */}
+      {/* Overlay para mobile */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"

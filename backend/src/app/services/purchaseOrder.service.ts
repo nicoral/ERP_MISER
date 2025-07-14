@@ -20,6 +20,7 @@ import * as puppeteer from 'puppeteer';
 import { numberToSpanishWordsCurrency } from '../utils/utils';
 import { EntryPartService } from './entryPart.service';
 import { EntryPartStatus, InspectionStatus } from '../common/enum';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -33,7 +34,8 @@ export class PurchaseOrderService {
     @InjectRepository(PaymentGroup)
     private readonly paymentGroupRepository: Repository<PaymentGroup>,
     private readonly qrService: QRService,
-    private readonly entryPartService: EntryPartService
+    private readonly entryPartService: EntryPartService,
+    private readonly storageService: StorageService
   ) {}
 
   // ========================================
@@ -275,7 +277,13 @@ export class PurchaseOrderService {
       observationsLine2: purchaseOrder.observation || '-',
 
       // Firmas (de la quotation)
-      firstSignature: purchaseOrder.quotationRequest.firstSignature,
+      firstSignature: purchaseOrder.quotationRequest.firstSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              purchaseOrder.quotationRequest.firstSignature
+            )
+          ).url
+        : null,
       firstSignedAt: purchaseOrder.quotationRequest.firstSignedAt
         ? purchaseOrder.quotationRequest.firstSignedAt.toLocaleDateString(
             'es-PE',
@@ -286,7 +294,13 @@ export class PurchaseOrderService {
             }
           )
         : '',
-      secondSignature: purchaseOrder.quotationRequest.secondSignature,
+      secondSignature: purchaseOrder.quotationRequest.secondSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              purchaseOrder.quotationRequest.secondSignature
+            )
+          ).url
+        : null,
       secondSignedAt: purchaseOrder.quotationRequest.secondSignedAt
         ? purchaseOrder.quotationRequest.secondSignedAt.toLocaleDateString(
             'es-PE',
@@ -297,7 +311,13 @@ export class PurchaseOrderService {
             }
           )
         : '',
-      thirdSignature: purchaseOrder.quotationRequest.thirdSignature,
+      thirdSignature: purchaseOrder.quotationRequest.thirdSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              purchaseOrder.quotationRequest.thirdSignature
+            )
+          ).url
+        : null,
       thirdSignedAt: purchaseOrder.quotationRequest.thirdSignedAt
         ? purchaseOrder.quotationRequest.thirdSignedAt.toLocaleDateString(
             'es-PE',
@@ -308,7 +328,13 @@ export class PurchaseOrderService {
             }
           )
         : '',
-      fourthSignature: purchaseOrder.quotationRequest.fourthSignature,
+      fourthSignature: purchaseOrder.quotationRequest.fourthSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              purchaseOrder.quotationRequest.fourthSignature
+            )
+          ).url
+        : null,
       fourthSignedAt: purchaseOrder.quotationRequest.fourthSignedAt
         ? purchaseOrder.quotationRequest.fourthSignedAt.toLocaleDateString(
             'es-PE',

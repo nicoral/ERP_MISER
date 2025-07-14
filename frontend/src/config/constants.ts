@@ -21,6 +21,7 @@ export const ROUTES = {
   ROLES: '/roles',
   ROLE_CREATE: '/roles/create',
   ROLE_EDIT: '/roles/:id/edit',
+  ROLE_DETAILS: '/roles/:id/details',
   AUDIT_LOGS: '/audit-logs',
   EMPLOYEES: '/employees',
   EMPLOYEE_CREATE: '/employees/create',

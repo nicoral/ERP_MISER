@@ -1,37 +1,62 @@
 import { createApiCall } from './httpInterceptor';
-import type { CreateRole, Role, UpdateRole } from '../../types/user';
+import type { Role } from '../../types/user';
+import type { Employee } from '../../types/employee';
 
-const BASE_URL = `${import.meta.env.VITE_API_URL}/roles`;
+const BASE_URL = `${import.meta.env.VITE_API_URL}`;
+
+export interface RoleWithDetails extends Role {
+  employees: Employee[];
+}
 
 export const roleService = {
   async getRoles(): Promise<Role[]> {
-    const response = await createApiCall<Role[]>(BASE_URL, {
+    const response = await createApiCall<Role[]>(`${BASE_URL}/roles`, {
       method: 'GET',
     });
     return response;
   },
 
-  async getRoleById(id: number): Promise<Role> {
-    const response = await createApiCall<Role>(`${BASE_URL}/${id}`, {
-      method: 'GET',
-    });
+  async getRoleById(id: number): Promise<RoleWithDetails> {
+    const response = await createApiCall<RoleWithDetails>(
+      `${BASE_URL}/roles/${id}`,
+      {
+        method: 'GET',
+      }
+    );
     return response;
   },
 
-  async createRole(role: CreateRole): Promise<Role> {
-    const response = await createApiCall<Role>(BASE_URL, {
+  async createRole(roleData: {
+    name: string;
+    description: string;
+    permissions: number[];
+  }): Promise<Role> {
+    const response = await createApiCall<Role>(`${BASE_URL}/roles`, {
       method: 'POST',
-      body: JSON.stringify(role),
+      body: JSON.stringify(roleData),
     });
     return response;
   },
 
-  async updateRole(id: number, role: UpdateRole): Promise<Role> {
-    const response = await createApiCall<Role>(`${BASE_URL}/${id}`, {
+  async updateRole(
+    id: number,
+    roleData: {
+      name?: string;
+      description?: string;
+      permissions?: number[];
+    }
+  ): Promise<Role> {
+    const response = await createApiCall<Role>(`${BASE_URL}/roles/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(role),
+      body: JSON.stringify(roleData),
     });
     return response;
+  },
+
+  async deleteRole(id: number): Promise<void> {
+    await createApiCall(`${BASE_URL}/roles/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 

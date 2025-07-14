@@ -40,16 +40,17 @@ export class CostCenter {
   @Column('varchar', { length: 255, name: 'owner', nullable: true })
   owner: string;
 
-  @OneToMany(() => Requirement, requirement => requirement.costCenter)
+  @OneToMany(() => Requirement, requirement => requirement.costCenter, { cascade: true, onDelete: 'CASCADE' })
   requirements: Requirement[];
 
   @ManyToOne(() => CostCenter, costCenter => costCenter.children, {
     nullable: true,
+    onDelete: 'CASCADE'
   })
   @JoinColumn({ name: 'parent_id' })
   parent: CostCenter;
 
-  @OneToMany(() => CostCenter, costCenter => costCenter.parent)
+  @OneToMany(() => CostCenter, costCenter => costCenter.parent, { cascade: true, onDelete: 'CASCADE' })
   children: CostCenter[];
 
   @CreateDateColumn({

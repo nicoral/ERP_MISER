@@ -10,10 +10,10 @@ import { EntryPartArticle } from '../entities/EntryPartArticle.entity';
 import { Article } from '../entities/Article.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { CreateEntryPartDto } from '../dto/entryPart/create-entryPart.dto';
-import { CloudinaryService } from './cloudinary.service';
 import { EntryPartStatus } from '../common/enum';
 import { UpdateEntryPartDto } from '../dto/entryPart/update-entryPart.dto';
 import { Employee } from '../entities/Employee.entity';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class EntryPartService {
@@ -26,7 +26,7 @@ export class EntryPartService {
     private readonly articleRepository: Repository<Article>,
     @InjectRepository(WarehouseArticle)
     private readonly warehouseArticleRepository: Repository<WarehouseArticle>,
-    private readonly cloudinaryService: CloudinaryService
+    private readonly storageService: StorageService
   ) {}
 
   async create(
@@ -160,19 +160,20 @@ export class EntryPartService {
       throw new NotFoundException(`Entry part with id ${id} not found`);
     }
 
-    // Si ya existe una imagen, eliminarla de Cloudinary
     if (entryPart.imageUrl) {
-      await this.cloudinaryService.deleteFile(entryPart.imageUrl);
+      await this.storageService.removeFileByUrl(entryPart.imageUrl);
     }
 
-    // Subir la nueva imagen a Cloudinary
-    const uploadResult = await this.cloudinaryService.uploadFile(
-      file,
-      'entry-parts'
+    const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `entry-parts/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype
     );
 
     // Actualizar la URL de la imagen en la base de datos
-    entryPart.imageUrl = uploadResult.secure_url;
+    entryPart.imageUrl = uploadResult.url;
     return this.entryPartRepository.save(entryPart);
   }
 

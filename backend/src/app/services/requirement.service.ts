@@ -31,6 +31,7 @@ import { RoleService } from './role.service';
 import { QuotationService } from './quotation.service';
 import { QRService } from './qr.service';
 import { forwardRef, Inject } from '@nestjs/common';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class RequirementService {
@@ -45,7 +46,8 @@ export class RequirementService {
     private readonly roleService: RoleService,
     @Inject(forwardRef(() => QuotationService))
     private readonly quotationService: QuotationService,
-    private readonly qrService: QRService
+    private readonly qrService: QRService,
+    private readonly storageService: StorageService
   ) {}
 
   async create(
@@ -403,7 +405,13 @@ export class RequirementService {
       })),
       subtotalPEN: (+totalPEN).toFixed(2),
       subtotalUSD: (+totalUSD).toFixed(2),
-      firstSignature: requirement.firstSignature,
+      firstSignature: requirement.firstSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              requirement.firstSignature
+            )
+          ).url
+        : null,
       firstSignedAt: requirement.firstSignedAt
         ? requirement.firstSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',
@@ -411,7 +419,13 @@ export class RequirementService {
             day: '2-digit',
           })
         : '',
-      secondSignature: requirement.secondSignature,
+      secondSignature: requirement.secondSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              requirement.secondSignature
+            )
+          ).url
+        : null,
       secondSignedAt: requirement.secondSignedAt
         ? requirement.secondSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',
@@ -419,7 +433,13 @@ export class RequirementService {
             day: '2-digit',
           })
         : '',
-      thirdSignature: requirement.thirdSignature,
+      thirdSignature: requirement.thirdSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              requirement.thirdSignature
+            )
+          ).url
+        : null,
       thirdSignedAt: requirement.thirdSignedAt
         ? requirement.thirdSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',
@@ -427,7 +447,13 @@ export class RequirementService {
             day: '2-digit',
           })
         : '',
-      fourthSignature: requirement.fourthSignature,
+      fourthSignature: requirement.fourthSignature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              requirement.fourthSignature
+            )
+          ).url
+        : null,
       fourthSignedAt: requirement.fourthSignedAt
         ? requirement.fourthSignedAt.toLocaleDateString('es-PE', {
             year: 'numeric',

@@ -42,26 +42,29 @@ export class FinalSelectionServiceItem {
 
   @ManyToOne(
     () => FinalSelection,
-    finalSelection => finalSelection.finalSelectionServiceItems
+    finalSelection => finalSelection.finalSelectionServiceItems,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'final_selection_id' })
   finalSelection: FinalSelection;
 
   @ManyToOne(
     () => RequirementService,
-    requirementService => requirementService.finalSelectionServiceItems
+    requirementService => requirementService.finalSelectionServiceItems,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'requirement_service_id' })
   requirementService: RequirementService;
 
-  @ManyToOne(() => Supplier, supplier => supplier.finalSelectionServiceItems)
+  @ManyToOne(() => Supplier, supplier => supplier.finalSelectionServiceItems, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
   @ManyToOne(
     () => SupplierQuotationServiceItem,
     supplierQuotationServiceItem =>
-      supplierQuotationServiceItem.finalSelectionServiceItems
+      supplierQuotationServiceItem.finalSelectionServiceItems,
+    { onDelete: 'CASCADE' }
   )
   @JoinColumn({ name: 'supplier_quotation_service_item_id' })
   supplierQuotationServiceItem: SupplierQuotationServiceItem;

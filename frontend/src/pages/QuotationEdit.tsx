@@ -23,7 +23,11 @@ export const QuotationEdit: React.FC = () => {
           setQuotation(result);
         } else {
           showError('Error', 'No se pudo cargar la cotización');
-          navigate(ROUTES.QUOTATIONS);
+          navigate(
+            quotation?.requirement.type === 'ARTICLE'
+              ? ROUTES.QUOTATIONS_ARTICLES
+              : ROUTES.QUOTATIONS_SERVICES
+          );
         }
       }
     };
@@ -39,7 +43,11 @@ export const QuotationEdit: React.FC = () => {
 
   const handleWizardCancel = () => {
     // Redirigir de vuelta a la lista de cotizaciones
-    navigate(ROUTES.QUOTATIONS);
+    navigate(
+      quotation?.requirement.type === 'ARTICLE'
+        ? ROUTES.QUOTATIONS_ARTICLES
+        : ROUTES.QUOTATIONS_SERVICES
+    );
   };
 
   if (loading) return <LoadingSpinner />;

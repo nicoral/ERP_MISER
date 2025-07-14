@@ -5,7 +5,7 @@ import { useRoles } from '../../employees/hooks/userRoles';
 import { useEffect, useState } from 'react';
 import { Modal } from '../../../components/common/Modal';
 import RoleDetails from './RoleDetails';
-import { usePermissionsByRole } from '../hooks/usePermissions';
+
 import { ROUTES } from '../../../config/constants';
 import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
@@ -18,9 +18,6 @@ export const UserRolesForm = () => {
   const { roles: initialRoles, loading, error } = useRoles();
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const { permissions, loading: loadingPermissions } =
-    usePermissionsByRole(selectedRoleId);
 
   useEffect(() => {
     if (initialRoles) {
@@ -44,8 +41,7 @@ export const UserRolesForm = () => {
   }
 
   const handleView = (role: Role) => {
-    setSelectedRole(role);
-    setSelectedRoleId(role.id);
+    navigate(`${ROUTES.ROLE_DETAILS.replace(':id', role.id.toString())}`);
   };
 
   const handleEdit = (e: React.MouseEvent, role: Role) => {
@@ -139,12 +135,7 @@ export const UserRolesForm = () => {
         isOpen={!!selectedRole}
         onClose={() => setSelectedRole(null)}
       >
-        {selectedRole && (
-          <RoleDetails
-            role={{ ...selectedRole, permissions }}
-            loading={loadingPermissions}
-          />
-        )}
+        {selectedRole && <RoleDetails role={selectedRole} loading={false} />}
       </Modal>
     </div>
   );

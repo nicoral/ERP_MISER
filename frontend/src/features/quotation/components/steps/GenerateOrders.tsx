@@ -217,10 +217,12 @@ const OrderPreview: React.FC<{
         <div>
           <strong>Fecha límite:</strong> {deadline.toLocaleDateString()}
         </div>
-        <div>
-          <strong>Artículos seleccionados:</strong> {selectedArticlesCount} de{' '}
-          {totalArticles} artículos
-        </div>
+        {totalArticles > 0 && (
+          <div>
+            <strong>Artículos seleccionados:</strong> {selectedArticlesCount} de{' '}
+            {totalArticles} artículos
+          </div>
+        )}
         {totalServices > 0 && (
           <div>
             <strong>Servicios seleccionados:</strong> {selectedServicesCount} de{' '}
@@ -938,28 +940,6 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     [selectedServices]
   );
 
-  /* const getTotalSelectedQuantity = useCallback(
-    (supplierId: number) => {
-      const selectedArticleIds = selectedArticles[supplierId] || new Set();
-      const selectedServiceIds = selectedServices[supplierId] || new Set();
-
-      return (
-        requirement.requirementArticles
-          .filter(ra => selectedArticleIds.has(ra.id))
-          .reduce((total, ra) => +total + +ra.quantity, 0) +
-        (requirement.requirementServices || [])
-          .filter(rs => selectedServiceIds.has(rs.id))
-          .reduce((total, rs) => +total + (rs.duration || 0), 0)
-      );
-    },
-    [
-      selectedArticles,
-      selectedServices,
-      requirement.requirementArticles,
-      requirement.requirementServices,
-    ]
-  ); */
-
   // Estadísticas memoizadas
   const statistics = useMemo(() => {
     const totalOrders = Object.keys(orders).length;
@@ -1105,18 +1085,19 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                       }
                       orderNumber={orderNumber}
                     />
-
-                    <ArticleSelection
-                      supplierId={supplier.id}
-                      requirementArticles={requirement.requirementArticles}
-                      selectedArticles={
-                        selectedArticles[supplier.id] || new Set()
-                      }
-                      onArticleToggle={handleProductToggle}
-                      onSelectAll={handleSelectAllProducts}
-                      onDeselectAll={handleDeselectAllProducts}
-                    />
-
+                    {requirement.requirementArticles &&
+                      requirement.requirementArticles.length > 0 && (
+                        <ArticleSelection
+                          supplierId={supplier.id}
+                          requirementArticles={requirement.requirementArticles}
+                          selectedArticles={
+                            selectedArticles[supplier.id] || new Set()
+                          }
+                          onArticleToggle={handleProductToggle}
+                          onSelectAll={handleSelectAllProducts}
+                          onDeselectAll={handleDeselectAllProducts}
+                        />
+                      )}
                     {requirement.requirementServices &&
                       requirement.requirementServices.length > 0 && (
                         <ServiceSelection

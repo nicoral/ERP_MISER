@@ -117,6 +117,8 @@ export const SIDEBAR_TEXTS = {
   auditLogs: 'Auditorías',
   quotation: 'Cotización',
   payments: 'Pagos',
+  entryPart: 'Parte de ingreso',
+  exitPart: 'Parte de salida',
 };
 
 export const HEADER_TEXTS = {
