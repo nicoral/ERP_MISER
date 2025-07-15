@@ -9,6 +9,7 @@ import { Article } from '../entities/Article.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { EmployeeModule } from './employee.module';
 import { StorageModule } from './storage.module';
+import { QRService } from '../services/qr.service';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { StorageModule } from './storage.module';
     StorageModule,
   ],
   controllers: [EntryPartController],
-  providers: [EntryPartService],
+  providers: [EntryPartService, QRService],
   exports: [EntryPartService],
 })
 export class EntryPartModule {}

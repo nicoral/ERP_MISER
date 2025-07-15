@@ -131,7 +131,7 @@ const menuItems: MenuItem[] = [
       },
       {
         label: SIDEBAR_TEXTS.exitPart,
-        path: ROUTES.COMING_SOON,
+        path: ROUTES.EXIT_PARTS,
         permission: [],
         icon: <ExitPartIcon className="w-4 h-4" />,
       },

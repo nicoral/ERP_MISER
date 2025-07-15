@@ -3,6 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/api/purchaseOrderService';
 import type { PurchaseOrder } from '../types/purchaseOrder';
 
+export const usePurchaseOrders = () => {
+  return useQuery({
+    queryKey: ['purchase-orders'],
+    queryFn: purchaseOrderService.getAllPurchaseOrders,
+  });
+};
+
 export const usePurchaseOrderQuery = (
   quotationId?: number,
   supplierId?: number

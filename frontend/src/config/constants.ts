@@ -64,6 +64,10 @@ export const ROUTES = {
   ENTRY_PART_DETAILS: '/entry-parts/:id/details',
   ENTRY_PART_CREATE: '/entry-parts/create',
   ENTRY_PART_EDIT: '/entry-parts/:id/edit',
+  EXIT_PARTS: '/exit-parts',
+  EXIT_PART_DETAILS: '/exit-parts/:id/details',
+  EXIT_PART_CREATE: '/exit-parts/create',
+  EXIT_PART_EDIT: '/exit-parts/:id/edit',
 } as const;
 
 export const MODULES = [

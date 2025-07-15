@@ -50,3 +50,16 @@ export const useUploadEntryPartImage = () => {
     },
   });
 };
+
+export const useGetEntryPartReceptionConformity = () => {
+  return useMutation({
+    mutationFn: (id: number) =>
+      entryPartService.getEntryPartReceptionConformity(id),
+  });
+};
+
+export const useGetEntryPartPdf = () => {
+  return useMutation({
+    mutationFn: (id: number) => entryPartService.getEntryPartPdf(id),
+  });
+};

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEntryParts } from './hooks/useEntryPart';
+import {
+  useEntryParts,
+  useGetEntryPartPdf,
+  useGetEntryPartReceptionConformity,
+} from './hooks/useEntryPart';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { EntryPartStatus } from '../../types/entryPart';
@@ -12,11 +16,53 @@ import {
 } from '../../components/common/Table';
 import { EyeIcon, EditIcon } from '../../components/common/Icons';
 import type { EntryPart } from '../../types/entryPart';
+import { useToast } from '../../contexts/ToastContext';
+import { FileIcon, Loader2 } from 'lucide-react';
 
 export const EntryPartList = () => {
   const navigate = useNavigate();
   const { data: entryParts, isLoading, error } = useEntryParts();
   const [localError, setLocalError] = useState<string | null>(null);
+  const generatePdfReception = useGetEntryPartReceptionConformity();
+  const generatePdfEntryPart = useGetEntryPartPdf();
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const { showSuccess, showError } = useToast();
+
+  const handleGetEntryPartPdf = async (entryPart: EntryPart) => {
+    setDownloadingId(entryPart.id);
+    try {
+      const blob = await generatePdfEntryPart.mutateAsync(entryPart.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${entryPart?.code}-parte-de-ingreso.pdf`;
+      a.click();
+      showSuccess('PDF generado correctamente');
+    } catch (error) {
+      console.error(error);
+      showError('Error al generar el PDF');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleGetReceptionConformity = async (entryPart: EntryPart) => {
+    setDownloadingId(entryPart.id);
+    try {
+      const blob = await generatePdfReception.mutateAsync(entryPart.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${entryPart?.code}-recepción-conformidad.pdf`;
+      a.click();
+      showSuccess('PDF generado correctamente');
+    } catch (error) {
+      console.error(error);
+      showError('Error al generar el PDF');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -137,6 +183,33 @@ export const EntryPartList = () => {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: 'Ver detalles',
       onClick: handleView,
+    },
+    {
+      icon: (entryPart: EntryPart) =>
+        downloadingId === entryPart.id ? (
+          <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
+        ) : (
+          <FileIcon className="w-5 h-5 text-blue-600" />
+        ),
+      label: 'Generar PDF de Conformidad',
+      onClick: (entryPart: EntryPart) =>
+        handleGetReceptionConformity(entryPart),
+      disabled: (entryPart: EntryPart) => downloadingId === entryPart.id,
+      isHidden: (entryPart: EntryPart) =>
+        entryPart.status !== EntryPartStatus.COMPLETED,
+    },
+    {
+      icon: (entryPart: EntryPart) =>
+        downloadingId === entryPart.id ? (
+          <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
+        ) : (
+          <FileIcon className="w-5 h-5 text-blue-600" />
+        ),
+      label: 'Generar PDF de Parte de Ingreso',
+      onClick: (entryPart: EntryPart) => handleGetEntryPartPdf(entryPart),
+      disabled: (entryPart: EntryPart) => downloadingId === entryPart.id,
+      isHidden: (entryPart: EntryPart) =>
+        entryPart.status !== EntryPartStatus.COMPLETED,
     },
     {
       icon: <EditIcon className="w-5 h-5 text-blue-600" />,

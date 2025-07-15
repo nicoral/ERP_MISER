@@ -1,18 +1,63 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEntryPart } from './hooks/useEntryPart';
+import {
+  useEntryPart,
+  useGetEntryPartPdf,
+  useGetEntryPartReceptionConformity,
+} from './hooks/useEntryPart';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { EntryPartStatus } from '../../types/entryPart';
 import { ROUTES } from '../../config/constants';
+import { useToast } from '../../contexts/ToastContext';
 
 export const EntryPartDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const { data: entryPart, isLoading, error } = useEntryPart(parseInt(id!));
   const [localError, setLocalError] = useState<string | null>(null);
+  const generatePdfReception = useGetEntryPartReceptionConformity();
+  const generatePdfEntryPart = useGetEntryPartPdf();
+  const [loading, setLoading] = useState(false);
 
-  if (isLoading) {
+  const handleGetEntryPartPdf = async () => {
+    setLoading(true);
+    try {
+      const blob = await generatePdfEntryPart.mutateAsync(parseInt(id!));
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${entryPart?.code}-parte-de-ingreso.pdf`;
+      a.click();
+      showSuccess('PDF generado correctamente');
+    } catch (error) {
+      console.error(error);
+      showError('Error al generar el PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGetReceptionConformity = async () => {
+    setLoading(true);
+    try {
+      const blob = await generatePdfReception.mutateAsync(parseInt(id!));
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${entryPart?.code}-recepción-conformidad.pdf`;
+      a.click();
+      showSuccess('PDF generado correctamente');
+    } catch (error) {
+      console.error(error);
+      showError('Error al generar el PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isLoading || loading) {
     return <LoadingSpinner />;
   }
 
@@ -71,6 +116,22 @@ export const EntryPartDetails = () => {
             >
               Editar
             </button>
+          )}
+          {entryPart.status === EntryPartStatus.COMPLETED && (
+            <>
+              <button
+                onClick={handleGetReceptionConformity}
+                className="px-4 py-2 text-sm font-medium text-white-700 dark:text-white-300 bg-blue-600 dark:bg-blue-700 border border-blue-300 dark:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Generar PDF de Conformidad
+              </button>
+              <button
+                onClick={handleGetEntryPartPdf}
+                className="px-4 py-2 text-sm font-medium text-white-700 dark:text-white-300 bg-blue-600 dark:bg-blue-700 border border-blue-300 dark:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Generar PDF de Parte de Ingreso
+              </button>
+            </>
           )}
           <button
             onClick={() => navigate(ROUTES.ENTRY_PARTS)}

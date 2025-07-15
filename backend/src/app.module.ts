@@ -29,6 +29,7 @@ import { PaymentModule } from './app/modules/payment.module';
 import { EntryPartModule } from './app/modules/entryPart.module';
 import { PurchaseOrderModule } from './app/modules/purchaseOrder.module';
 import { StorageModule } from './app/modules/storage.module';
+import { ExitPartModule } from './app/modules/exitPart.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { StorageModule } from './app/modules/storage.module';
     PaymentModule,
     PurchaseOrderModule,
     EntryPartModule,
+    ExitPartModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],

@@ -51,6 +51,9 @@ import { EntryPartForm } from './features/entryPart/EntryPartForm';
 import { EntryPartDetails } from './features/entryPart/EntryPartDetails';
 import { PurchaseOrder } from './features/puchaseOrder/components/purchaseOrderDetail';
 import RoleDetails from './pages/RoleDetails';
+import { ExitPartDetails } from './features/exitPart/ExitPartDetails';
+import { ExitPartForm } from './features/exitPart/ExitPartForm';
+import { ExitPartList } from './features/exitPart/ExitPartList';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -165,6 +168,13 @@ const AppRoutes = () => {
           <Route
             path={ROUTES.PURCHASE_ORDER_DETAILS}
             element={<PurchaseOrder />}
+          />
+          <Route path={ROUTES.EXIT_PARTS} element={<ExitPartList />} />
+          <Route path={ROUTES.EXIT_PART_CREATE} element={<ExitPartForm />} />
+          <Route path={ROUTES.EXIT_PART_EDIT} element={<ExitPartForm />} />
+          <Route
+            path={ROUTES.EXIT_PART_DETAILS}
+            element={<ExitPartDetails />}
           />
         </Route>
       </Route>

@@ -56,6 +56,28 @@ export const entryPartService = {
     );
     return response;
   },
+
+  async getEntryPartReceptionConformity(id: number): Promise<Blob> {
+    const response = await createApiCall<Blob>(
+      `${BASE_URL}/${id}/reception-conformity`,
+      {
+        method: 'GET',
+      },
+      true
+    );
+    return response;
+  },
+
+  async getEntryPartPdf(id: number): Promise<Blob> {
+    const response = await createApiCall<Blob>(
+      `${BASE_URL}/${id}/entry-part`,
+      {
+        method: 'GET',
+      },
+      true
+    );
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility

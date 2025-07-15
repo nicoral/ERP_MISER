@@ -32,6 +32,8 @@ import { PurchaseOrder } from '../../app/entities/PurchaseOrder.entity';
 import { PaymentGroup } from '../../app/entities/PaymentGroup.entity';
 import { EntryPart } from '../../app/entities/EntryPart.entity';
 import { EntryPartArticle } from '../../app/entities/EntryPartArticle.entity';
+import { ExitPart } from '../../app/entities/ExitPart.entity';
+import { ExitPartArticle } from '../../app/entities/ExitPartArticle.entity';
 
 @Global()
 @Module({
@@ -69,6 +71,8 @@ import { EntryPartArticle } from '../../app/entities/EntryPartArticle.entity';
         PurchaseOrder,
         EntryPart,
         EntryPartArticle,
+        ExitPart,
+        ExitPartArticle,
       ],
     }),
   ],

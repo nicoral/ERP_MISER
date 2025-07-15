@@ -4,6 +4,14 @@ import type { PurchaseOrder } from '../../types/purchaseOrder';
 const BASE_URL = `${import.meta.env.VITE_API_URL}/purchase-order`;
 
 export const purchaseOrderService = {
+  // Obtener todas las órdenes de compra
+  async getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
+    const response = await createApiCall<PurchaseOrder[]>(BASE_URL, {
+      method: 'GET',
+    });
+    return response;
+  },
+
   // Obtener órdenes de compra por cotización y proveedor
   async getByQuotationAndSupplier(
     quotationRequestId: number,

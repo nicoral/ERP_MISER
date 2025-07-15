@@ -10,10 +10,15 @@ import { EntryPartArticle } from '../entities/EntryPartArticle.entity';
 import { Article } from '../entities/Article.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { CreateEntryPartDto } from '../dto/entryPart/create-entryPart.dto';
-import { EntryPartStatus } from '../common/enum';
+import { EntryPartStatus, InspectionStatus } from '../common/enum';
 import { UpdateEntryPartDto } from '../dto/entryPart/update-entryPart.dto';
 import { Employee } from '../entities/Employee.entity';
 import { StorageService } from './storage.service';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as Handlebars from 'handlebars';
+import * as puppeteer from 'puppeteer';
+import { QRService } from './qr.service';
 
 @Injectable()
 export class EntryPartService {
@@ -26,7 +31,8 @@ export class EntryPartService {
     private readonly articleRepository: Repository<Article>,
     @InjectRepository(WarehouseArticle)
     private readonly warehouseArticleRepository: Repository<WarehouseArticle>,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
+    private readonly qrService: QRService
   ) {}
 
   async create(
@@ -119,7 +125,9 @@ export class EntryPartService {
       where: { id },
       relations: {
         employee: true,
-        purchaseOrder: true,
+        purchaseOrder: {
+          supplier: true,
+        },
         warehouse: true,
         entryPartArticles: {
           article: true,
@@ -289,5 +297,185 @@ export class EntryPartService {
         await this.warehouseArticleRepository.save(warehouseArticle);
       }
     }
+  }
+
+  async generateReceptionConformityPdf(id: number): Promise<Buffer> {
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/reception-conformity.template.html'),
+      'utf8'
+    );
+    const entryPart = await this.findOne(id);
+
+    // Generar QR para el documento de conformidad
+    const qrUrl = this.qrService.generateEntryPartURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0',
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
+
+    // Mapear los artículos para la tabla
+    const items = entryPart.entryPartArticles.map((entryPartArticle, index) => ({
+      index: index + 1,
+      description: entryPartArticle.name,
+      unit: entryPartArticle.unit,
+      orderedQuantity: entryPartArticle.quantity,
+      receivedQuantity: entryPartArticle.received,
+      isConform: entryPartArticle.conform,
+      hasQualityCertificate: entryPartArticle.qualityCert,
+      qualityCertificateNA: !entryPartArticle.qualityCert,
+      hasDeliveryNote: entryPartArticle.guide,
+      deliveryNoteNA: !entryPartArticle.guide,
+      isAccepted: entryPartArticle.inspection === InspectionStatus.ACCEPTED,
+      isObserved: entryPartArticle.inspection === InspectionStatus.PENDING,
+      isRejected: entryPartArticle.inspection === InspectionStatus.REJECTED,
+      observations: entryPartArticle.observation || '',
+    }));
+
+    const data = {
+      // Header data
+      revision: '1',
+      version: '1',
+      date: new Date(entryPart.entryDate).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+      page: '1 de 1',
+
+      // Information section
+      receptionDate: new Date(entryPart.entryDate).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+      receivedBy: entryPart.employee 
+        ? `${entryPart.employee.firstName} ${entryPart.employee.lastName}`
+        : 'No asignado',
+      supplier: entryPart.purchaseOrder?.supplier?.businessName || 'No especificado',
+      signature: entryPart.employee?.signature 
+        ? (await this.storageService.getPrivateFileUrl(entryPart.employee.signature)).url
+        : null,
+      purchaseOrder: entryPart.purchaseOrder?.code || 'No especificado',
+
+      // Table items
+      items: items,
+
+      // Footer
+      receivedByName: entryPart.employee 
+        ? `${entryPart.employee.lastName} ${entryPart.employee.firstName}`
+        : 'No asignado',
+
+      // QR Code
+      qrCode: qrDataUrl,
+    };
+
+    const template = Handlebars.compile(templateHtml);
+    const html = template({ ...data });
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      landscape: true,
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '5px', right: '5px' },
+    });
+
+    await browser.close();
+
+    return Buffer.from(pdfBuffer);
+  }
+
+  async generateEntryPartPdf(id: number): Promise<Buffer> {
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/entry-part.template.html'),
+      'utf8'
+    );
+    const entryPart = await this.findOne(id);
+
+    // Generar QR para el documento de entrada
+    const qrUrl = this.qrService.generateEntryPartURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0',
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
+
+    // Mapear los artículos para la tabla
+    const items = entryPart.entryPartArticles.map((entryPartArticle) => ({
+      code: entryPartArticle.article?.id,
+      manufacturerCode: entryPartArticle.article?.code || '',
+      quantity: entryPartArticle.quantity,
+      unit: entryPartArticle.unit,
+      pieces: entryPartArticle.received,
+      location: '',
+      description: entryPartArticle.name,
+    }));
+
+    const currentTime = new Date();
+    const data = {
+      // Header data
+      code: entryPart.code,
+
+      // Information section
+      date: new Date(entryPart.entryDate).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+      warehouse: entryPart.warehouse?.name || 'No especificado',
+      supplier: entryPart.purchaseOrder?.supplier?.businessName || 'No especificado',
+      purchaseOrder: entryPart.purchaseOrder?.code || 'No especificado',
+      supplierGuide: entryPart.purchaseOrder?.code || 'No especificado',
+      transporter: 'MYSER S.A.',
+
+      // Table items
+      items: items,
+
+      // Signature
+      signature: entryPart.employee?.signature 
+        ? (await this.storageService.getPrivateFileUrl(entryPart.employee.signature)).url
+        : null,
+
+      // Observations
+      observations: entryPart.observation || 'Sin observaciones',
+
+      // Footer
+      time: currentTime.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+
+      // QR Code
+      qrCode: qrDataUrl,
+    };
+
+    const template = Handlebars.compile(templateHtml);
+    const html = template({ ...data });
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '10px', right: '10px' },
+    });
+
+    await browser.close();
+
+    return Buffer.from(pdfBuffer);
   }
 }

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Conformidad de Recepción de Bienes y/o Servicios</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      font-size: 12px;
+    }
+    .header-table { 
+      border-collapse: collapse; 
+      width: 100%; 
+      margin-bottom: 15px;
+    }
+    .header-table td, .header-table th {
+      border: 1px solid #333;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .logo-cell {
+      width: 120px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .logo-cell img {
+      width: 100%;
+      height: auto;
+    }
+    .title-cell {
+      background: #000080;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      font-size: 14px;
+    }
+    .code-cell {
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+      background: #fff;
+    }
+    .info-section {
+      margin-bottom: 15px;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 8px;
+    }
+    .info-label {
+      font-weight: bold;
+      width: 120px;
+      min-width: 120px;
+    }
+    .info-value {
+      border-bottom: 1px solid #333;
+      flex: 1;
+      margin-left: 10px;
+      padding-bottom: 2px;
+    }
+    .main-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 15px;
+      font-size: 7px;
+      table-layout: fixed;
+    }
+    .main-table th, .main-table td {
+      border: 1px solid #333;
+      padding: 2px 3px;
+      text-align: center;
+      vertical-align: middle;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+    .main-table th {
+      background: #000080;
+      color: #fff;
+      font-weight: bold;
+      font-size: 6px;
+    }
+    .main-table td {
+      font-size: 7px;
+    }
+    .description-cell {
+      text-align: left;
+      width: 100%;
+      max-width: 100%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: #ccc;
+      opacity: 0.3;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .page-container {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="watermark">Página 1</div>
+    
+    <!-- Header -->
+    <table class="header-table">
+      <tr>
+        <td rowspan="4" class="logo-cell">
+          <img src="https://res.cloudinary.com/dgvnt5xct/image/upload/v1750026998/mixer/brands/ui6vpk7xtpcefobeq8xk.jpg" alt="Logo MYSER">
+        </td>
+        <td colspan="3" class="title-cell">CONFORMIDAD DE RECEPCIÓN DE BIENES Y/O SERVICIOS</td>
+        <td rowspan="2" class="code-cell">
+          CÓDIGO<br>MYS-LG-FT-15
+        </td>
+      </tr>
+      <tr>
+        <td colspan="3" style="text-align: center; font-weight: bold;">SISTEMA INTEGRADO DE GESTIÓN</td>
+      </tr>
+      <tr>
+        <td>REVISIÓN:</td>
+        <td>1</td>
+        <td>VERSIÓN:</td>
+        <td>1</td>
+      </tr>
+      <tr>
+        <td>FECHA:</td>
+        <td>{{date}}</td>
+        <td>PÁGINA:</td>
+        <td>1 de 1</td>
+      </tr>
+    </table>
+
+    <!-- Recipient and Order Details -->
+    <div style="border: 1px solid #333; padding: 8px; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-around; margin-bottom: 8px;">
+        <span style="font-weight: bold; width: 120px;">FECHA:</span>
+        <div style="border: 1px solid #333; padding: 2px 6px; margin-left: 10px; min-width: 150px; display: inline-block;">{{receptionDate}}</div>
+        <span style="font-weight: bold; width: 120px; margin-left: 30px;">RECIBIDO POR:</span>
+        <div style="border: 1px solid #333; padding: 2px 6px; margin-left: 10px; min-width: 200px; display: inline-block;">{{receivedBy}}</div>
+      </div>
+      <div style="display: flex; justify-content: space-around; margin-bottom: 8px;">
+        <span style="font-weight: bold; width: 120px;">PROVEEDOR:</span>
+        <div style="border: 1px solid #333; padding: 2px 6px; margin-left: 10px; min-width: 150px; display: inline-block;">{{supplier}}</div>
+        <span style="font-weight: bold; width: 120px; margin-left: 30px;">FIRMA:</span>
+        <div style="border: 1px solid #333; padding: 2px 6px; margin-left: 10px; min-width: 200px; height: 25px; display: inline-block;">
+          <img src="{{signature}}" alt="Firma" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-around;">
+        <span style="font-weight: bold; width: 120px;">ORDEN DE COMPRA:</span>
+        <div style="border: 1px solid #333; padding: 2px 6px; margin-left: 10px; min-width: 150px; display: inline-block;">{{purchaseOrder}}</div>
+        <span style="font-weight: bold; width: 120px; margin-left: 30px;"></span>
+        <div style="border: 1px solid #fff; padding: 2px 6px; margin-left: 10px; min-width: 200px; display: inline-block;"></div>
+      </div>
+    </div>
+
+    <!-- Main Table -->
+    <div style="margin-top: 15px;">
+      <div style="font-weight: bold; margin-bottom: 8px; font-size: 11px;">
+        Revisión, Inspección y verificación de bienes y/o servicios
+      </div>
+      
+      <table class="main-table">
+        <tr>
+          <th rowspan="2" style="width: 4%;">ITEM</th>
+          <th rowspan="2" style="width: 25%;">DESCRIPCIÓN BIEN Y/O SERVICIO</th>
+          <th rowspan="2" style="width: 4%;">UND</th>
+          <th colspan="2" style="width: 8%;">CANT.</th>
+          <th colspan="2" style="width: 6%;">CONFORME</th>
+          <th colspan="3" style="width: 9%;">CERTIFICADO DE CALIDAD</th>
+          <th colspan="3" style="width: 9%;">GUÍA DE REMISIÓN</th>
+          <th colspan="3" style="width: 15%;">RESULTADO DE INSPECCIÓN</th>
+          <th rowspan="2" style="width: 23%;">OBSERVACIONES</th>
+        </tr>
+        <tr>
+          <th style="width: 4%;">ORDENADA</th>
+          <th style="width: 4%;">RECIBIDA</th>
+          <th style="width: 3%;">SI</th>
+          <th style="width: 3%;">NO</th>
+          <th style="width: 3%;">SI</th>
+          <th style="width: 3%;">NO</th>
+          <th style="width: 3%;">N/A</th>
+          <th style="width: 3%;">SI</th>
+          <th style="width: 3%;">NO</th>
+          <th style="width: 3%;">N/A</th>
+          <th style="width: 5%;">ACEPTADO/LIBERADO</th>
+          <th style="width: 5%;">OBSERVADO</th>
+          <th style="width: 5%;">RECHAZADO</th>
+        </tr>
+        
+        {{#each items}}
+        <tr>
+          <td>{{index}}</td>
+          <td class="description-cell">{{description}}</td>
+          <td>{{unit}}</td>
+          <td>{{orderedQuantity}}</td>
+          <td>{{receivedQuantity}}</td>
+          <td>{{#if isConform}}✓{{/if}}</td>
+          <td>{{#unless isConform}}✓{{/unless}}</td>
+          <td>{{#if hasQualityCertificate}}✓{{/if}}</td>
+          <td>{{#unless hasQualityCertificate}}✓{{/unless}}</td>
+          <td>{{#if qualityCertificateNA}}✓{{/if}}</td>
+          <td>{{#if hasDeliveryNote}}✓{{/if}}</td>
+          <td>{{#unless hasDeliveryNote}}✓{{/unless}}</td>
+          <td>{{#if deliveryNoteNA}}✓{{/if}}</td>
+          <td>{{#if isAccepted}}✓{{/if}}</td>
+          <td>{{#if isObserved}}✓{{/if}}</td>
+          <td>{{#if isRejected}}✓{{/if}}</td>
+          <td>{{observations}}</td>
+        </tr>
+        {{/each}}
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top: 32px; text-align: right;">
+      <div style="width: 40%; margin-left: auto; text-align: center; font-size: 12px;">
+        <img src="{{signature}}" alt="Firma" style="width: 40%; height: 40%; object-fit: contain;">
+      </div>
+      <div style="width: 40%; margin-left: auto; border-top: 1px solid #333; padding-top: 8px; margin-bottom: 8px; text-align: center; font-weight: bold; font-size: 12px;">
+        RECIBI CONFORME
+      </div>
+      <div style="width: 40%; margin-left: auto; text-align: center; font-size: 12px;">
+        Nombre y apellidos: {{receivedByName}}
+      </div>
+    </div>
+
+    <!-- QR Code -->
+    {{#if qrCode}}
+    <div style="margin-top: 15px; text-align: center;">
+      <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">Código QR para acceso digital:</div>
+      <img src="{{qrCode}}" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+    </div>
+    {{/if}}
+  </div>
+</body>
+</html> 

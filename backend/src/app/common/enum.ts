@@ -31,8 +31,14 @@ export enum EntryPartStatus {
   COMPLETED = 'COMPLETED',
 }
 
+export enum ExitPartStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+}
+
 export enum InspectionStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
+  OBSERVED = 'OBSERVED',
 }
