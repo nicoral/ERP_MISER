@@ -21,7 +21,9 @@ import { FormInput } from '../../../components/common/FormInput';
 import { ROUTES } from '../../../config/constants';
 import { hasPermission } from '../../../utils/permissions';
 
-export const PaymentList: React.FC = () => {
+export const PaymentList: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
+  type,
+}) => {
   const navigate = useNavigate();
   const { getPaymentGroups, getPaymentStatistics, loading } =
     usePaymentService();
@@ -60,7 +62,7 @@ export const PaymentList: React.FC = () => {
   };
 
   const loadPayments = async (page = 1) => {
-    const result = await getPaymentGroups(page, pageSize, filters);
+    const result = await getPaymentGroups(type, page, pageSize, filters);
     if (result) {
       setPayments(result.data);
       setTotal(result.total);
@@ -81,11 +83,6 @@ export const PaymentList: React.FC = () => {
   useEffect(() => {
     loadStatistics();
   }, []);
-
-  /* const handleDelete = (payment: PaymentGroup) => {
-    setPaymentToDelete(payment);
-    setShowDeleteModal(true);
-  }; */
 
   const handleConfirmDelete = async () => {
     if (!paymentToDelete) return;
@@ -115,7 +112,11 @@ export const PaymentList: React.FC = () => {
   };
 
   const handleViewPayment = (payment: PaymentGroup) => {
-    navigate(ROUTES.PAYMENT_DETAILS.replace(':id', payment.id.toString()));
+    navigate(
+      type === 'ARTICLE'
+        ? ROUTES.PAYMENT_ARTICLES_DETAILS.replace(':id', payment.id.toString())
+        : ROUTES.PAYMENT_SERVICES_DETAILS.replace(':id', payment.id.toString())
+    );
   };
 
   const handleCreatePayment = () => {
@@ -280,7 +281,9 @@ export const PaymentList: React.FC = () => {
   return (
     <div className="sm:p-8 p-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:mb-6 mb-2">
-        <h1 className="text-2xl font-bold">Grupos de Pagos</h1>
+        <h1 className="text-2xl font-bold">
+          Grupos de Pagos {type === 'ARTICLE' ? 'de Compras' : 'de Servicios'}
+        </h1>
         {hasPermission('create_payment') && (
           <Button onClick={handleCreatePayment} className="hidden">
             <Plus className="h-4 w-4 mr-2" />

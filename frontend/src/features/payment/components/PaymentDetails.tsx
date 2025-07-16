@@ -23,7 +23,9 @@ import { hasPermission } from '../../../utils/permissions';
 import { Modal } from '../../../components/common/Modal';
 import { SupplierDetails } from '../../supplier/components/SupplierDetails';
 
-export const PaymentDetails: React.FC = () => {
+export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
+  type,
+}) => {
   const params = useParams();
   const navigate = useNavigate();
   const {
@@ -418,7 +420,17 @@ export const PaymentDetails: React.FC = () => {
             </h2>
           </div>
           <div className="flex space-x-3">
-            <Button onClick={() => navigate(ROUTES.PAYMENTS)}>Volver</Button>
+            <Button
+              onClick={() =>
+                navigate(
+                  type === 'ARTICLE'
+                    ? ROUTES.PAYMENTS_ARTICLES
+                    : ROUTES.PAYMENTS_SERVICES
+                )
+              }
+            >
+              Volver
+            </Button>
             {payment.pendingAmount > 0 && hasPermission('create_payment') && (
               <Button
                 onClick={openAddPaymentModal}

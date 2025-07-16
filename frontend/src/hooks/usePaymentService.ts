@@ -31,9 +31,14 @@ export const usePaymentService = () => {
 
   // Payment Group methods
   const getPaymentGroups = useCallback(
-    async (page: number, limit: number, filters?: PaymentGroupFilters) => {
+    async (
+      type: 'ARTICLE' | 'SERVICE',
+      page: number,
+      limit: number,
+      filters?: PaymentGroupFilters
+    ) => {
       return handleRequest(() =>
-        paymentService.getPaymentGroups(page, limit, filters)
+        paymentService.getPaymentGroups(type, page, limit, filters)
       );
     },
     [handleRequest]

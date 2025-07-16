@@ -156,8 +156,23 @@ const AppRoutes = () => {
             path={ROUTES.GENERAL_SETTINGS}
             element={<GeneralSettingsForm />}
           />
-          <Route path={ROUTES.PAYMENTS} element={<PaymentList />} />
-          <Route path={ROUTES.PAYMENT_DETAILS} element={<PaymentDetails />} />
+          <Route
+            path={ROUTES.PAYMENTS_ARTICLES}
+            element={<PaymentsArticlesRoute />}
+          />
+          <Route
+            path={ROUTES.PAYMENTS_SERVICES}
+            element={<PaymentsServicesRoute />}
+          />
+          <Route
+            path={ROUTES.PAYMENT_ARTICLES_DETAILS}
+            element={<PaymentArticlesDetailsRoute />}
+          />
+          <Route
+            path={ROUTES.PAYMENT_SERVICES_DETAILS}
+            element={<PaymentServicesDetailsRoute />}
+          />
+
           <Route path={ROUTES.ENTRY_PARTS} element={<EntryPartList />} />
           <Route path={ROUTES.ENTRY_PART_CREATE} element={<EntryPartForm />} />
           <Route path={ROUTES.ENTRY_PART_EDIT} element={<EntryPartForm />} />
@@ -198,6 +213,12 @@ const RequirementServicesEditRoute = () => <RequirementForm type="SERVICE" />;
 
 const QuotationsArticlesRoute = () => <Quotations type="ARTICLE" />;
 const QuotationsServicesRoute = () => <Quotations type="SERVICE" />;
+
+const PaymentsArticlesRoute = () => <PaymentList type="ARTICLE" />;
+const PaymentsServicesRoute = () => <PaymentList type="SERVICE" />;
+
+const PaymentArticlesDetailsRoute = () => <PaymentDetails type="ARTICLE" />;
+const PaymentServicesDetailsRoute = () => <PaymentDetails type="SERVICE" />;
 
 function App() {
   return (

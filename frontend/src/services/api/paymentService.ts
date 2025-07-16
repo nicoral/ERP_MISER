@@ -12,6 +12,7 @@ const BASE_URL = `${import.meta.env.VITE_API_URL}/payments`;
 const paymentService = {
   // Payment Group endpoints
   async getPaymentGroups(
+    type: 'ARTICLE' | 'SERVICE',
     page: number,
     limit: number,
     filters?: PaymentGroupFilters
@@ -19,6 +20,7 @@ const paymentService = {
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
+      type: type,
       ...(filters?.status && { status: filters.status }),
       ...(filters?.search && { search: filters.search }),
       ...(filters?.approvedBy && { approvedBy: filters.approvedBy.toString() }),

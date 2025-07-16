@@ -62,25 +62,32 @@ export class PaymentService {
   async findAllPaymentGroups(
     page: number = 1,
     limit: number = 10,
+    type: 'ARTICLE' | 'SERVICE' = 'ARTICLE',
     search?: string
   ) {
-    const queryBuilder = this.paymentGroupRepository
-      .createQueryBuilder('paymentGroup')
-      .leftJoinAndSelect('paymentGroup.purchaseOrder', 'purchaseOrder')
-      .leftJoinAndSelect('paymentGroup.paymentDetails', 'paymentDetails')
-      .orderBy('paymentGroup.createdAt', 'DESC');
-
+    const whereConditions: Record<string, unknown> = {
+      purchaseOrder: {
+        requirement: {
+          type: type,
+        },
+      },
+    };
+    
     if (search) {
-      queryBuilder.where(
-        'paymentGroup.code ILIKE :search OR purchaseOrder.code ILIKE :search',
-        { search: `%${search}%` }
-      );
+      whereConditions.code = { $like: `%${search}%` };
     }
 
-    const [data, total] = await queryBuilder
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+    const [data, total] = await this.paymentGroupRepository.findAndCount({
+      where: whereConditions,
+      relations: {
+        purchaseOrder: true,
+      },
+      order: {
+        createdAt: 'DESC'
+      },
+      skip: (page - 1) * limit,
+      take: limit
+    });
 
     return {
       data,

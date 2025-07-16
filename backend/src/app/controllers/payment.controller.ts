@@ -48,9 +48,15 @@ export class PaymentController {
   async findAllPaymentGroups(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('type') type?: 'ARTICLE' | 'SERVICE',
     @Query('search') search?: string
   ) {
-    return await this.paymentService.findAllPaymentGroups(page, limit, search);
+    return await this.paymentService.findAllPaymentGroups(
+      page,
+      limit,
+      type,
+      search
+    );
   }
 
   @Get('groups/statistics')

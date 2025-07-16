@@ -119,7 +119,7 @@ const menuItems: MenuItem[] = [
       },
       {
         label: SIDEBAR_TEXTS.payments,
-        path: ROUTES.PAYMENTS,
+        path: ROUTES.PAYMENTS_ARTICLES,
         permission: ['view_payments'],
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
@@ -156,8 +156,8 @@ const menuItems: MenuItem[] = [
       },
       {
         label: SIDEBAR_TEXTS.payments,
-        path: ROUTES.COMING_SOON,
-        permission: [],
+        path: ROUTES.PAYMENTS_SERVICES,
+        permission: ['view_payments'],
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
     ],
