@@ -27,6 +27,9 @@ export interface PurchaseOrderItem {
   unitPrice: number;
   amount: number;
   currency: string;
+  type?: 'ARTICLE' | 'SERVICE'; // Para distinguir entre artículos y servicios
+  duration?: number; // Solo para servicios
+  durationType?: string; // Solo para servicios
 }
 
 @Entity()
@@ -127,12 +130,15 @@ export class PurchaseOrder {
   // Relación con los detalles de pago
   @OneToOne(() => PaymentGroup, paymentGroup => paymentGroup.purchaseOrder, {
     nullable: true,
-    onDelete: 'SET NULL'
+    onDelete: 'SET NULL',
   })
   paymentGroup: PaymentGroup;
 
   // Relación con las partes de entrada
-  @OneToMany(() => EntryPart, entryPart => entryPart.purchaseOrder, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => EntryPart, entryPart => entryPart.purchaseOrder, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   entryParts: EntryPart[];
 
   // Timestamps

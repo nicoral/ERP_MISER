@@ -49,11 +49,15 @@ export class QuotationRequest extends ApprovalFlowBase {
   @Column({ type: 'integer', default: 0 })
   progress: number;
 
-  @ManyToOne(() => Requirement, requirement => requirement.quotationRequests, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Requirement, requirement => requirement.quotationRequests, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'requirement_id' })
   requirement: Requirement;
 
-  @ManyToOne(() => Employee, employee => employee.quotationRequests, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Employee, employee => employee.quotationRequests, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'created_by' })
   createdBy: Employee;
 

@@ -54,7 +54,9 @@ export class ExitPartArticle {
   @Column({ type: 'text', nullable: true })
   observation: string;
 
-  @ManyToOne(() => ExitPart, exitPart => exitPart.exitPartArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ExitPart, exitPart => exitPart.exitPartArticles, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'exit_part_id' })
   exitPart: ExitPart;
 
@@ -81,4 +83,4 @@ export class ExitPartArticle {
     nullable: true,
   })
   deletedAt: Date;
-} 
+}

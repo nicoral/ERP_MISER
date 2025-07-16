@@ -2,6 +2,7 @@ import type { Supplier } from './supplier';
 import type { Requirement } from './requirement';
 import type { Article } from './article';
 import type { Employee } from './employee';
+import type { Service } from './service';
 
 // Enums from backend entities
 export enum QuotationRequestStatus {
@@ -222,14 +223,6 @@ export interface SupplierQuotationServiceItem {
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
-}
-
-export interface Service {
-  id: number;
-  code: string;
-  name: string;
-  active: boolean;
-  requirementServices: RequirementService[];
 }
 
 // DTOs for API requests
@@ -469,6 +462,7 @@ export interface ReceivedQuotation {
   receivedAt: Date;
   validUntil: Date;
   items: ReceivedQuotationItem[];
+  serviceItems: ReceivedQuotationServiceItem[];
   totalAmount: number;
   currency?: string;
   status: 'DRAFT' | 'SUBMITTED' | 'PENDING';
@@ -485,6 +479,19 @@ export interface ReceivedQuotationItem {
   totalPrice: number;
   currency: string;
   deliveryTime: number;
+  notes: string;
+  status: QuotationItemStatus;
+  reasonNotAvailable: string;
+}
+
+export interface ReceivedQuotationServiceItem {
+  id: number;
+  service: Service;
+  unitPrice: number;
+  currency: string;
+  deliveryTime: number;
+  duration: number;
+  durationType: string;
   notes: string;
   status: QuotationItemStatus;
   reasonNotAvailable: string;
@@ -513,10 +520,8 @@ export interface QuotationWizardState {
 
 export interface ServiceQuotationItem {
   id: number;
-  requirementServiceId: number;
-  service: import('./service').Service;
+  service: Service;
   unitPrice: number;
-  totalPrice: number;
   currency: string;
   deliveryTime: number;
   duration: number;

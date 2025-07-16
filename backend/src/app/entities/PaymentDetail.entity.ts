@@ -85,12 +85,16 @@ export class PaymentDetail {
   hasRetention: boolean; // Indica si aplica retención
 
   // Relación con la orden de compra
-  @ManyToOne(() => PaymentGroup, paymentGroup => paymentGroup.paymentDetails, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PaymentGroup, paymentGroup => paymentGroup.paymentDetails, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'payment_group_id' })
   paymentGroup: PaymentGroup;
 
   // Relación con el empleado que creó el pago
-  @ManyToOne(() => Employee, employee => employee.paymentDetails, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Employee, employee => employee.paymentDetails, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'created_by' })
   createdBy: Employee;
 

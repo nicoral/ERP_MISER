@@ -55,6 +55,21 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                 status: item.status as QuotationItemStatus,
                 reasonNotAvailable: item.reasonNotAvailable || '',
               })),
+              serviceItems: qs.supplierQuotation.supplierQuotationServiceItems
+                .filter(item => item.requirementService)
+                .map(item => ({
+                  id: item.id,
+                  serviceId: item.requirementService!.id,
+                  service: item.requirementService!.service,
+                  unitPrice: item.unitPrice || 0,
+                  currency: item.currency || 'PEN',
+                  deliveryTime: item.deliveryTime || 0,
+                  duration: item.duration || 0,
+                  durationType: item.durationType || 'DIA',
+                  notes: item.notes || '',
+                  status: item.status,
+                  reasonNotAvailable: item.reasonNotAvailable || '',
+                })),
               totalAmount: qs.supplierQuotation.totalAmount,
               status:
                 qs.supplierQuotation.status === 'SUBMITTED'
@@ -90,6 +105,10 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
     Record<number, number>
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Flags para evitar bucles infinitos en los useEffect
+  const [hasInitializedProducts, setHasInitializedProducts] = useState(false);
+  const [hasInitializedServices, setHasInitializedServices] = useState(false);
 
   // Cargar productos seleccionados desde los datos recibidos
   useEffect(() => {
@@ -257,10 +276,11 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
 
   // Aplicar selecciones automáticas solo una vez al cargar
   useEffect(() => {
-    if (Object.keys(productSupplierSelections).length === 0) {
+    if (!hasInitializedProducts && Object.keys(autoSelections).length > 0) {
       setProductSupplierSelections(autoSelections);
+      setHasInitializedProducts(true);
     }
-  }, [comparisonData]);
+  }, [autoSelections, hasInitializedProducts]);
 
   const handleProductSupplierSelection = (
     articleId: number,
@@ -288,9 +308,9 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
 
     selectedSuppliers.forEach(selectedSupplier => {
       if (selectedSupplier.receivedQuotation) {
-        // Por ahora, usar todos los servicios del requirement
-        requirement.requirementServices?.forEach(rs => {
-          allServiceIds.add(rs.service.id);
+        // Usar los servicios de las cotizaciones recibidas
+        selectedSupplier.receivedQuotation.serviceItems?.forEach(item => {
+          allServiceIds.add(item.service.id);
         });
       }
     });
@@ -315,22 +335,28 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
           selectedSupplier.receivedQuotation &&
           selectedSuppliersForComparison.has(selectedSupplier.supplier.id)
         ) {
-          // Buscar el servicio en las cotizaciones de servicios
-          // Por ahora, crear una cotización simulada basada en el requirementService
-          const serviceQuote: ServiceSupplierQuote = {
-            supplierId: selectedSupplier.supplier.id,
-            supplier: selectedSupplier.supplier,
-            unitPrice: requirementService.unitPrice || 0,
-            totalPrice: requirementService.unitPrice || 0,
-            currency: requirementService.currency || 'PEN',
-            deliveryTime: 0,
-            duration: requirementService.duration || 0,
-            durationType: requirementService.durationType || '',
-            isBestPrice: false,
-            status: QuotationItemStatus.QUOTED,
-            reasonNotAvailable: '',
-          };
-          supplierQuotes.push(serviceQuote);
+          // Buscar el servicio en las cotizaciones de servicios reales
+          const serviceItem =
+            selectedSupplier.receivedQuotation.serviceItems?.find(
+              item => item.service.id === requirementService.service.id
+            );
+
+          if (serviceItem) {
+            const serviceQuote: ServiceSupplierQuote = {
+              supplierId: selectedSupplier.supplier.id,
+              supplier: selectedSupplier.supplier,
+              unitPrice: serviceItem.unitPrice || 0,
+              totalPrice: serviceItem.unitPrice || 0, // Para servicios, el total es igual al unitPrice
+              currency: serviceItem.currency || 'PEN',
+              deliveryTime: serviceItem.deliveryTime || 0,
+              duration: serviceItem.duration || 0,
+              durationType: serviceItem.durationType || 'DIA',
+              isBestPrice: false,
+              status: serviceItem.status,
+              reasonNotAvailable: serviceItem.reasonNotAvailable || '',
+            };
+            supplierQuotes.push(serviceQuote);
+          }
         }
       });
 
@@ -381,10 +407,14 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
 
   // Aplicar selecciones automáticas para servicios solo una vez al cargar
   useEffect(() => {
-    if (Object.keys(serviceSupplierSelections).length === 0) {
+    if (
+      !hasInitializedServices &&
+      Object.keys(autoServiceSelections).length > 0
+    ) {
       setServiceSupplierSelections(autoServiceSelections);
+      setHasInitializedServices(true);
     }
-  }, [serviceComparisonData]);
+  }, [autoServiceSelections, hasInitializedServices]);
 
   const handleServiceSupplierSelection = (
     serviceId: number,
@@ -445,7 +475,12 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
 
     try {
       // Crear los items de la selección final para artículos
-      const finalSelectionItems = comparisonData.map(comparison => {
+      const finalSelectionItems: Array<{
+        articleId: number;
+        supplierId: number;
+        selectedPrice: number;
+        notes?: string;
+      }> = comparisonData.map(comparison => {
         const selectedSupplierId =
           productSupplierSelections[comparison.articleId];
         const selectedSupplier = selectedSuppliers.find(
@@ -474,6 +509,13 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
         comparison => {
           const selectedSupplierId =
             serviceSupplierSelections[comparison.serviceId];
+          const selectedSupplier = selectedSuppliers.find(
+            s => s.supplier.id === selectedSupplierId
+          );
+          const quotation = selectedSupplier?.receivedQuotation;
+          const serviceItem = quotation?.serviceItems?.find(
+            item => item.service.id === comparison.serviceId
+          );
 
           // Encontrar el requirementService correspondiente
           const requirementService = requirement.requirementServices?.find(
@@ -483,12 +525,12 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
           return {
             requirementServiceId: requirementService?.id || 0,
             supplierId: selectedSupplierId,
-            unitPrice: requirementService?.unitPrice || 0,
-            notes: '',
-            currency: requirementService?.currency || 'PEN',
-            deliveryTime: 0,
-            durationType: requirementService?.durationType || '',
-            duration: requirementService?.duration || 0,
+            unitPrice: serviceItem?.unitPrice || 0,
+            notes: serviceItem?.notes || '',
+            currency: serviceItem?.currency || 'PEN',
+            deliveryTime: serviceItem?.deliveryTime || 0,
+            durationType: serviceItem?.durationType || 'DIA',
+            duration: serviceItem?.duration || 0,
           };
         }
       );
@@ -534,7 +576,8 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
   };
 
   const getTotalBySupplier = (supplierId: number) => {
-    return comparisonData.reduce((total, comparison) => {
+    // Total de productos
+    const productsTotal = comparisonData.reduce((total, comparison) => {
       const quote = comparison.supplierQuotes.find(
         q => q.supplierId === supplierId
       );
@@ -547,11 +590,29 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       }
       return total;
     }, 0);
+
+    // Total de servicios
+    const servicesTotal = serviceComparisonData.reduce((total, comparison) => {
+      const quote = comparison.supplierQuotes.find(
+        q => q.supplierId === supplierId
+      );
+      if (quote && quote.status === QuotationItemStatus.QUOTED) {
+        const totalPriceInPEN = convertToPEN(
+          Number(quote.totalPrice) || 0,
+          quote.currency
+        );
+        return total + totalPriceInPEN;
+      }
+      return total;
+    }, 0);
+
+    return productsTotal + servicesTotal;
   };
 
-  // Función para calcular el total general de todos los productos seleccionados
+  // Función para calcular el total general de todos los productos y servicios seleccionados
   const getTotalGeneral = () => {
-    return comparisonData.reduce((total, comparison) => {
+    // Total de productos seleccionados
+    const productsTotal = comparisonData.reduce((total, comparison) => {
       // Obtener el proveedor seleccionado para este producto
       const selectedSupplierId =
         productSupplierSelections[comparison.articleId];
@@ -571,53 +632,85 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       }
       return total;
     }, 0);
+
+    // Total de servicios seleccionados
+    const servicesTotal = serviceComparisonData.reduce((total, comparison) => {
+      // Obtener el proveedor seleccionado para este servicio
+      const selectedSupplierId =
+        serviceSupplierSelections[comparison.serviceId];
+      if (!selectedSupplierId) return total;
+
+      // Obtener la cotización del proveedor seleccionado
+      const quote = comparison.supplierQuotes.find(
+        q => q.supplierId === selectedSupplierId
+      );
+
+      if (quote && quote.status === QuotationItemStatus.QUOTED) {
+        const totalPriceInPEN = convertToPEN(
+          Number(quote.totalPrice) || 0,
+          quote.currency
+        );
+        return total + totalPriceInPEN;
+      }
+      return total;
+    }, 0);
+
+    return productsTotal + servicesTotal;
   };
 
   const getBestTotalSupplier = () => {
     const supplierTotals = Array.from(selectedSuppliersForComparison).map(
       supplierId => {
         // Obtener todos los productos del proveedor
-        const supplierQuotes = comparisonData.flatMap(comp =>
+        const supplierProductQuotes = comparisonData.flatMap(comp =>
           comp.supplierQuotes.filter(q => q.supplierId === supplierId)
         );
 
-        // Contar productos por estado
-        const quotedCount = supplierQuotes.filter(
+        // Obtener todos los servicios del proveedor
+        const supplierServiceQuotes = serviceComparisonData.flatMap(comp =>
+          comp.supplierQuotes.filter(q => q.supplierId === supplierId)
+        );
+
+        // Combinar productos y servicios
+        const allQuotes = [...supplierProductQuotes, ...supplierServiceQuotes];
+
+        // Contar items por estado
+        const quotedCount = allQuotes.filter(
           q => q.status === QuotationItemStatus.QUOTED
         ).length;
-        const notAvailableCount = supplierQuotes.filter(
+        const notAvailableCount = allQuotes.filter(
           q => q.status === QuotationItemStatus.NOT_AVAILABLE
         ).length;
-        const notQuotedCount = supplierQuotes.filter(
+        const notQuotedCount = allQuotes.filter(
           q => q.status === QuotationItemStatus.NOT_QUOTED
         ).length;
-        const totalProductsCount = supplierQuotes.length;
+        const totalItemsCount = allQuotes.length;
 
-        // Calcular el total solo de productos cotizados
+        // Calcular el total de productos y servicios cotizados
         const total = getTotalBySupplier(supplierId);
 
         // Calcular puntuación basada en múltiples criterios
         let score = 0;
 
-        // 1. Preferencia por proveedores con todos los productos cotizados (máxima prioridad)
-        if (quotedCount === totalProductsCount && totalProductsCount > 0) {
+        // 1. Preferencia por proveedores con todos los items cotizados (máxima prioridad)
+        if (quotedCount === totalItemsCount && totalItemsCount > 0) {
           score += 1000000; // Puntuación muy alta para proveedores completos
         }
 
-        // 2. Preferencia por proveedores con menos productos no disponibles
-        const notAvailablePenalty = notAvailableCount * 100000; // Penalización alta por productos no disponibles
+        // 2. Preferencia por proveedores con menos items no disponibles
+        const notAvailablePenalty = notAvailableCount * 100000; // Penalización alta por items no disponibles
         score -= notAvailablePenalty;
 
-        // 3. Preferencia por proveedores con menos productos no cotizados
-        const notQuotedPenalty = notQuotedCount * 50000; // Penalización media por productos no cotizados
+        // 3. Preferencia por proveedores con menos items no cotizados
+        const notQuotedPenalty = notQuotedCount * 50000; // Penalización media por items no cotizados
         score -= notQuotedPenalty;
 
         // 4. Preferencia por menor precio total (entre proveedores con misma cobertura)
         score += 1000000 - total; // Invertir el total para que menor precio = mayor puntuación
 
-        // 5. Bonus por porcentaje de productos cotizados
+        // 5. Bonus por porcentaje de items cotizados
         const quotedPercentage =
-          totalProductsCount > 0 ? (quotedCount / totalProductsCount) * 100 : 0;
+          totalItemsCount > 0 ? (quotedCount / totalItemsCount) * 100 : 0;
         score += quotedPercentage * 1000;
 
         return {
@@ -627,7 +720,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
           quotedCount,
           notAvailableCount,
           notQuotedCount,
-          totalProductsCount,
+          totalItemsCount,
           quotedPercentage,
         };
       }
@@ -1109,6 +1202,101 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                     </tr>
                   ))}
                 </tbody>
+                {/* Totals Row for Services */}
+                <tfoot className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      TOTAL SERVICIOS
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-center">
+                      {serviceComparisonData.length} servicios
+                    </td>
+                    {Array.from(selectedSuppliersForComparison).map(
+                      supplierId => {
+                        // Calcular total de servicios para este proveedor
+                        const servicesTotal = serviceComparisonData.reduce(
+                          (total, comparison) => {
+                            const quote = comparison.supplierQuotes.find(
+                              q => q.supplierId === supplierId
+                            );
+                            if (
+                              quote &&
+                              quote.status === QuotationItemStatus.QUOTED
+                            ) {
+                              const totalPriceInPEN = convertToPEN(
+                                Number(quote.totalPrice) || 0,
+                                quote.currency
+                              );
+                              return total + totalPriceInPEN;
+                            }
+                            return total;
+                          },
+                          0
+                        );
+
+                        const bestTotal = getBestTotalSupplier();
+                        const isBestTotal =
+                          bestTotal && bestTotal.supplierId === supplierId;
+
+                        return (
+                          <td
+                            key={supplierId}
+                            className={`px-6 py-4 whitespace-nowrap ${
+                              isBestTotal
+                                ? 'bg-green-50 dark:bg-green-900/20'
+                                : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={`text-sm font-bold ${
+                                  isBestTotal
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-gray-900 dark:text-white'
+                                }`}
+                              >
+                                PEN {(Number(servicesTotal) || 0).toFixed(2)}
+                              </span>
+                              {isBestTotal && (
+                                <span className="text-green-500">🏆</span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      }
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600 dark:text-blue-400">
+                      PEN{' '}
+                      {(() => {
+                        // Calcular total general de servicios seleccionados
+                        return serviceComparisonData.reduce(
+                          (total, comparison) => {
+                            const selectedSupplierId =
+                              serviceSupplierSelections[comparison.serviceId];
+                            if (!selectedSupplierId) return total;
+
+                            const quote = comparison.supplierQuotes.find(
+                              q => q.supplierId === selectedSupplierId
+                            );
+
+                            if (
+                              quote &&
+                              quote.status === QuotationItemStatus.QUOTED
+                            ) {
+                              const totalPriceInPEN = convertToPEN(
+                                Number(quote.totalPrice) || 0,
+                                quote.currency
+                              );
+                              return total + totalPriceInPEN;
+                            }
+                            return total;
+                          },
+                          0
+                        );
+                      })().toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -1123,6 +1311,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
               Análisis de Mejores Precios
             </h4>
             <div className="space-y-2">
+              {/* Productos */}
               {comparisonData.map(comparison => {
                 const bestQuote = comparison.bestPrice;
                 if (!bestQuote) return null;
@@ -1134,6 +1323,32 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                   >
                     <span className="text-gray-600 dark:text-gray-400">
                       {comparison.article.name}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-green-600 dark:text-green-400">
+                        {bestQuote.currency}{' '}
+                        {(Number(bestQuote.unitPrice) || 0).toFixed(2)}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {bestQuote.supplier.businessName}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Servicios */}
+              {serviceComparisonData.map(comparison => {
+                const bestQuote = comparison.bestPrice;
+                if (!bestQuote) return null;
+
+                return (
+                  <div
+                    key={comparison.serviceId}
+                    className="flex justify-between items-center text-sm"
+                  >
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {comparison.service.name}
                     </span>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-green-600 dark:text-green-400">
@@ -1174,8 +1389,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                       </div>
                       <div className="text-xs mt-1">
                         {bestSupplierInfo.quotedCount} de{' '}
-                        {bestSupplierInfo.totalProductsCount} productos
-                        cotizados (
+                        {bestSupplierInfo.totalItemsCount} items cotizados (
                         {bestSupplierInfo.quotedPercentage.toFixed(0)}%
                         cobertura)
                         {bestSupplierInfo.notAvailableCount > 0 && (
@@ -1208,25 +1422,44 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                   bestTotal && bestTotal.supplierId === supplierId;
 
                 // Contar productos por estado
-                const supplierQuotes = comparisonData.flatMap(comp =>
+                const supplierProductQuotes = comparisonData.flatMap(comp =>
                   comp.supplierQuotes.filter(q => q.supplierId === supplierId)
                 );
-                const quotedCount = supplierQuotes.filter(
+
+                // Contar servicios por estado
+                const supplierServiceQuotes = serviceComparisonData.flatMap(
+                  comp =>
+                    comp.supplierQuotes.filter(q => q.supplierId === supplierId)
+                );
+
+                // Combinar productos y servicios
+                const allQuotes = [
+                  ...supplierProductQuotes,
+                  ...supplierServiceQuotes,
+                ];
+
+                const quotedCount = allQuotes.filter(
                   q => q.status === QuotationItemStatus.QUOTED
                 ).length;
-                const notAvailableCount = supplierQuotes.filter(
+                const notAvailableCount = allQuotes.filter(
                   q => q.status === QuotationItemStatus.NOT_AVAILABLE
                 ).length;
-                const notQuotedCount = supplierQuotes.filter(
+                const notQuotedCount = allQuotes.filter(
                   q => q.status === QuotationItemStatus.NOT_QUOTED
                 ).length;
-                const totalProductsCount = supplierQuotes.length;
+                const totalItemsCount = allQuotes.length;
 
-                const bestPricesCount = comparisonData.filter(
-                  comp =>
-                    comp.supplierQuotes.find(q => q.supplierId === supplierId)
-                      ?.isBestPrice
-                ).length;
+                const bestPricesCount =
+                  comparisonData.filter(
+                    comp =>
+                      comp.supplierQuotes.find(q => q.supplierId === supplierId)
+                        ?.isBestPrice
+                  ).length +
+                  serviceComparisonData.filter(
+                    comp =>
+                      comp.supplierQuotes.find(q => q.supplierId === supplierId)
+                        ?.isBestPrice
+                  ).length;
 
                 return (
                   <div
@@ -1265,7 +1498,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                           </div>
                           <div className="text-xs text-gray-400 mt-1">
                             {bestPricesCount} mejores precios de{' '}
-                            {totalProductsCount} productos totales
+                            {totalItemsCount} items totales
                           </div>
                         </div>
                       </div>
@@ -1286,7 +1519,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                         )}
                         {quotedCount > 0 && (
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Solo productos cotizados
+                            Solo items cotizados
                           </div>
                         )}
                       </div>

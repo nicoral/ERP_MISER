@@ -52,7 +52,9 @@ export class PaymentGroup {
   notes: string; // Notas adicionales
 
   // Relación con la cotización (1:1)
-  @OneToOne(() => PurchaseOrder, purchaseOrder => purchaseOrder.paymentGroup, { onDelete: 'CASCADE' })
+  @OneToOne(() => PurchaseOrder, purchaseOrder => purchaseOrder.paymentGroup, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'purchase_order_id' })
   purchaseOrder: PurchaseOrder;
 
@@ -62,7 +64,10 @@ export class PaymentGroup {
   approvedBy: Employee;
 
   // Relación con los pagos individuales
-  @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.paymentGroup, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.paymentGroup, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   paymentDetails: PaymentDetail[];
 
   @CreateDateColumn({

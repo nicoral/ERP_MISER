@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -56,6 +57,14 @@ export class CreateSupplierQuotationServiceItemDto {
   deliveryTime?: number;
 
   @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  @IsEnum(['HORA', 'CONTRATO', 'DIA', 'JORNADA'])
+  durationType?: 'HORA' | 'CONTRATO' | 'DIA' | 'JORNADA';
+
+  @IsOptional()
   @IsString()
   notes?: string;
 
@@ -90,9 +99,8 @@ export class CreateSupplierQuotationDto {
   @Type(() => CreateSupplierQuotationItemDto)
   items: CreateSupplierQuotationItemDto[];
 
-  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateSupplierQuotationServiceItemDto)
-  serviceItems?: CreateSupplierQuotationServiceItemDto[];
+  serviceItems: CreateSupplierQuotationServiceItemDto[];
 }

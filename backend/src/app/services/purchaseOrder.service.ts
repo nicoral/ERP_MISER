@@ -123,6 +123,8 @@ export class PurchaseOrderService {
         'finalSelection',
         'finalSelection.finalSelectionItems',
         'finalSelection.finalSelectionItems.supplier',
+        'finalSelection.finalSelectionServiceItems',
+        'finalSelection.finalSelectionServiceItems.supplier',
       ],
     });
 
@@ -138,12 +140,16 @@ export class PurchaseOrderService {
       };
     }
 
-    // Contar proveedores únicos en la selección final
-    const suppliersWithFinalSelection = new Set(
-      quotationRequest.finalSelection.finalSelectionItems.map(
+    // Contar proveedores únicos en la selección final (artículos + servicios)
+    const allSuppliers = [
+      ...quotationRequest.finalSelection.finalSelectionItems.map(
         item => item.supplier.id
-      )
-    );
+      ),
+      ...quotationRequest.finalSelection.finalSelectionServiceItems.map(
+        item => item.supplier.id
+      ),
+    ];
+    const suppliersWithFinalSelection = new Set(allSuppliers);
     const totalSuppliersWithFinalSelection = suppliersWithFinalSelection.size;
 
     // Contar órdenes de compra generadas para esta cotización
@@ -569,18 +575,34 @@ export class PurchaseOrderService {
           purchaseOrderId: purchaseOrder.id,
           observation: purchaseOrder.observation,
           entryDate: new Date().toISOString(),
-          entryPartArticles: purchaseOrder.items.map(item => ({
-            articleId: item.item,
-            quantity: item.quantity,
-            code: item.code,
-            name: item.description,
-            unit: item.unit,
-            received: 0,
-            conform: false,
-            qualityCert: false,
-            guide: false,
-            inspection: InspectionStatus.PENDING,
-          })),
+          entryPartArticles: purchaseOrder.items
+            .filter(item => item.type === 'ARTICLE' || !item.type)
+            .map(item => ({
+              articleId: item.item,
+              quantity: item.quantity,
+              code: item.code,
+              name: item.description,
+              unit: item.unit,
+              received: 0,
+              conform: false,
+              qualityCert: false,
+              guide: false,
+              inspection: InspectionStatus.PENDING,
+            })),
+          entryPartServices: purchaseOrder.items
+            .filter(item => item.type === 'SERVICE')
+            .map(item => ({
+              serviceId: item.item,
+              duration: item.duration || 0,
+              durationType: item.durationType || 'DIA',
+              code: item.code,
+              name: item.description,
+              received: 0,
+              conform: false,
+              qualityCert: false,
+              guide: false,
+              inspection: InspectionStatus.PENDING,
+            })),
         },
         EntryPartStatus.PENDING
       );

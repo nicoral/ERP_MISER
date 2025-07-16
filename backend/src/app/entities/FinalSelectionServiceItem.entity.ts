@@ -56,7 +56,9 @@ export class FinalSelectionServiceItem {
   @JoinColumn({ name: 'requirement_service_id' })
   requirementService: RequirementService;
 
-  @ManyToOne(() => Supplier, supplier => supplier.finalSelectionServiceItems, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Supplier, supplier => supplier.finalSelectionServiceItems, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 

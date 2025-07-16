@@ -330,7 +330,11 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
                         <td className="px-4 py-2 text-sm">
                           {item.description}
                         </td>
-                        <td className="px-4 py-2 text-sm">{item.quantity}</td>
+                        <td className="px-4 py-2 text-sm">
+                          {item.type === 'SERVICE'
+                            ? item.duration + ' ' + item.durationType
+                            : item.quantity}
+                        </td>
                         <td className="px-4 py-2 text-sm">
                           {formatCurrency(
                             Number(item.unitPrice),
@@ -357,6 +361,18 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
                 <div>
                   <span className="font-bold">Fecha Entrega:</span>{' '}
                   <span>{purchaseOrder.deliveryDate}</span>
+                </div>
+                <div>
+                  <span className="font-bold">Retención:</span>{' '}
+                  <span>
+                    {purchaseOrder.supplier.appliesWithholding &&
+                    purchaseOrder.total >= 700
+                      ? `Si aplica retención del 3% (${formatCurrency(
+                          purchaseOrder.total * 0.03,
+                          purchaseOrder.currency
+                        )})`
+                      : 'No aplica retención'}
+                  </span>
                 </div>
               </div>
               {/* Cálculos de impuestos alineados a la derecha */}

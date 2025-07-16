@@ -7,7 +7,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EntryPart } from '../entities/EntryPart.entity';
 import { EntryPartArticle } from '../entities/EntryPartArticle.entity';
+import { EntryPartService as EntryPartServiceEntity } from '../entities/EntryPartService.entity';
 import { Article } from '../entities/Article.entity';
+import { Service } from '../entities/Service.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { CreateEntryPartDto } from '../dto/entryPart/create-entryPart.dto';
 import { EntryPartStatus, InspectionStatus } from '../common/enum';
@@ -27,8 +29,12 @@ export class EntryPartService {
     private readonly entryPartRepository: Repository<EntryPart>,
     @InjectRepository(EntryPartArticle)
     private readonly entryPartArticleRepository: Repository<EntryPartArticle>,
+    @InjectRepository(EntryPartServiceEntity)
+    private readonly entryPartServiceRepository: Repository<EntryPartServiceEntity>,
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
+    @InjectRepository(Service)
+    private readonly serviceRepository: Repository<Service>,
     @InjectRepository(WarehouseArticle)
     private readonly warehouseArticleRepository: Repository<WarehouseArticle>,
     private readonly storageService: StorageService,
@@ -39,7 +45,7 @@ export class EntryPartService {
     createEntryPartDto: CreateEntryPartDto,
     status = EntryPartStatus.COMPLETED
   ): Promise<EntryPart> {
-    const { entryPartArticles: articlesData, ...entryPartData } =
+    const { entryPartArticles: articlesData, entryPartServices: servicesData, ...entryPartData } =
       createEntryPartDto;
 
     // Generar código automáticamente si no se proporciona
@@ -67,43 +73,79 @@ export class EntryPartService {
     const savedEntryPart = await this.entryPartRepository.save(entryPart);
 
     // Crear los artículos de entrada
-    const articlesToSave = await Promise.all(
-      articlesData.map(async articleDto => {
-        // Verificar que el artículo existe
-        const article = await this.articleRepository.findOne({
-          where: { id: articleDto.articleId },
-        });
-        if (!article) {
-          throw new NotFoundException(
-            `Article with id ${articleDto.articleId} not found`
-          );
-        }
+    if (articlesData && articlesData.length > 0) {
+      const articlesToSave = await Promise.all(
+        articlesData.map(async articleDto => {
+          // Verificar que el artículo existe
+          const article = await this.articleRepository.findOne({
+            where: { id: articleDto.articleId },
+          });
+          if (!article) {
+            throw new NotFoundException(
+              `Article with id ${articleDto.articleId} not found`
+            );
+          }
 
-        return this.entryPartArticleRepository.create({
-          code: articleDto.code,
-          name: articleDto.name,
-          unit: articleDto.unit,
-          quantity: articleDto.quantity,
-          received: articleDto.received,
-          conform: articleDto.conform ?? false,
-          qualityCert: articleDto.qualityCert ?? false,
-          guide: articleDto.guide ?? false,
-          inspection: articleDto.inspection,
-          observation: articleDto.observation,
-          entryPart: savedEntryPart,
-          article,
-        });
-      })
-    );
+          return this.entryPartArticleRepository.create({
+            code: articleDto.code,
+            name: articleDto.name,
+            unit: articleDto.unit,
+            quantity: articleDto.quantity,
+            received: articleDto.received,
+            conform: articleDto.conform ?? false,
+            qualityCert: articleDto.qualityCert ?? false,
+            guide: articleDto.guide ?? false,
+            inspection: articleDto.inspection,
+            observation: articleDto.observation,
+            entryPart: savedEntryPart,
+            article,
+          });
+        })
+      );
 
-    await this.entryPartArticleRepository.save(articlesToSave);
+      await this.entryPartArticleRepository.save(articlesToSave);
+    }
+
+    // Crear los servicios de entrada
+    if (servicesData && servicesData.length > 0) {
+      const servicesToSave = await Promise.all(
+        servicesData.map(async serviceDto => {
+          // Verificar que el servicio existe
+          const service = await this.serviceRepository.findOne({
+            where: { id: serviceDto.serviceId },
+          });
+          if (!service) {
+            throw new NotFoundException(
+              `Service with id ${serviceDto.serviceId} not found`
+            );
+          }
+
+          return this.entryPartServiceRepository.create({
+            code: serviceDto.code,
+            name: serviceDto.name,
+            duration: serviceDto.duration,
+            durationType: serviceDto.durationType,
+            received: serviceDto.received,
+            conform: serviceDto.conform ?? false,
+            qualityCert: serviceDto.qualityCert ?? false,
+            guide: serviceDto.guide ?? false,
+            inspection: serviceDto.inspection,
+            observation: serviceDto.observation,
+            entryPart: savedEntryPart,
+            service,
+          });
+        })
+      );
+
+      await this.entryPartServiceRepository.save(servicesToSave);
+    }
 
     // Si el status es COMPLETED, actualizar los stocks
     if (status === EntryPartStatus.COMPLETED) {
       this.updateWarehouseStocks(savedEntryPart.id);
     }
 
-    // Retornar la entrada con sus artículos
+    // Retornar la entrada con sus artículos y servicios
     return this.findOne(savedEntryPart.id);
   }
 
@@ -131,6 +173,9 @@ export class EntryPartService {
         warehouse: true,
         entryPartArticles: {
           article: true,
+        },
+        entryPartServices: {
+          service: true,
         },
       },
     });
@@ -301,7 +346,10 @@ export class EntryPartService {
 
   async generateReceptionConformityPdf(id: number): Promise<Buffer> {
     const templateHtml = fs.readFileSync(
-      path.join(__dirname, '../../templates/reception-conformity.template.html'),
+      path.join(
+        __dirname,
+        '../../templates/reception-conformity.template.html'
+      ),
       'utf8'
     );
     const entryPart = await this.findOne(id);
@@ -315,22 +363,24 @@ export class EntryPartService {
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
     // Mapear los artículos para la tabla
-    const items = entryPart.entryPartArticles.map((entryPartArticle, index) => ({
-      index: index + 1,
-      description: entryPartArticle.name,
-      unit: entryPartArticle.unit,
-      orderedQuantity: entryPartArticle.quantity,
-      receivedQuantity: entryPartArticle.received,
-      isConform: entryPartArticle.conform,
-      hasQualityCertificate: entryPartArticle.qualityCert,
-      qualityCertificateNA: !entryPartArticle.qualityCert,
-      hasDeliveryNote: entryPartArticle.guide,
-      deliveryNoteNA: !entryPartArticle.guide,
-      isAccepted: entryPartArticle.inspection === InspectionStatus.ACCEPTED,
-      isObserved: entryPartArticle.inspection === InspectionStatus.PENDING,
-      isRejected: entryPartArticle.inspection === InspectionStatus.REJECTED,
-      observations: entryPartArticle.observation || '',
-    }));
+    const items = entryPart.entryPartArticles.map(
+      (entryPartArticle, index) => ({
+        index: index + 1,
+        description: entryPartArticle.name,
+        unit: entryPartArticle.unit,
+        orderedQuantity: entryPartArticle.quantity,
+        receivedQuantity: entryPartArticle.received,
+        isConform: entryPartArticle.conform,
+        hasQualityCertificate: entryPartArticle.qualityCert,
+        qualityCertificateNA: !entryPartArticle.qualityCert,
+        hasDeliveryNote: entryPartArticle.guide,
+        deliveryNoteNA: !entryPartArticle.guide,
+        isAccepted: entryPartArticle.inspection === InspectionStatus.ACCEPTED,
+        isObserved: entryPartArticle.inspection === InspectionStatus.PENDING,
+        isRejected: entryPartArticle.inspection === InspectionStatus.REJECTED,
+        observations: entryPartArticle.observation || '',
+      })
+    );
 
     const data = {
       // Header data
@@ -349,12 +399,17 @@ export class EntryPartService {
         month: '2-digit',
         day: '2-digit',
       }),
-      receivedBy: entryPart.employee 
+      receivedBy: entryPart.employee
         ? `${entryPart.employee.firstName} ${entryPart.employee.lastName}`
         : 'No asignado',
-      supplier: entryPart.purchaseOrder?.supplier?.businessName || 'No especificado',
-      signature: entryPart.employee?.signature 
-        ? (await this.storageService.getPrivateFileUrl(entryPart.employee.signature)).url
+      supplier:
+        entryPart.purchaseOrder?.supplier?.businessName || 'No especificado',
+      signature: entryPart.employee?.signature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              entryPart.employee.signature
+            )
+          ).url
         : null,
       purchaseOrder: entryPart.purchaseOrder?.code || 'No especificado',
 
@@ -362,7 +417,7 @@ export class EntryPartService {
       items: items,
 
       // Footer
-      receivedByName: entryPart.employee 
+      receivedByName: entryPart.employee
         ? `${entryPart.employee.lastName} ${entryPart.employee.firstName}`
         : 'No asignado',
 
@@ -409,7 +464,7 @@ export class EntryPartService {
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
     // Mapear los artículos para la tabla
-    const items = entryPart.entryPartArticles.map((entryPartArticle) => ({
+    const items = entryPart.entryPartArticles.map(entryPartArticle => ({
       code: entryPartArticle.article?.id,
       manufacturerCode: entryPartArticle.article?.code || '',
       quantity: entryPartArticle.quantity,
@@ -431,7 +486,8 @@ export class EntryPartService {
         day: '2-digit',
       }),
       warehouse: entryPart.warehouse?.name || 'No especificado',
-      supplier: entryPart.purchaseOrder?.supplier?.businessName || 'No especificado',
+      supplier:
+        entryPart.purchaseOrder?.supplier?.businessName || 'No especificado',
       purchaseOrder: entryPart.purchaseOrder?.code || 'No especificado',
       supplierGuide: entryPart.purchaseOrder?.code || 'No especificado',
       transporter: 'MYSER S.A.',
@@ -440,8 +496,12 @@ export class EntryPartService {
       items: items,
 
       // Signature
-      signature: entryPart.employee?.signature 
-        ? (await this.storageService.getPrivateFileUrl(entryPart.employee.signature)).url
+      signature: entryPart.employee?.signature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              entryPart.employee.signature
+            )
+          ).url
         : null,
 
       // Observations

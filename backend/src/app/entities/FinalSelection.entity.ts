@@ -47,7 +47,9 @@ export class FinalSelection {
   @JoinColumn({ name: 'quotation_request_id' })
   quotationRequest: QuotationRequest;
 
-  @ManyToOne(() => Employee, employee => employee.finalSelections, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Employee, employee => employee.finalSelections, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'created_by' })
   createdBy: Employee;
 

@@ -42,16 +42,24 @@ export class Requirement extends ApprovalFlowBase {
   })
   type: 'ARTICLE' | 'SERVICE';
 
-  @ManyToOne(() => Employee, employee => employee.requirements, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Employee, employee => employee.requirements, {
+    onDelete: 'CASCADE',
+  })
   employee: Employee;
 
-  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements, { onDelete: 'CASCADE' })
+  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements, {
+    onDelete: 'CASCADE',
+  })
   costCenter: CostCenter;
 
-  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements, { onDelete: 'CASCADE' })
+  @ManyToOne(() => CostCenter, costCenter => costCenter.requirements, {
+    onDelete: 'CASCADE',
+  })
   costCenterSecondary: CostCenter;
 
-  @ManyToOne(() => Warehouse, warehouse => warehouse.requirements, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Warehouse, warehouse => warehouse.requirements, {
+    onDelete: 'CASCADE',
+  })
   warehouse: Warehouse;
 
   @OneToMany(
@@ -75,11 +83,10 @@ export class Requirement extends ApprovalFlowBase {
   )
   quotationRequests: QuotationRequest[];
 
-  @OneToMany(
-    () => PurchaseOrder,
-    purchaseOrder => purchaseOrder.requirement,
-    { cascade: true, onDelete: 'CASCADE' }
-  )
+  @OneToMany(() => PurchaseOrder, purchaseOrder => purchaseOrder.requirement, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   purchaseOrders: PurchaseOrder[];
 
   @CreateDateColumn({

@@ -9,11 +9,11 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { EntryPart } from './EntryPart.entity';
-import { Article } from './Article.entity';
+import { Service } from './Service.entity';
 import { InspectionStatus } from '../common/enum';
 
 @Entity()
-export class EntryPartArticle {
+export class EntryPartService {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -23,11 +23,11 @@ export class EntryPartArticle {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'varchar', length: 10 })
-  unit: string;
+  @Column({ type: 'integer' })
+  duration: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  quantity: number;
+  @Column({ type: 'varchar', length: 20 })
+  durationType: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   received: number;
@@ -54,15 +54,15 @@ export class EntryPartArticle {
   @Column({ type: 'text', nullable: true })
   observation: string;
 
-  @ManyToOne(() => EntryPart, entryPart => entryPart.entryPartArticles, {
+  @ManyToOne(() => EntryPart, entryPart => entryPart.entryPartServices, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'entry_part_id' })
   entryPart: EntryPart;
 
-  @ManyToOne(() => Article)
-  @JoinColumn({ name: 'article_id' })
-  article: Article;
+  @ManyToOne(() => Service)
+  @JoinColumn({ name: 'service_id' })
+  service: Service;
 
   @CreateDateColumn({
     name: 'created_at',
@@ -83,4 +83,4 @@ export class EntryPartArticle {
     nullable: true,
   })
   deletedAt: Date;
-}
+} 

@@ -740,7 +740,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
           requirement.requirementServices?.map(rs => ({
             serviceId: rs.service.id,
             duration: rs.duration || 0,
-            durationType: rs.durationType || '',
+            durationType: rs.durationType || 'DIA',
           })) || [],
       });
 

@@ -76,7 +76,8 @@ export class EntryPartController {
   @RequirePermissions('view_entry_parts')
   @AuditDescription('Consulta de conformidad de recepción')
   async getReceptionConformity(@Res() res: Response, @Param('id') id: number) {
-    const pdfBuffer = await this.entryPartService.generateReceptionConformityPdf(id);
+    const pdfBuffer =
+      await this.entryPartService.generateReceptionConformityPdf(id);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'attachment; filename="recepción-conformidad.pdf"',

@@ -80,4 +80,4 @@ export class ExitPart {
     nullable: true,
   })
   deletedAt: Date;
-} 
+}

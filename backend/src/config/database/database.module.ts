@@ -34,6 +34,7 @@ import { EntryPart } from '../../app/entities/EntryPart.entity';
 import { EntryPartArticle } from '../../app/entities/EntryPartArticle.entity';
 import { ExitPart } from '../../app/entities/ExitPart.entity';
 import { ExitPartArticle } from '../../app/entities/ExitPartArticle.entity';
+import { EntryPartService } from '../../app/entities/EntryPartService.entity';
 
 @Global()
 @Module({
@@ -71,6 +72,7 @@ import { ExitPartArticle } from '../../app/entities/ExitPartArticle.entity';
         PurchaseOrder,
         EntryPart,
         EntryPartArticle,
+        EntryPartService,
         ExitPart,
         ExitPartArticle,
       ],

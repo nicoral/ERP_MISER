@@ -87,10 +87,16 @@ export class Employee {
   @ManyToOne(() => Role, role => role.employees, { onDelete: 'CASCADE' })
   role: Role;
 
-  @OneToMany(() => Warehouse, warehouse => warehouse.manager, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => Warehouse, warehouse => warehouse.manager, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   warehouses: Warehouse[];
 
-  @OneToMany(() => Requirement, requirement => requirement.employee, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => Requirement, requirement => requirement.employee, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   requirements: Requirement[];
 
   @OneToMany(
@@ -100,17 +106,26 @@ export class Employee {
   )
   quotationRequests: QuotationRequest[];
 
-  @OneToMany(() => FinalSelection, finalSelection => finalSelection.createdBy, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => FinalSelection, finalSelection => finalSelection.createdBy, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   finalSelections: FinalSelection[];
 
   @ManyToMany(() => Warehouse, warehouse => warehouse.employees)
   @JoinTable()
   warehousesAssigned: Warehouse[];
 
-  @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.createdBy, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => PaymentDetail, paymentDetail => paymentDetail.createdBy, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   paymentDetails: PaymentDetail[];
 
-  @OneToMany(() => EntryPart, entryPart => entryPart.employee, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => EntryPart, entryPart => entryPart.employee, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   entryParts: EntryPart[];
 
   @CreateDateColumn({

@@ -57,5 +57,4 @@ export class ExitPartController {
   async findOne(@Param('id') id: number): Promise<ExitPart> {
     return this.exitPartService.findOne(id);
   }
-
 }

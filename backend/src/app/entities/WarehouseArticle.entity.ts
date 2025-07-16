@@ -7,10 +7,14 @@ export class WarehouseArticle {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Warehouse, warehouse => warehouse.warehouseArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Warehouse, warehouse => warehouse.warehouseArticles, {
+    onDelete: 'CASCADE',
+  })
   warehouse: Warehouse;
 
-  @ManyToOne(() => Article, article => article.warehouseArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Article, article => article.warehouseArticles, {
+    onDelete: 'CASCADE',
+  })
   article: Article;
 
   @Column('int', { name: 'stock', nullable: false, default: 0 })

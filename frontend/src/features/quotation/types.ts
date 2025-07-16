@@ -2,6 +2,7 @@ import type { QuotationRequest, FinalSelection } from '../../types/quotation';
 import type { Supplier } from '../../types/supplier';
 import type { SupplierQuotationItem } from '../../types/quotation';
 import type { Employee } from '../../types/employee';
+import type { Service } from '../../types/service';
 
 // Tipos para el componente ComparisonTable
 export interface RelevantSupplier {
@@ -26,6 +27,13 @@ export interface SelectedArticle {
   quantity: number;
 }
 
+export interface SelectedService {
+  id: number;
+  service: Service;
+  duration?: number;
+  durationType?: string;
+}
+
 export interface SupplierWithFinalSelection {
   id: number;
   businessName: string;
@@ -44,8 +52,10 @@ export interface Signature {
 export interface ComparisonTableProps {
   quotation: QuotationRequest;
   selectedSupplierId: number | null;
+  type: string;
   relevantSuppliers: RelevantSupplier[];
   selectedArticles: SelectedArticle[];
+  selectedServices: SelectedService[];
   suppliersWithFinalSelection: SupplierWithFinalSelection[];
   finalSelection: FinalSelection | null;
   signatures: Signature[];
@@ -55,6 +65,7 @@ export interface ComparisonTableProps {
 export interface PurchaseOrderProps {
   quotation: QuotationRequest;
   selectedSupplierId: number | null;
+  type: string;
   signatures: Signature[];
   onGeneratePurchaseOrder?: (paymentMethod: string) => void;
   isGenerating?: boolean;

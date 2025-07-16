@@ -53,6 +53,49 @@ export class CreateEntryPartArticleDto {
   articleId: number;
 }
 
+export class CreateEntryPartServiceDto {
+  @IsNotEmpty()
+  @IsString()
+  code: string;
+
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  duration: number;
+
+  @IsNotEmpty()
+  @IsString()
+  durationType: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  received: number;
+
+  @IsOptional()
+  conform?: boolean;
+
+  @IsOptional()
+  qualityCert?: boolean;
+
+  @IsOptional()
+  guide?: boolean;
+
+  @IsOptional()
+  @IsString()
+  inspection?: InspectionStatus;
+
+  @IsOptional()
+  @IsString()
+  observation?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  serviceId: number;
+}
+
 export class CreateEntryPartDto {
   @IsOptional()
   @IsString()
@@ -86,4 +129,10 @@ export class CreateEntryPartDto {
   @ValidateNested({ each: true })
   @Type(() => CreateEntryPartArticleDto)
   entryPartArticles: CreateEntryPartArticleDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateEntryPartServiceDto)
+  entryPartServices?: CreateEntryPartServiceDto[];
 }

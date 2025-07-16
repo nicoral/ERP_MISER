@@ -114,6 +114,22 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                       reasonNotAvailable: item.reasonNotAvailable || '',
                     })
                   ),
+                  serviceItems:
+                    qs.supplierQuotation.supplierQuotationServiceItems
+                      .filter(item => item.requirementService)
+                      .map(item => ({
+                        id: item.id,
+                        serviceId: item.requirementService!.id,
+                        service: item.requirementService!.service,
+                        unitPrice: item.unitPrice || 0,
+                        currency: item.currency || 'PEN',
+                        deliveryTime: item.deliveryTime || 0,
+                        duration: item.duration || 0,
+                        durationType: item.durationType || 'DIA',
+                        notes: item.notes || '',
+                        status: item.status,
+                        reasonNotAvailable: item.reasonNotAvailable || '',
+                      })),
                   totalAmount: qs.supplierQuotation.totalAmount,
                   status:
                     qs.supplierQuotation.status === 'SUBMITTED'
@@ -195,6 +211,22 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                           reasonNotAvailable: item.reasonNotAvailable || '',
                         })
                       ),
+                      serviceItems:
+                        qs.supplierQuotation.supplierQuotationServiceItems
+                          .filter(item => item.requirementService)
+                          .map(item => ({
+                            id: item.id,
+                            serviceId: item.requirementService!.id,
+                            service: item.requirementService!.service,
+                            unitPrice: item.unitPrice || 0,
+                            currency: item.currency || 'PEN',
+                            deliveryTime: item.deliveryTime || 0,
+                            duration: item.duration || 0,
+                            durationType: item.durationType || 'DIA',
+                            notes: item.notes || '',
+                            status: item.status,
+                            reasonNotAvailable: item.reasonNotAvailable || '',
+                          })),
                       totalAmount: qs.supplierQuotation.totalAmount,
                       status:
                         qs.supplierQuotation.status === 'SUBMITTED'
@@ -326,6 +358,22 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                         status: item.status as QuotationItemStatus,
                         reasonNotAvailable: item.reasonNotAvailable || '',
                       })),
+                    serviceItems:
+                      qs.supplierQuotation.supplierQuotationServiceItems
+                        .filter(item => item.requirementService)
+                        .map(item => ({
+                          id: item.id,
+                          serviceId: item.requirementService!.id,
+                          service: item.requirementService!.service,
+                          unitPrice: item.unitPrice || 0,
+                          currency: item.currency || 'PEN',
+                          deliveryTime: item.deliveryTime || 0,
+                          duration: item.duration || 0,
+                          durationType: item.durationType || 'DIA',
+                          notes: item.notes || '',
+                          status: item.status,
+                          reasonNotAvailable: item.reasonNotAvailable || '',
+                        })),
                     totalAmount: qs.supplierQuotation.totalAmount,
                     status:
                       qs.supplierQuotation.status === 'SUBMITTED'
@@ -426,6 +474,22 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
                           status: item.status as QuotationItemStatus,
                           reasonNotAvailable: item.reasonNotAvailable || '',
                         })),
+                      serviceItems:
+                        qs.supplierQuotation.supplierQuotationServiceItems
+                          .filter(item => item.requirementService)
+                          .map(item => ({
+                            id: item.id,
+                            serviceId: item.requirementService!.id,
+                            service: item.requirementService!.service,
+                            unitPrice: item.unitPrice || 0,
+                            currency: item.currency || 'PEN',
+                            deliveryTime: item.deliveryTime || 0,
+                            duration: item.duration || 0,
+                            durationType: item.durationType || 'DIA',
+                            notes: item.notes || '',
+                            status: item.status,
+                            reasonNotAvailable: item.reasonNotAvailable || '',
+                          })),
                       totalAmount: qs.supplierQuotation.totalAmount,
                       status:
                         qs.supplierQuotation.status === 'SUBMITTED'

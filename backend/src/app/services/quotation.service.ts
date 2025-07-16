@@ -588,6 +588,9 @@ export class QuotationService {
         'supplierQuotationItems',
         'supplierQuotationItems.requirementArticle',
         'supplierQuotationItems.requirementArticle.article',
+        'supplierQuotationServiceItems',
+        'supplierQuotationServiceItems.requirementService',
+        'supplierQuotationServiceItems.requirementService.service',
       ],
     });
 
@@ -598,74 +601,149 @@ export class QuotationService {
         notes: notes,
       });
 
-      const { eliminated, added, equal } = compareArraysNumbers(
-        existingQuotation.supplierQuotationItems.map(
-          item => item.requirementArticle.id
-        ),
-        items.map(item => +item.articleId)
-      );
+      if (items && items.length > 0) {
+        const { eliminated, added, equal } = compareArraysNumbers(
+          existingQuotation.supplierQuotationItems.map(
+            item => item.requirementArticle.id
+          ),
+          items.map(item => +item.articleId)
+        );
 
-      if (eliminated.length > 0) {
-        await this.supplierQuotationItemRepository.delete({
+        if (eliminated.length > 0) {
+          await this.supplierQuotationItemRepository.delete({
+            supplierQuotation: { id: existingQuotation.id },
+            requirementArticle: In(eliminated),
+          });
+        }
+
+        if (equal.length > 0) {
+          const updateItems = existingQuotation.supplierQuotationItems.filter(
+            item => equal.includes(+item.requirementArticle.id)
+          );
+
+          for (const item of updateItems) {
+            const newItem = items.find(
+              i => i.articleId === item.requirementArticle.id
+            );
+            if (!newItem) {
+              continue;
+            }
+            await this.supplierQuotationItemRepository.update(item.id, {
+              status:
+                (newItem.status as QuotationItemStatus) ||
+                QuotationItemStatus.NOT_QUOTED,
+              quantity: newItem.quantity,
+              unitPrice: newItem.unitPrice || 0,
+              totalPrice: (newItem.unitPrice || 0) * newItem.quantity,
+              currency: newItem.currency,
+              deliveryTime: newItem.deliveryTime,
+              notes: newItem.notes,
+              reasonNotAvailable: newItem.reasonNotAvailable,
+            });
+          }
+        }
+
+        const newItems = items.filter(item => added.includes(+item.articleId));
+        // Create new quotation items
+        const quotationItems = newItems.map(item => ({
+          status:
+            (item.status as QuotationItemStatus) ||
+            QuotationItemStatus.NOT_QUOTED,
+          quantity: item.quantity, // Default quantity
+          unitPrice: item.unitPrice || 0,
+          totalPrice: (item.unitPrice || 0) * item.quantity,
+          currency: item.currency || 'PEN',
+          deliveryTime: item.deliveryTime || 0,
+          notes: item.notes || '',
+          reasonNotAvailable: item.reasonNotAvailable,
           supplierQuotation: { id: existingQuotation.id },
-          requirementArticle: In(eliminated),
+          requirementArticle: { id: +item.articleId },
+        }));
+
+        await this.supplierQuotationItemRepository.save(quotationItems);
+
+        // Calculate total amount (only quoted items)
+        const totalAmount = items
+          .filter(item => item.status === QuotationItemStatus.QUOTED)
+          .reduce(
+            (sum, item) => sum + (item.unitPrice || 0) * item.quantity,
+            0
+          );
+
+        await this.supplierQuotationRepository.update(existingQuotation.id, {
+          totalAmount,
         });
       }
 
-      if (equal.length > 0) {
-        const updateItems = existingQuotation.supplierQuotationItems.filter(
-          item => equal.includes(+item.requirementArticle.id)
+      if (serviceItems && serviceItems.length > 0) {
+        const { eliminated, added, equal } = compareArraysNumbers(
+          existingQuotation.supplierQuotationServiceItems.map(
+            item => item.requirementService.id
+          ),
+          serviceItems.map(item => +item.serviceId)
         );
 
-        for (const item of updateItems) {
-          const newItem = items.find(
-            i => i.articleId === item.requirementArticle.id
-          );
-          if (!newItem) {
-            continue;
-          }
-          await this.supplierQuotationItemRepository.update(item.id, {
-            status:
-              (newItem.status as QuotationItemStatus) ||
-              QuotationItemStatus.NOT_QUOTED,
-            quantity: newItem.quantity,
-            unitPrice: newItem.unitPrice || 0,
-            totalPrice: (newItem.unitPrice || 0) * newItem.quantity,
-            currency: newItem.currency,
-            deliveryTime: newItem.deliveryTime,
-            notes: newItem.notes,
-            reasonNotAvailable: newItem.reasonNotAvailable,
+        if (eliminated.length > 0) {
+          await this.supplierQuotationServiceIR.delete({
+            supplierQuotation: { id: existingQuotation.id },
+            requirementService: In(eliminated),
           });
         }
+
+        if (equal.length > 0) {
+          const updateItems = existingQuotation.supplierQuotationServiceItems.filter(
+            item => equal.includes(+item.requirementService.id)
+          );
+
+          for (const item of updateItems) {
+            const newItem = serviceItems.find(
+              i => i.serviceId === item.requirementService.id
+            );
+            if (!newItem) {
+              continue;
+            }
+            await this.supplierQuotationServiceIR.update(item.id, {
+              status:
+                (newItem.status as QuotationServiceItemStatus) ||
+                QuotationServiceItemStatus.QUOTED,
+              unitPrice: newItem.unitPrice || 0,
+              currency: newItem.currency || 'PEN',
+              deliveryTime: newItem.deliveryTime || 0,
+              duration: newItem.duration || 0,
+              durationType: newItem.durationType || 'DIA',
+              notes: newItem.notes || '',
+              reasonNotAvailable: newItem.reasonNotAvailable,
+            });
+          }
+        }
+
+        const newItems = serviceItems.filter(
+          item => added.includes(+item.serviceId)
+        );
+        // Create new quotation items
+        const quotationServiceItems = newItems.map(item => ({
+          status:
+            (item.status as QuotationServiceItemStatus) ||
+            QuotationServiceItemStatus.QUOTED,
+          unitPrice: item.unitPrice || 0,
+          currency: item.currency || 'PEN',
+          deliveryTime: item.deliveryTime || 0,
+          notes: item.notes || '',
+          reasonNotAvailable: item.reasonNotAvailable,
+          supplierQuotation: { id: existingQuotation.id },
+          requirementService: { id: +item.serviceId },
+        }));
+
+        await this.supplierQuotationServiceIR.save(quotationServiceItems);
+
+        const serviceTotalAmount = serviceItems
+          .filter(item => item.status === QuotationServiceItemStatus.QUOTED)
+          .reduce((sum, item) => sum + (item.unitPrice || 0), 0);
+
+        await this.supplierQuotationRepository.update(existingQuotation.id, {
+          totalAmount: serviceTotalAmount,
+        });
       }
-
-      const newItems = items.filter(item => added.includes(+item.articleId));
-      // Create new quotation items
-      const quotationItems = newItems.map(item => ({
-        status:
-          (item.status as QuotationItemStatus) ||
-          QuotationItemStatus.NOT_QUOTED,
-        quantity: item.quantity, // Default quantity
-        unitPrice: item.unitPrice || 0,
-        totalPrice: (item.unitPrice || 0) * item.quantity,
-        currency: item.currency || 'PEN',
-        deliveryTime: item.deliveryTime || 0,
-        notes: item.notes || '',
-        reasonNotAvailable: item.reasonNotAvailable,
-        supplierQuotation: { id: existingQuotation.id },
-        requirementArticle: { id: +item.articleId },
-      }));
-
-      await this.supplierQuotationItemRepository.save(quotationItems);
-
-      // Calculate total amount (only quoted items)
-      const totalAmount = items
-        .filter(item => item.status === QuotationItemStatus.QUOTED)
-        .reduce((sum, item) => sum + (item.unitPrice || 0) * item.quantity, 0);
-
-      await this.supplierQuotationRepository.update(existingQuotation.id, {
-        totalAmount,
-      });
 
       return this.findOneSupplierQuotation(existingQuotation.id);
     }
@@ -685,33 +763,34 @@ export class QuotationService {
       await this.supplierQuotationRepository.save(supplierQuotation);
 
     // Create quotation items
-    const quotationItems = items.map(item => ({
-      status:
-        (item.status as QuotationItemStatus) || QuotationItemStatus.QUOTED,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice || 0,
-      totalPrice:
-        item.status === QuotationItemStatus.QUOTED
-          ? (item.unitPrice || 0) * item.quantity
-          : 0,
-      currency: item.currency || 'PEN',
-      deliveryTime: item.deliveryTime || 0,
-      notes: item.notes || '',
-      reasonNotAvailable: item.reasonNotAvailable,
-      supplierQuotation: { id: savedSupplierQuotation.id },
-      requirementArticle: { id: +item.articleId },
-    }));
+    if (items && items.length > 0) {
+      const quotationItems = items.map(item => ({
+        status:
+          (item.status as QuotationItemStatus) || QuotationItemStatus.QUOTED,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice || 0,
+        totalPrice:
+          item.status === QuotationItemStatus.QUOTED
+            ? (item.unitPrice || 0) * item.quantity
+            : 0,
+        currency: item.currency || 'PEN',
+        deliveryTime: item.deliveryTime || 0,
+        notes: item.notes || '',
+        reasonNotAvailable: item.reasonNotAvailable,
+        supplierQuotation: { id: savedSupplierQuotation.id },
+        requirementArticle: { id: +item.articleId },
+      }));
 
-    await this.supplierQuotationItemRepository.save(quotationItems);
+      await this.supplierQuotationItemRepository.save(quotationItems);
 
-    // Calculate total amount (only quoted items)
-    const totalAmount = items
-      .filter(item => item.status === QuotationItemStatus.QUOTED)
-      .reduce((sum, item) => sum + (item.unitPrice || 0) * item.quantity, 0);
+      const totalAmount = items
+        .filter(item => item.status === QuotationItemStatus.QUOTED)
+        .reduce((sum, item) => sum + (item.unitPrice || 0) * item.quantity, 0);
 
-    await this.supplierQuotationRepository.update(savedSupplierQuotation.id, {
-      totalAmount,
-    });
+      await this.supplierQuotationRepository.update(savedSupplierQuotation.id, {
+        totalAmount,
+      });
+    }
 
     // Handle service items if provided
     if (serviceItems && serviceItems.length > 0) {
@@ -735,10 +814,8 @@ export class QuotationService {
         .filter(item => item.status === QuotationServiceItemStatus.QUOTED)
         .reduce((sum, item) => sum + (item.unitPrice || 0), 0);
 
-      const totalAmountWithServices = totalAmount + serviceTotalAmount;
-
       await this.supplierQuotationRepository.update(savedSupplierQuotation.id, {
-        totalAmount: totalAmountWithServices,
+        totalAmount: serviceTotalAmount,
       });
     }
 
@@ -1491,7 +1568,11 @@ export class QuotationService {
         'finalSelectionItems.requirementArticle',
         'finalSelectionItems.requirementArticle.article',
         'finalSelectionItems.requirementArticle.article.brand',
+        'finalSelectionServiceItems',
+        'finalSelectionServiceItems.requirementService',
+        'finalSelectionServiceItems.requirementService.service',
         'finalSelectionItems.supplier',
+        'finalSelectionServiceItems.supplier',
       ],
     });
 
@@ -1685,25 +1766,35 @@ export class QuotationService {
       finalSelection.quotationRequest.id
     );
 
-    // Filtrar items del proveedor específico
+    // Filtrar items del proveedor específico (artículos)
     const supplierItems = finalSelection.finalSelectionItems.filter(
       item => item.supplier.id === supplierId
     );
 
-    if (supplierItems.length === 0) {
+    // Filtrar servicios del proveedor específico
+    const supplierServices = finalSelection.finalSelectionServiceItems.filter(
+      item => item.supplier.id === supplierId
+    );
+
+    if (supplierItems.length === 0 && supplierServices.length === 0) {
       throw new BadRequestException(
-        `No se encontraron items para el proveedor con ID ${supplierId}`
+        `No se encontraron items o servicios para el proveedor con ID ${supplierId}`
       );
     }
 
     // Calcular totales - el totalPrice ya incluye IGV
-    const total = supplierItems.reduce(
+    const articlesTotal = supplierItems.reduce(
       (sum, item) => sum + (+item.totalPrice || 0),
       0
     );
+    const servicesTotal = supplierServices.reduce(
+      (sum, item) => sum + (+item.unitPrice || 0),
+      0
+    );
+    const total = articlesTotal + servicesTotal;
     const subtotal = +(total / (1 + generalTax / 100)).toFixed(2); // Extraer subtotal sin IGV
 
-    // Preparar items para la orden de compra
+    // Preparar items para la orden de compra (artículos)
     const purchaseOrderItems = supplierItems.map(item => ({
       item: item.requirementArticle.article.id,
       code: item.requirementArticle.article.code || '-',
@@ -1714,7 +1805,32 @@ export class QuotationService {
       unitPrice: +item.unitPrice,
       amount: +item.totalPrice,
       currency: item.currency || 'PEN',
+      type: 'ARTICLE' as const,
     }));
+
+    // Preparar servicios como items
+    const purchaseOrderServices = supplierServices.map(item => ({
+      item: item.requirementService.service.id,
+      code: item.requirementService.service.code || '-',
+      quantity: 1, // Los servicios siempre tienen cantidad 1
+      unit: item.durationType || 'DIA',
+      description: item.requirementService.service.name || '-',
+      brand: '-', // Los servicios no tienen marca
+      unitPrice: +item.unitPrice,
+      amount: +item.unitPrice, // Para servicios, el precio unitario es el total
+      currency: item.currency || 'PEN',
+      type: 'SERVICE' as const,
+      duration: item.duration || 0,
+      durationType: item.durationType || 'DIA',
+    }));
+
+    // Combinar artículos y servicios en un solo array
+    const allItems = [...purchaseOrderItems, ...purchaseOrderServices];
+
+    // Obtener información del proveedor
+    const supplier = supplierItems.length > 0 
+      ? supplierItems[0].supplier 
+      : supplierServices[0].supplier;
 
     // Crear DTO para la orden de compra
     const createPurchaseOrderDto = {
@@ -1723,12 +1839,12 @@ export class QuotationService {
       createdById: quotationRequest.createdBy.id,
       orderNumber: `OC-${quotationRequest.code}-${supplierId}`,
       issueDate: new Date(),
-      supplierName: supplierItems[0].supplier.businessName,
-      supplierRUC: supplierItems[0].supplier.ruc,
-      supplierAddress: supplierItems[0].supplier.address,
+      supplierName: supplier.businessName,
+      supplierRUC: supplier.ruc,
+      supplierAddress: supplier.address,
       supplierLocation: '',
-      supplierPhone: supplierItems[0].supplier.mobile || '',
-      items: purchaseOrderItems,
+      supplierPhone: supplier.mobile || '',
+      items: allItems,
       paymentMethod: paymentMethod || 'POR DEFINIR',
       deliveryDate: 'POR DEFINIR',
       subtotal: subtotal,
@@ -2021,21 +2137,37 @@ export class QuotationService {
         'requirement',
         'requirement.requirementArticles',
         'requirement.requirementArticles.article',
+        'requirement.requirementArticles.article.brand',
+        'requirement.requirementServices',
+        'requirement.requirementServices.service',
+        'requirement.employee',
+        'requirement.costCenter',
         'createdBy',
         'quotationSuppliers',
         'quotationSuppliers.supplier',
         'quotationSuppliers.quotationSupplierArticles',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle.article',
+        'quotationSuppliers.quotationSupplierArticles.requirementArticle.article.brand',
+        'quotationSuppliers.quotationSupplierServices',
+        'quotationSuppliers.quotationSupplierServices.requirementService',
+        'quotationSuppliers.quotationSupplierServices.requirementService.service',
         'quotationSuppliers.supplierQuotation',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems.requirementArticle',
         'quotationSuppliers.supplierQuotation.supplierQuotationItems.requirementArticle.article',
+        'quotationSuppliers.supplierQuotation.supplierQuotationServiceItems',
+        'quotationSuppliers.supplierQuotation.supplierQuotationServiceItems.requirementService',
+        'quotationSuppliers.supplierQuotation.supplierQuotationServiceItems.requirementService.service',
         'finalSelection',
         'finalSelection.finalSelectionItems',
-        'finalSelection.finalSelectionItems.supplier',
         'finalSelection.finalSelectionItems.requirementArticle',
         'finalSelection.finalSelectionItems.requirementArticle.article',
+        'finalSelection.finalSelectionItems.supplier',
+        'finalSelection.finalSelectionServiceItems',
+        'finalSelection.finalSelectionServiceItems.requirementService',
+        'finalSelection.finalSelectionServiceItems.requirementService.service',
+        'finalSelection.finalSelectionServiceItems.supplier',
       ],
     });
   }

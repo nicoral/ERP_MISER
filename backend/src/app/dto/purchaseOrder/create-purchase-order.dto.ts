@@ -36,6 +36,18 @@ export class PurchaseOrderItemDto {
 
   @IsString()
   currency: string;
+
+  @IsOptional()
+  @IsString()
+  type?: 'ARTICLE' | 'SERVICE';
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  @IsString()
+  durationType?: string;
 }
 
 export class CreatePurchaseOrderDto {

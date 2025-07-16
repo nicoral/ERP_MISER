@@ -29,6 +29,8 @@ export const QuotationDetails = () => {
     loading,
   } = useQuotationService();
 
+  const [type, setType] = React.useState<string>('');
+
   const { getByQuotationAndSupplier, getQuotationSummary } =
     usePurchaseOrderService();
 
@@ -79,25 +81,25 @@ export const QuotationDetails = () => {
         const result = await getQuotationRequest(Number(params.id));
         if (result) {
           setQuotation(result);
+          setType(result.requirement.type);
           // Seleccionar el primer proveedor con selección final por defecto
           const suppliersWithFinalSelection =
-            result.finalSelection?.finalSelectionItems
-              .map(item => item.supplier)
-              .filter(
-                (supplier, index, self) =>
-                  self.findIndex(s => s.id === supplier.id) === index
-              ) || [];
+            result.requirement.type === 'ARTICLE'
+              ? result.finalSelection?.finalSelectionItems
+                  .map(item => item.supplier)
+                  .filter(
+                    (supplier, index, self) =>
+                      self.findIndex(s => s.id === supplier.id) === index
+                  ) || []
+              : result.finalSelection?.finalSelectionServiceItems
+                  .map(item => item.supplier)
+                  .filter(
+                    (supplier, index, self) =>
+                      self.findIndex(s => s.id === supplier.id) === index
+                  ) || [];
 
           if (suppliersWithFinalSelection.length > 0) {
             setSelectedSupplierId(suppliersWithFinalSelection[0].id);
-          }
-
-          // Cargar orden de compra para el proveedor seleccionado cuando cambie
-          if (
-            selectedSupplierId &&
-            result.finalSelection?.status === 'APPROVED'
-          ) {
-            // loadPurchaseOrder(result.id, selectedSupplierId); // Eliminado
           }
 
           // Cargar resumen de órdenes de compra si la selección final está aprobada
@@ -109,17 +111,6 @@ export const QuotationDetails = () => {
     };
     loadQuotation();
   }, [params.id, getQuotationRequest, getByQuotationAndSupplier]);
-
-  // Cargar orden de compra cuando cambie el proveedor seleccionado
-  React.useEffect(() => {
-    if (
-      quotation &&
-      selectedSupplierId &&
-      quotation.finalSelection?.status === 'APPROVED'
-    ) {
-      // loadPurchaseOrder(quotation.id, selectedSupplierId); // Eliminado
-    }
-  }, [selectedSupplierId, quotation?.id, quotation?.finalSelection?.status]);
 
   // Función para firmar la cotización
   const handleSignQuotation = async () => {
@@ -197,9 +188,6 @@ export const QuotationDetails = () => {
         paymentMethod
       );
       if (generatedOrder) {
-        // Recargar la orden de compra después de generarla
-        // await loadPurchaseOrder(quotation.id, selectedSupplierId); // Eliminado
-        // Recargar el resumen para actualizar el estado de las órdenes
         await loadQuotationSummary(quotation.id);
         showSuccess(
           'Orden de compra generada',
@@ -229,7 +217,7 @@ export const QuotationDetails = () => {
   if (!quotation)
     return <div className="text-red-500">Cotización no encontrada</div>;
 
-  // Obtener proveedores que tienen artículos seleccionados en la selección final
+  // Obtener proveedores que tienen artículos o servicios seleccionados en la selección final
   const getRelevantSuppliers = () => {
     if (!quotation.finalSelection) return [];
 
@@ -237,11 +225,26 @@ export const QuotationDetails = () => {
       .filter(item => item.supplier.id === selectedSupplierId)
       .map(item => item.requirementArticle.article.id);
 
+    const selectedServiceIds =
+      quotation.finalSelection.finalSelectionServiceItems
+        .filter(item => item.supplier.id === selectedSupplierId)
+        .map(item => item.requirementService.service.id);
+
     const relevantSuppliers = quotation.quotationSuppliers
       .filter(qs => {
-        return qs.supplierQuotation?.supplierQuotationItems?.some(item =>
-          selectedArticleIds.includes(item.requirementArticle.article.id)
-        );
+        // Verificar si tiene artículos seleccionados
+        const hasSelectedArticles =
+          qs.supplierQuotation?.supplierQuotationItems?.some(item =>
+            selectedArticleIds.includes(item.requirementArticle.article.id)
+          );
+
+        // Verificar si tiene servicios seleccionados
+        const hasSelectedServices =
+          qs.supplierQuotation?.supplierQuotationServiceItems?.some(item =>
+            selectedServiceIds.includes(item.requirementService.service.id)
+          );
+
+        return hasSelectedArticles || hasSelectedServices;
       })
       .map(qs => ({
         supplier: qs.supplier,
@@ -274,8 +277,36 @@ export const QuotationDetails = () => {
       }));
   };
 
+  const getSelectedServices = () => {
+    if (!quotation.finalSelection || !selectedSupplierId) return [];
+
+    const selectedServiceIds =
+      quotation.finalSelection.finalSelectionServiceItems
+        .filter(item => item.supplier.id === selectedSupplierId)
+        .map(item => item.requirementService.service.id);
+
+    return quotation.requirement.requirementServices
+      ?.filter(reqService => selectedServiceIds.includes(reqService.service.id))
+      .map(reqService => ({
+        id: reqService.id,
+        service: reqService.service,
+        duration: reqService.duration,
+        durationType: reqService.durationType,
+      }));
+  };
+
   const relevantSuppliers = getRelevantSuppliers();
   const selectedArticles = getSelectedArticles();
+  const selectedServices = getSelectedServices();
+
+  console.log('QuotationDetails Debug:', {
+    selectedSupplierId,
+    relevantSuppliers: relevantSuppliers.length,
+    selectedArticles: selectedArticles.length,
+    selectedServices: selectedServices.length,
+    quotationType: quotation.requirement.type,
+    finalSelection: !!quotation.finalSelection,
+  });
 
   // Proveedores seleccionados (de la selección final)
   const finalSelection = quotation.finalSelection;
@@ -308,20 +339,29 @@ export const QuotationDetails = () => {
     },
   ];
 
-  // Obtener proveedores que tienen artículos en la selección final
-  const suppliersWithFinalSelection =
-    quotation.finalSelection?.finalSelectionItems
-      .map(item => item.supplier)
-      .filter(
-        (supplier, index, self) =>
-          self.findIndex(s => s.id === supplier.id) === index
-      )
-      .map(supplier => ({
-        id: supplier.id,
-        businessName: supplier.businessName,
-        ruc: supplier.ruc,
-        address: supplier.address,
-      })) || [];
+  // Obtener proveedores que tienen artículos o servicios en la selección final
+  const suppliersWithFinalSelection = (() => {
+    const allSuppliers = [
+      ...(quotation.finalSelection?.finalSelectionItems.map(
+        item => item.supplier
+      ) || []),
+      ...(quotation.finalSelection?.finalSelectionServiceItems.map(
+        item => item.supplier
+      ) || []),
+    ];
+
+    const uniqueSuppliers = allSuppliers.filter(
+      (supplier, index, self) =>
+        self.findIndex(s => s.id === supplier.id) === index
+    );
+
+    return uniqueSuppliers.map(supplier => ({
+      id: supplier.id,
+      businessName: supplier.businessName,
+      ruc: supplier.ruc,
+      address: supplier.address,
+    }));
+  })();
 
   // Renderizar contenido del tab interno
   const renderInternalTabContent = () => {
@@ -330,8 +370,10 @@ export const QuotationDetails = () => {
         <ComparisonTable
           quotation={quotation}
           selectedSupplierId={selectedSupplierId}
+          type={type}
           relevantSuppliers={relevantSuppliers}
           selectedArticles={selectedArticles}
+          selectedServices={selectedServices}
           suppliersWithFinalSelection={suppliersWithFinalSelection}
           finalSelection={finalSelection}
           signatures={signatures}
@@ -341,6 +383,7 @@ export const QuotationDetails = () => {
       return (
         <PurchaseOrderComponent
           quotation={quotation}
+          type={type}
           selectedSupplierId={selectedSupplierId}
           signatures={signatures}
           onGeneratePurchaseOrder={handleGeneratePurchaseOrders}

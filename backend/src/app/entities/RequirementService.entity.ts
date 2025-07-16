@@ -24,10 +24,16 @@ export class RequirementService {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Requirement, requirement => requirement.requirementServices, { onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => Requirement,
+    requirement => requirement.requirementServices,
+    { onDelete: 'CASCADE' }
+  )
   requirement: Requirement;
 
-  @ManyToOne(() => Service, service => service.requirementServices, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Service, service => service.requirementServices, {
+    onDelete: 'CASCADE',
+  })
   service: Service;
 
   @Column('decimal', {

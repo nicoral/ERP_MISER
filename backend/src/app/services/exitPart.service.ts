@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ExitPart } from '../entities/ExitPart.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -58,7 +62,7 @@ export class ExitPartService {
     const { exitPartArticles, ...exitPartData } = exitPart;
 
     // Usar transacción para asegurar atomicidad
-    return await this.dataSource.transaction(async (manager) => {
+    return await this.dataSource.transaction(async manager => {
       const generatedCode =
         exitPartData.code || (await this.generateExitPartCode());
 
@@ -87,25 +91,21 @@ export class ExitPartService {
             where: { id: article.articleId },
             relations: {
               warehouseArticles: {
-                warehouse: true
+                warehouse: true,
               },
             },
           });
-          
+
           if (!articleEntity) {
-            throw new NotFoundException(
-              `Artículo no encontrado`
-            );
+            throw new NotFoundException(`Artículo no encontrado`);
           }
-          
+
           const warehouseArticle = articleEntity.warehouseArticles.find(
             wa => wa.warehouse.id === exitPartData.warehouseId
           );
 
           if (!warehouseArticle) {
-            throw new NotFoundException(
-              `Artículo no encontrado en el almacén`
-            );
+            throw new NotFoundException(`Artículo no encontrado en el almacén`);
           } else if (warehouseArticle.stock < article.delivered) {
             throw new BadRequestException(
               `Cantidad entregada es mayor a la cantidad en el almacén`
@@ -170,5 +170,4 @@ export class ExitPartService {
     exitPart.imageUrl = uploadResult.url;
     return this.exitPartRepository.save(exitPart);
   }
-
 }

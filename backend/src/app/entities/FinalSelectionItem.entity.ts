@@ -52,7 +52,9 @@ export class FinalSelectionItem {
   @JoinColumn({ name: 'requirement_article_id' })
   requirementArticle: RequirementArticle;
 
-  @ManyToOne(() => Supplier, supplier => supplier.finalSelectionItems, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Supplier, supplier => supplier.finalSelectionItems, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 

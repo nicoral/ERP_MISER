@@ -14,6 +14,9 @@ export interface PurchaseOrderItem {
   unitPrice: string;
   amount: string;
   currency: string;
+  type: 'ARTICLE' | 'SERVICE';
+  duration?: number;
+  durationType?: string;
 }
 
 export interface PurchaseOrder {

@@ -52,6 +52,21 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                 status: item.status as QuotationItemStatus,
                 reasonNotAvailable: item.reasonNotAvailable || '',
               })),
+              serviceItems: qs.supplierQuotation.supplierQuotationServiceItems
+                .filter(item => item.requirementService)
+                .map(item => ({
+                  id: item.id,
+                  serviceId: item.requirementService!.id,
+                  service: item.requirementService!.service,
+                  unitPrice: item.unitPrice || 0,
+                  currency: item.currency || 'PEN',
+                  deliveryTime: item.deliveryTime || 0,
+                  duration: item.duration || 0,
+                  durationType: item.durationType || 'DIA',
+                  notes: item.notes || '',
+                  status: item.status,
+                  reasonNotAvailable: item.reasonNotAvailable || '',
+                })),
               totalAmount: qs.supplierQuotation.totalAmount,
               status:
                 qs.supplierQuotation.status === 'SUBMITTED'
@@ -199,9 +214,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
             <p className="text-sm text-yellow-700 dark:text-yellow-200 mb-4">
               No se encontró una selección final para esta cotización.
             </p>
-            <Button variant="outline" onClick={onBack}>
-              ← Volver al paso anterior
-            </Button>
+            <Button onClick={onBack}>← Volver</Button>
           </div>
         </div>
       </div>
@@ -644,9 +657,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
 
       {/* Action Buttons */}
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          ← Volver al paso anterior
-        </Button>
+        <Button onClick={onBack}>← Volver</Button>
         <Button
           onClick={handleGeneratePurchaseOrder}
           disabled={loading}

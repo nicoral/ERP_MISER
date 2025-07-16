@@ -12,6 +12,7 @@ import {
 import { PurchaseOrder } from './PurchaseOrder.entity';
 import { Employee } from './Employee.entity';
 import { EntryPartArticle } from './EntryPartArticle.entity';
+import { EntryPartService } from './EntryPartService.entity';
 import { EntryPartStatus } from '../common/enum';
 import { Warehouse } from './Warehouse.entity';
 
@@ -60,6 +61,14 @@ export class EntryPart {
     { cascade: true, onDelete: 'CASCADE' }
   )
   entryPartArticles: EntryPartArticle[];
+
+  // Relación con los servicios de entrada
+  @OneToMany(
+    () => EntryPartService,
+    entryPartService => entryPartService.entryPart,
+    { cascade: true, onDelete: 'CASCADE' }
+  )
+  entryPartServices: EntryPartService[];
 
   @CreateDateColumn({
     name: 'created_at',

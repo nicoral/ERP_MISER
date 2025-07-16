@@ -17,10 +17,16 @@ export class RequirementArticle {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Requirement, requirement => requirement.requirementArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => Requirement,
+    requirement => requirement.requirementArticles,
+    { onDelete: 'CASCADE' }
+  )
   requirement: Requirement;
 
-  @ManyToOne(() => Article, article => article.requirementArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Article, article => article.requirementArticles, {
+    onDelete: 'CASCADE',
+  })
   article: Article;
 
   @Column('numeric', { name: 'quantity', nullable: false })
