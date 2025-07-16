@@ -83,6 +83,14 @@ export const purchaseOrderService = {
     );
     return response;
   },
+
+  async getPurchaseOrderWithoutExitPart(): Promise<PurchaseOrder[]> {
+    const response = await createApiCall<PurchaseOrder[]>(
+      `${BASE_URL}/without-exit-part/summary`,
+      { method: 'GET' }
+    );
+    return response;
+  },
 };
 
 export default purchaseOrderService;

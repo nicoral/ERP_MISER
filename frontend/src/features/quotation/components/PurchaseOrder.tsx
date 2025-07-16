@@ -206,7 +206,11 @@ export const PurchaseOrder: React.FC<PurchaseOrderProps> = ({
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Orden de Compra - {purchaseOrder.code}
+              Orden de{' '}
+              {purchaseOrder.requirement?.type === 'ARTICLE'
+                ? 'Compra'
+                : 'Servicio'}{' '}
+              - {purchaseOrder.code}
             </h3>
             <Button
               onClick={handleDownloadPdf}

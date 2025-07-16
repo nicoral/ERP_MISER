@@ -71,7 +71,7 @@ export interface CreateExitPartArticleDto {
   guide?: boolean;
   inspection?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
   observation?: string;
-  articleId: string;
+  articleId: number;
 }
 
 export interface UpdateExitPartArticleDto {

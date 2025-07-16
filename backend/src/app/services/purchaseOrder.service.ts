@@ -610,4 +610,14 @@ export class PurchaseOrderService {
 
     return createdPaymentGroups;
   }
+
+  async getPurchaseOrderWithoutExitPart(): Promise<PurchaseOrder[]> {
+    const purchaseOrders = await this.purchaseOrderRepository
+      .createQueryBuilder('purchaseOrder')
+      .leftJoinAndSelect('purchaseOrder.exitParts', 'exitParts')
+      .where('exitParts.id IS NULL')
+      .getMany();
+    
+    return purchaseOrders;
+  }
 }

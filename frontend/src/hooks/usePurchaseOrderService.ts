@@ -10,6 +10,13 @@ export const usePurchaseOrders = () => {
   });
 };
 
+export const usePurchaseOrdersWithoutExitPart = () => {
+  return useQuery({
+    queryKey: ['purchase-orders-without-exit-part'],
+    queryFn: purchaseOrderService.getPurchaseOrderWithoutExitPart,
+  });
+};
+
 export const usePurchaseOrderQuery = (
   quotationId?: number,
   supplierId?: number

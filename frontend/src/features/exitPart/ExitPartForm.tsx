@@ -8,7 +8,7 @@ import { Modal } from '../../components/common/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useArticleService } from '../../hooks/useArticleService';
 import { useAuthWarehouse } from '../../hooks/useAuthService';
-import { usePurchaseOrders } from '../../hooks/usePurchaseOrderService';
+import { usePurchaseOrdersWithoutExitPart } from '../../hooks/usePurchaseOrderService';
 import {
   useCreateExitPart,
   useUpdateExitPart,
@@ -37,7 +37,7 @@ type ExitPartArticleType = {
   guide: boolean;
   inspection: 'PENDING' | 'ACCEPTED' | 'REJECTED';
   observation?: string;
-  articleId: string;
+  articleId: number;
 };
 
 export const ExitPartForm = () => {
@@ -54,7 +54,7 @@ export const ExitPartForm = () => {
   const { articles, loading: loadingArticles } =
     useArticleService(debouncedSearch);
   const { warehouses } = useAuthWarehouse();
-  const { data: purchaseOrders } = usePurchaseOrders();
+  const { data: purchaseOrders } = usePurchaseOrdersWithoutExitPart();
 
   // React Query hooks
   const { data: exitPart, isLoading: loadingExitPart } = useExitPart(
@@ -130,7 +130,7 @@ export const ExitPartForm = () => {
           guide: article.guide,
           inspection: article.inspection,
           observation: article.observation || '',
-          articleId: article.id.toString(),
+          articleId: article.id,
         }));
 
       setExitPartArticles(exitPartArticlesData);
@@ -175,7 +175,7 @@ export const ExitPartForm = () => {
           guide: false,
           inspection: 'PENDING' as const,
           observation: '',
-          articleId: article.id.toString(),
+          articleId: article.id,
         },
       ]);
     }
@@ -215,7 +215,7 @@ export const ExitPartForm = () => {
         guide: false,
         inspection: 'PENDING' as const,
         observation: '',
-        articleId: item.code, // Usar el código como articleId temporal
+        articleId: item.item, // Usar el código como articleId temporal
       }));
 
     setExitPartArticles(purchaseOrderArticles);
@@ -282,7 +282,7 @@ export const ExitPartForm = () => {
             guide: article.guide,
             inspection: article.inspection,
             observation: article.observation,
-            articleId: parseInt(article.articleId),
+            articleId: article.articleId,
           })),
         };
 

@@ -225,7 +225,7 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
         />
       )}
       <aside
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 z-40
+        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 z-40
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'w-16' : 'w-64'}`}
       >
@@ -237,7 +237,7 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
             className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
           />
         </div>
-        <nav className="p-4 space-y-2 h-full overflow-y-auto">
+        <nav className="p-4 space-y-2 h-full overflow-y-auto custom-scrollbar">
           {menuItemsAllowed.map(item => (
             <div key={item.path || item.label}>
               {item.path ? (

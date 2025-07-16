@@ -16,6 +16,7 @@ import { Requirement } from './Requirement.entity';
 import { CostCenter } from './CostCenter.entity';
 import { PaymentGroup } from './PaymentGroup.entity';
 import { EntryPart } from './EntryPart.entity';
+import { ExitPart } from './ExitPart.entity';
 
 export interface PurchaseOrderItem {
   item: number;
@@ -140,6 +141,12 @@ export class PurchaseOrder {
     onDelete: 'CASCADE',
   })
   entryParts: EntryPart[];
+
+  @OneToMany(() => ExitPart, exitPart => exitPart.purchaseOrder, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  exitParts: ExitPart[];
 
   // Timestamps
   @CreateDateColumn({

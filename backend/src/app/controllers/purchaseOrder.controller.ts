@@ -113,4 +113,11 @@ export class PurchaseOrderController {
       });
     }
   }
+
+  @Get('without-exit-part/summary')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Obtener órdenes de compra sin salida')
+  getPurchaseOrderWithoutExitPart() {
+    return this.purchaseOrderService.getPurchaseOrderWithoutExitPart();
+  }
 }
