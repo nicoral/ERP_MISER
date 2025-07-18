@@ -3,6 +3,7 @@ import {
   useRejectRequirement,
   useRequirement,
   useSignRequirement,
+  useUploadInform,
 } from '../hooks/useRequirements';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
@@ -20,6 +21,7 @@ import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 import { useState } from 'react';
 import { RequirementStatus } from '../../../../../backend/src/app/common/enum';
 import { RejectModal } from './modals/RejectModal';
+import { UploadInformModal } from './modals/uploadInform';
 
 interface TableItem {
   id: number;
@@ -43,6 +45,8 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
   const { showSuccess, showError } = useToast();
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [showUploadInformModal, setShowUploadInformModal] = useState(false);
+  const [inform, setInform] = useState<File | null>(null);
   const {
     data: requirement,
     isLoading: loading,
@@ -53,7 +57,7 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
     useCurrentExchangeRate();
   const signRequirementMutation = useSignRequirement();
   const rejectRequirementMutation = useRejectRequirement();
-
+  const uploadInformMutation = useUploadInform();
   // Mapear datos según el tipo de requerimiento
   const tableItems: TableItem[] = React.useMemo(() => {
     if (!requirement) return [];
@@ -138,6 +142,38 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
   const handleCloseRejectModal = () => {
     setShowRejectModal(false);
     setRejectReason('');
+  };
+
+  const handleCloseUploadInformModal = () => {
+    setShowUploadInformModal(false);
+  };
+
+  const handleInformChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setInform(file);
+    }
+  };
+
+  const handleSubmitInform = async () => {
+    if (!requirement || !inform) return;
+
+    try {
+      await uploadInformMutation.mutateAsync({
+        id: requirement.id,
+        inform,
+      });
+      showSuccess('Informe subido', 'Informe subido correctamente');
+      setShowUploadInformModal(false);
+      refetch();
+    } catch {
+      showError('Error', 'No se pudo subir el informe');
+    }
+  };
+
+  const downloadInform = () => {
+    if (!requirement?.inform) return;
+    window.open(requirement.inform, '_blank');
   };
 
   if (loading || loadingExchangeRate) return <LoadingSpinner />;
@@ -355,6 +391,25 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
           Volver
         </button>
         <div className="flex space-x-2">
+          {requirement && requirement.inform && (
+            <button
+              onClick={downloadInform}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Ver Informe
+            </button>
+          )}
+          {requirement &&
+            !requirement.inform &&
+            !requirement.firstSignedAt &&
+            requirement.type === 'SERVICE' && (
+              <button
+                onClick={() => setShowUploadInformModal(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Subir Informe
+              </button>
+            )}
           {requirement && canSignRequirement(requirement) && (
             <button
               onClick={handleSign}
@@ -389,6 +444,12 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
         setRejectReason={setRejectReason}
         handleReject={handleReject}
         rejectRequirementMutation={rejectRequirementMutation}
+      />
+      <UploadInformModal
+        isOpen={showUploadInformModal}
+        onClose={handleCloseUploadInformModal}
+        handleInformChange={handleInformChange}
+        handleSubmit={handleSubmitInform}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import {
   generateRequirementPdf,
   signRequirement,
   rejectRequirement,
+  uploadInform,
 } from '../../../services/api/requirementService';
 import type { CreateRequirementDto } from '../../../types/requirement';
 
@@ -144,5 +145,17 @@ export const useRejectRequirement = () => {
 export const useGenerateRequirementPdf = () => {
   return useMutation({
     mutationFn: (id: number) => generateRequirementPdf(id),
+  });
+};
+
+export const useUploadInform = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, inform }: { id: number; inform: File }) =>
+      uploadInform(id, inform),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['requirement', variables] });
+      queryClient.invalidateQueries({ queryKey: ['requirements'] });
+    },
   });
 };

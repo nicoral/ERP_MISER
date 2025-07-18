@@ -20,6 +20,10 @@ interface FormData {
   businessName: string;
   address: string;
   contactPerson: string;
+  condition: string;
+  department: string;
+  sunatStatus: string;
+  province: string;
   mobile: string;
   email: string;
   bankAccountPEN: string;
@@ -51,6 +55,10 @@ export const SupplierForm = () => {
     businessName: '',
     address: '',
     contactPerson: '',
+    condition: '',
+    department: '',
+    sunatStatus: '',
+    province: '',
     mobile: '',
     email: '',
     bankAccountPEN: '',
@@ -106,6 +114,10 @@ export const SupplierForm = () => {
         ...prev,
         businessName: rucData.razonSocial,
         address: rucData.direccion,
+        sunatStatus: rucData.estado,
+        province: rucData.departamento,
+        condition: rucData.condicion,
+        department: rucData.departamento,
       }));
     } else {
       setFormData(prev => ({
@@ -123,6 +135,10 @@ export const SupplierForm = () => {
         businessName: supplier.businessName,
         address: supplier.address ?? '',
         contactPerson: supplier.contactPerson,
+        condition: supplier.condition ?? '',
+        department: supplier.department ?? '',
+        sunatStatus: supplier.sunatStatus ?? '',
+        province: supplier.province ?? '',
         mobile: supplier.mobile,
         email: supplier.email ?? '',
         bankAccountPEN: supplier.bankAccountPEN ?? '',
@@ -198,6 +214,39 @@ export const SupplierForm = () => {
             label={WAREHOUSE_TEXTS.suppliers.form.fields.address}
             value={formData.address}
             onChange={handleChange}
+          />
+
+          <FormInput
+            id="condition"
+            name="condition"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.condition}
+            value={formData.condition}
+            onChange={handleChange}
+          />
+
+          <FormInput
+            id="department"
+            name="department"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.department}
+            value={formData.department}
+            onChange={handleChange}
+          />
+
+          <FormInput
+            id="province"
+            name="province"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.province}
+            value={formData.province}
+            onChange={handleChange}
+          />
+
+          <FormInput
+            id="sunatStatus"
+            name="sunatStatus"
+            label={WAREHOUSE_TEXTS.suppliers.form.fields.sunat_status}
+            value={formData.sunatStatus}
+            onChange={handleChange}
+            disabled={true}
           />
 
           <FormInput

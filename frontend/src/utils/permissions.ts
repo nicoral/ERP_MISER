@@ -62,6 +62,10 @@ export const canSignRequirement = (
     return false;
   }
 
+  if (requirement.type === 'SERVICE' && !requirement.inform) {
+    return false;
+  }
+
   // Verificar según el estado del requerimiento
   switch (requirement.status) {
     case 'PENDING':

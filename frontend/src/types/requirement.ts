@@ -35,6 +35,7 @@ export interface Requirement {
   rejectedReason?: string;
   rejectedBy?: number;
   rejectedAt?: string;
+  inform?: string;
 }
 
 export interface RequirementArticle {

@@ -26,6 +26,18 @@ export class Supplier {
   @Column('varchar', { length: 100, name: 'address', nullable: true })
   address: string;
 
+  @Column('varchar', { length: 100, name: 'condition', nullable: true })
+  condition: string;
+
+  @Column('varchar', { length: 100, name: 'department', nullable: true })
+  department: string;
+
+  @Column('varchar', { length: 100, name: 'province', nullable: true })
+  province: string;
+
+  @Column('varchar', { length: 100, name: 'sunat_status', nullable: true })
+  sunatStatus: string;
+
   @Column('varchar', { length: 100, name: 'contact_person', nullable: false })
   contactPerson: string;
 

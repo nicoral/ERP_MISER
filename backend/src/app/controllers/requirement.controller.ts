@@ -10,6 +10,9 @@ import {
   Req,
   UseGuards,
   Res,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { RequirementService } from '../services/requirement.service';
 import { CreateRequirementDto } from '../dto/requirement/create-requirement.dto';
@@ -20,6 +23,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { UpdateRequirementDto } from '../dto/requirement/update-requirement.dto';
 import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('requirements')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -113,5 +117,20 @@ export class RequirementController {
     @Body('reason') reason: string
   ): Promise<Requirement> {
     return this.requirementService.reject(id, req.user.id, reason);
+  }
+
+  @Post('upload-inform/:id')
+  @RequirePermissions('view_requirements')
+  @UseInterceptors(FileInterceptor('inform'))
+  @AuditDescription('Subir informe de requerimiento')
+  async uploadInform(
+    @Req() req,
+    @Param('id') id: number,
+    @UploadedFile() inform: Express.Multer.File
+  ): Promise<Requirement> {
+    if (!inform) {
+      throw new BadRequestException('No se ha proporcionado ningún archivo');
+    }
+    return this.requirementService.uploadInform(id, inform);
   }
 }

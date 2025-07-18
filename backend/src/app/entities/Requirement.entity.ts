@@ -89,6 +89,9 @@ export class Requirement extends ApprovalFlowBase {
   })
   purchaseOrders: PurchaseOrder[];
 
+  @Column({ nullable: true })
+  inform: string;
+
   @CreateDateColumn({
     name: 'created_at',
     nullable: false,

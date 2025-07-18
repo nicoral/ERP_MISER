@@ -111,6 +111,22 @@ export const requirementService = {
     });
     return response;
   },
+
+  async uploadInform(id: number, inform: File): Promise<Requirement> {
+    const formData = new FormData();
+    formData.append('inform', inform);
+
+    const response = await createApiCall<Requirement>(
+      `${BASE_URL}/upload-inform/${id}`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility
@@ -123,3 +139,4 @@ export const publishRequirement = requirementService.publishRequirement;
 export const signRequirement = requirementService.signRequirement;
 export const deleteRequirement = requirementService.deleteRequirement;
 export const rejectRequirement = requirementService.rejectRequirement;
+export const uploadInform = requirementService.uploadInform;

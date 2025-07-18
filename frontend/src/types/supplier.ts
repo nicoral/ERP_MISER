@@ -12,6 +12,10 @@ export interface Supplier {
   contactPerson: string;
   mobile: string;
   email?: string;
+  condition?: string;
+  department?: string;
+  sunatStatus?: string;
+  province?: string;
   bankAccountPEN?: string;
   interbankAccountPEN?: string;
   entityBankAccountPEN?: string;

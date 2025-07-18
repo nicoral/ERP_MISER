@@ -408,6 +408,10 @@ export const WAREHOUSE_TEXTS = {
         rating: 'Calificación',
         status: 'Estado',
         categories: 'Líneas',
+        condition: 'Condición',
+        department: 'Departamento',
+        sunat_status: 'Estado SUNAT',
+        province: 'Provincia',
       },
       title: {
         create: 'Crear nuevo proveedor',

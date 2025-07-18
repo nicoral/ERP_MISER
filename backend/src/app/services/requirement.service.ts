@@ -672,4 +672,21 @@ export class RequirementService {
 
     return savedRequirement;
   }
+
+  async uploadInform(id: number, inform: Express.Multer.File): Promise<Requirement> {
+    const requirement = await this.findOne(id);
+    if (requirement.inform) {
+      await this.storageService.removeFileByUrl(requirement.inform);
+    }
+    const fileName = `${id}-${Date.now()}.${inform.originalname.split('.').pop()}`;
+    const path = `requirements/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      inform.buffer,
+      inform.mimetype
+    );
+    requirement.inform = uploadResult.url;
+    await this.requirementRepository.save(requirement);
+    return { ...requirement, inform: uploadResult.url };
+  }
 }
