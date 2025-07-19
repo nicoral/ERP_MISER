@@ -292,7 +292,8 @@ export const QuotationList: React.FC<QuotationListProps> = ({
       isHidden: (quotation: QuotationRequest) =>
         quotation.status !== 'DRAFT' &&
         quotation.status !== 'PENDING' &&
-        quotation.status !== 'CANCELLED',
+        quotation.status !== 'CANCELLED' &&
+        quotation.status !== 'REJECTED',
     },
     {
       icon: <Trash2 className="w-5 h-5 text-red-600" />,
