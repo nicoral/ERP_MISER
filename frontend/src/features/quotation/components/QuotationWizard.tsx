@@ -27,7 +27,7 @@ interface QuotationWizardProps {
 
 const stepTitles = [
   'Selección de Proveedores',
-  'Generación de Órdenes',
+  'Solicitudes de cotización',
   'Ingreso de Cotizaciones',
   'Comparación de Precios',
   'Selección Final',

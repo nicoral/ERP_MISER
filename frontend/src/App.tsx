@@ -54,6 +54,7 @@ import RoleDetails from './pages/RoleDetails';
 import { ExitPartDetails } from './features/exitPart/ExitPartDetails';
 import { ExitPartForm } from './features/exitPart/ExitPartForm';
 import { ExitPartList } from './features/exitPart/ExitPartList';
+import FuelControl from './pages/FuelControl';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -191,6 +192,7 @@ const AppRoutes = () => {
             path={ROUTES.EXIT_PART_DETAILS}
             element={<ExitPartDetails />}
           />
+          <Route path={ROUTES.FUEL_CONTROL} element={<FuelControl />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

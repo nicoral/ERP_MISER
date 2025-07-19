@@ -119,6 +119,7 @@ export const SIDEBAR_TEXTS = {
   payments: 'Pagos',
   entryPart: 'Parte de ingreso',
   exitPart: 'Parte de salida',
+  fuelControl: 'Combustible',
 };
 
 export const HEADER_TEXTS = {

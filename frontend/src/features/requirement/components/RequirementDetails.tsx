@@ -171,6 +171,23 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
     }
   };
 
+  const changePriority = (priority: string) => {
+    try {
+      switch (priority) {
+        case 'LOW':
+          return 'BAJA';
+        case 'MEDIUM':
+          return 'MEDIA';
+        case 'HIGH':
+          return 'ALTA';
+        default:
+          return 'BAJA';
+      }
+    } catch {
+      showError('Error', 'No se pudo cambiar la prioridad');
+    }
+  };
+
   const downloadInform = () => {
     if (!requirement?.inform) return;
     window.open(requirement.inform, '_blank');
@@ -234,7 +251,7 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
         </div>
         <div className="border-r border-gray-200 dark:border-gray-700">
           <p className="font-medium mb-1">Prioridad</p>
-          <p>{requirement?.priority}</p>
+          <p>{changePriority(requirement?.priority || '')}</p>
         </div>
       </div>
 

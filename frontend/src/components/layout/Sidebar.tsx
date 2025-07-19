@@ -21,6 +21,7 @@ import {
   ShoppingCartIcon,
   EntryPartIcon,
   ExitPartIcon,
+  FuelControlIcon,
 } from '../common/Icons';
 import { getCurrentUser } from '../../services/auth/authService';
 import { CreditCardIcon, DatabaseIcon } from 'lucide-react';
@@ -134,6 +135,12 @@ const menuItems: MenuItem[] = [
         path: ROUTES.EXIT_PARTS,
         permission: [],
         icon: <ExitPartIcon className="w-4 h-4" />,
+      },
+      {
+        label: SIDEBAR_TEXTS.fuelControl,
+        path: ROUTES.FUEL_CONTROL,
+        permission: [],
+        icon: <FuelControlIcon className="w-5 h-5" />,
       },
     ],
   },

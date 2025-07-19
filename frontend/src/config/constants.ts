@@ -69,6 +69,10 @@ export const ROUTES = {
   EXIT_PART_DETAILS: '/exit-parts/:id/details',
   EXIT_PART_CREATE: '/exit-parts/create',
   EXIT_PART_EDIT: '/exit-parts/:id/edit',
+  FUEL_CONTROL: '/fuel-control',
+  FUEL_CONTROL_DETAILS: '/fuel-control/:id/details',
+  FUEL_CONTROL_EDIT: '/fuel-control/:id/edit',
+  FUEL_CONTROL_CREATE: '/fuel-control/create',
 } as const;
 
 export const MODULES = [
