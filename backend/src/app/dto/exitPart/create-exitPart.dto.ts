@@ -56,10 +56,6 @@ export class CreateExitPartArticleDto {
 export class CreateExitPartDto {
   @IsOptional()
   @IsString()
-  code?: string;
-
-  @IsOptional()
-  @IsString()
   imageUrl?: string;
 
   @IsOptional()
@@ -74,9 +70,9 @@ export class CreateExitPartDto {
   @IsNumber()
   employeeId?: number;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  warehouseId?: number;
+  warehouseId: number;
 
   @IsOptional()
   @IsNumber()

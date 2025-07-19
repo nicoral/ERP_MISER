@@ -153,7 +153,7 @@ export class QuotationService {
     } = createQuotationRequestDto;
 
     // Verify requirement exists and validate type
-    await this.requirementService.findOne(requirementId);
+    const requirement = await this.requirementService.findOne(requirementId);
     await this.validateRequirementType(requirementId);
 
     // Create quotation request
@@ -172,14 +172,16 @@ export class QuotationService {
     }
 
     // Generate code
-    quotationRequest.code = `COT-${formatNumber(requirementId, 6)}-${userId ? formatNumber(userId, 6) : '000000'}`;
+    quotationRequest.code = `${formatNumber(requirement.warehouse.id, 4)}-`;
 
     const savedQuotationRequest =
       await this.quotationRequestRepository.save(quotationRequest);
 
     // Update code with actual ID
     await this.quotationRequestRepository.update(savedQuotationRequest.id, {
-      code: `COT-${formatNumber(requirementId, 6)}-${formatNumber(savedQuotationRequest.id, 6)}`,
+      code:
+        savedQuotationRequest.code +
+        `-${formatNumber(savedQuotationRequest.id, 10)}`,
     });
 
     // Create quotation suppliers if provided
@@ -691,9 +693,10 @@ export class QuotationService {
         }
 
         if (equal.length > 0) {
-          const updateItems = existingQuotation.supplierQuotationServiceItems.filter(
-            item => equal.includes(+item.requirementService.id)
-          );
+          const updateItems =
+            existingQuotation.supplierQuotationServiceItems.filter(item =>
+              equal.includes(+item.requirementService.id)
+            );
 
           for (const item of updateItems) {
             const newItem = serviceItems.find(
@@ -717,8 +720,8 @@ export class QuotationService {
           }
         }
 
-        const newItems = serviceItems.filter(
-          item => added.includes(+item.serviceId)
+        const newItems = serviceItems.filter(item =>
+          added.includes(+item.serviceId)
         );
         // Create new quotation items
         const quotationServiceItems = newItems.map(item => ({
@@ -1741,6 +1744,9 @@ export class QuotationService {
       }
     );
 
+    // Ejecutar actualización de órdenes de compra en segundo plano (sin await)
+    this.updatePurchaseOrdersInBackground(finalSelection);
+
     return this.findOneFinalSelection(id);
   }
   /**
@@ -1828,9 +1834,10 @@ export class QuotationService {
     const allItems = [...purchaseOrderItems, ...purchaseOrderServices];
 
     // Obtener información del proveedor
-    const supplier = supplierItems.length > 0 
-      ? supplierItems[0].supplier 
-      : supplierServices[0].supplier;
+    const supplier =
+      supplierItems.length > 0
+        ? supplierItems[0].supplier
+        : supplierServices[0].supplier;
 
     // Crear DTO para la orden de compra
     const createPurchaseOrderDto = {
@@ -1984,8 +1991,16 @@ export class QuotationService {
     quotationRequest.rejectedReason = reason;
     quotationRequest.rejectedBy = userId;
     quotationRequest.rejectedAt = new Date();
+    quotationRequest.firstSignature = null;
+    quotationRequest.firstSignedBy = null;
+    quotationRequest.firstSignedAt = null;
+    quotationRequest.secondSignature = null;
+    quotationRequest.secondSignedBy = null;
+    quotationRequest.secondSignedAt = null;
+    quotationRequest.thirdSignature = null;
+    quotationRequest.thirdSignedBy = null;
+    quotationRequest.thirdSignedAt = null;
     quotationRequest.status = QuotationRequestStatus.REJECTED;
-
 
     const savedQuotationRequest =
       await this.quotationRequestRepository.save(quotationRequest);
@@ -2565,5 +2580,97 @@ export class QuotationService {
     await browser.close();
 
     return Buffer.from(pdfBuffer);
+  }
+
+  // Private method to update purchase orders in background
+  private async updatePurchaseOrdersInBackground(
+    finalSelection: FinalSelection
+  ): Promise<void> {
+    try {
+      // Update Purchase Order if exists
+      const purchaseOrder = await this.purchaseOrderService.findByQuotation(
+        finalSelection.quotationRequest.id
+      );
+      if (
+        purchaseOrder &&
+        Array.isArray(purchaseOrder) &&
+        purchaseOrder.length > 0
+      ) {
+        for (const po of purchaseOrder) {
+          const supplierItems = finalSelection.finalSelectionItems.filter(
+            item => item.supplier.id === po.supplier.id
+          );
+
+          const supplierServices =
+            finalSelection.finalSelectionServiceItems.filter(
+              item => item.supplier.id === po.supplier.id
+            );
+
+          if (supplierItems.length === 0 && supplierServices.length === 0) {
+            console.error(
+              `No se encontraron items o servicios para el proveedor con ID ${po.supplier.id}`
+            );
+            continue;
+          }
+          const purchaseOrderItems = supplierItems.map(item => ({
+            item: item.requirementArticle.article.id,
+            code: item.requirementArticle.article.code || '-',
+            quantity: item.quantity,
+            unit: item.requirementArticle.article.unitOfMeasure || '-',
+            description: item.requirementArticle.article.name || '-',
+            brand: item.requirementArticle.article.brand?.name || '-',
+            unitPrice: +item.unitPrice,
+            amount: +item.totalPrice,
+            currency: item.currency || 'PEN',
+            type: 'ARTICLE' as const,
+          }));
+
+          // Preparar servicios como items
+          const purchaseOrderServices = supplierServices.map(item => ({
+            item: item.requirementService.service.id,
+            code: item.requirementService.service.code || '-',
+            quantity: 1, // Los servicios siempre tienen cantidad 1
+            unit: item.durationType || 'DIA',
+            description: item.requirementService.service.name || '-',
+            brand: '-', // Los servicios no tienen marca
+            unitPrice: +item.unitPrice,
+            amount: +item.unitPrice, // Para servicios, el precio unitario es el total
+            currency: item.currency || 'PEN',
+            type: 'SERVICE' as const,
+            duration: item.duration || 0,
+            durationType: item.durationType || 'DIA',
+          }));
+
+          const allItems = [...purchaseOrderItems, ...purchaseOrderServices];
+          const articlesTotal = supplierItems.reduce(
+            (sum, item) => sum + (+item.totalPrice || 0),
+            0
+          );
+          const servicesTotal = supplierServices.reduce(
+            (sum, item) => sum + (+item.unitPrice || 0),
+            0
+          );
+          const total = articlesTotal + servicesTotal;
+          const subtotal = +(total / (1 + po.igv / 100)).toFixed(2);
+
+          const updatePurchaseOrderDto = {
+            supplierId: po.supplier.id,
+            issueDate: new Date(),
+            items: allItems,
+            paymentMethod: po.paymentMethod || 'POR DEFINIR',
+            deliveryDate: 'POR DEFINIR',
+            subtotal: subtotal,
+            total: total,
+            currency: 'PEN',
+          };
+          await this.purchaseOrderService.updatePurchaseOrder(
+            po.id,
+            updatePurchaseOrderDto
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error updating purchase order in background:', error);
+    }
   }
 }

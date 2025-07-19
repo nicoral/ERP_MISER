@@ -233,7 +233,7 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
         currency: ra.currency || 'PEN',
         deliveryTime: 0,
         notes: '',
-        status: QuotationItemStatus.NOT_QUOTED,
+        status: QuotationItemStatus.QUOTED,
         reasonNotAvailable: '',
       }));
 

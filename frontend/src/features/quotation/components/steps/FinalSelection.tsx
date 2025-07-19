@@ -134,6 +134,9 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
     setLoading(true);
 
     try {
+      if (finalSelectionData.status === 'DRAFT') {
+        await handleApproveWithNotes();
+      }
       // Marcar como completado
       const updatedSuppliers = selectedSuppliers.map(supplier => ({
         ...supplier,
@@ -296,23 +299,25 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          Revisión y Generación de Ordenes de Compra
+          Revisión de Proveedores Seleccionados
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Revisa la selección final completada y genera la orden de compra
+          Revisa la selección final completada y confirma el cuadro comparativo
         </p>
       </div>
 
       {/* Success Message */}
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
-        <div className="flex items-center space-x-2">
-          <span className="text-green-500">✅</span>
-          <span className="text-sm text-green-900 dark:text-green-100">
-            Selección final completada exitosamente. Revisa los detalles a
-            continuación.
-          </span>
+      {finalSelectionData.status === 'APPROVED' && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <span className="text-green-500">✅</span>
+            <span className="text-sm text-green-900 dark:text-green-100">
+              Selección final completada exitosamente. Revisa los detalles a
+              continuación.
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Status and Approval Section */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
@@ -340,15 +345,6 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
               )}
             </div>
           </div>
-          {finalSelectionData.status === 'DRAFT' && (
-            <Button
-              onClick={handleShowApprovalWarning}
-              variant="outline"
-              className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-300 dark:hover:bg-orange-900/20"
-            >
-              🚨 Aprobar Selección Final
-            </Button>
-          )}
         </div>
       </div>
 
@@ -378,7 +374,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
                 Cancelar
               </Button>
               <Button
-                onClick={handleApproveWithNotes}
+                onClick={handleGeneratePurchaseOrder}
                 disabled={approving}
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
               >
@@ -659,7 +655,7 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       <div className="flex justify-between">
         <Button onClick={onBack}>← Volver</Button>
         <Button
-          onClick={handleGeneratePurchaseOrder}
+          onClick={handleShowApprovalWarning} //{handleGeneratePurchaseOrder}
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >

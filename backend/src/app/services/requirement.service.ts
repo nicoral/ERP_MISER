@@ -673,7 +673,10 @@ export class RequirementService {
     return savedRequirement;
   }
 
-  async uploadInform(id: number, inform: Express.Multer.File): Promise<Requirement> {
+  async uploadInform(
+    id: number,
+    inform: Express.Multer.File
+  ): Promise<Requirement> {
     const requirement = await this.findOne(id);
     if (requirement.inform) {
       await this.storageService.removeFileByUrl(requirement.inform);

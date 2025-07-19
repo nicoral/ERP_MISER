@@ -11,6 +11,7 @@ import { CreateExitPartDto } from '../dto/exitPart/create-exitPart.dto';
 import { ExitPartStatus } from '../common/enum';
 import { Article } from '../entities/Article.entity';
 import { StorageService } from './storage.service';
+import { formatNumber } from '../utils/transformer';
 
 @Injectable()
 export class ExitPartService {
@@ -63,8 +64,9 @@ export class ExitPartService {
 
     // Usar transacción para asegurar atomicidad
     return await this.dataSource.transaction(async manager => {
-      const generatedCode =
-        exitPartData.code || (await this.generateExitPartCode());
+      const generatedCode = await this.generateExitPartCode(
+        exitPartData.warehouseId
+      );
 
       const newExitPart = manager.create(ExitPart, {
         code: generatedCode,
@@ -135,7 +137,7 @@ export class ExitPartService {
     });
   }
 
-  private async generateExitPartCode(): Promise<string> {
+  private async generateExitPartCode(warehouseId: number): Promise<string> {
     // Obtener el último código generado
     const lastExitPart = await this.exitPartRepository.findOne({
       where: {},
@@ -143,7 +145,7 @@ export class ExitPartService {
     });
 
     let nextNumber = 1;
-    if (lastExitPart && lastExitPart.code) {
+    if (lastExitPart?.code) {
       // Extraer el número del último código (formato: PI-001, PI-002, etc.)
       const match = lastExitPart.code.match(/PS-(\d+)/);
       if (match) {
@@ -152,7 +154,7 @@ export class ExitPartService {
     }
 
     // Generar el nuevo código con formato PI-XXX
-    return `PS-${nextNumber.toString().padStart(3, '0')}`;
+    return `${formatNumber(warehouseId, 4)}-${formatNumber(nextNumber, 10)}`;
   }
 
   async updateImage(id: number, file: Express.Multer.File): Promise<ExitPart> {

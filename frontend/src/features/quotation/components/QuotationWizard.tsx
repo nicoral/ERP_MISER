@@ -37,8 +37,8 @@ const stepDescriptions = [
   'Selecciona los proveedores que recibirán la solicitud de cotización',
   'Genera y envía las órdenes de cotización a los proveedores seleccionados',
   'Ingresa las cotizaciones recibidas de cada proveedor',
-  'Compara precios y términos entre proveedores',
-  'Selecciona los proveedores finales y genera la orden de compra',
+  'Compara precios y selecciona los proveedores finales',
+  'Revisa y confirma los proveedores seleccionados',
 ];
 
 export const QuotationWizard: React.FC<QuotationWizardProps> = ({
@@ -566,7 +566,6 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
       case QuotationStep.SUPPLIER_SELECTION:
         return (
           <SupplierSelection
-            requirement={requirement!}
             selectedSuppliers={selectedSuppliers}
             onComplete={handleStepComplete}
           />

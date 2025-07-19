@@ -97,11 +97,7 @@ export class CreateEntryPartServiceDto {
 }
 
 export class CreateEntryPartDto {
-  @IsOptional()
-  @IsString()
-  code?: string;
-
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   imageUrl?: string;
 
@@ -117,9 +113,9 @@ export class CreateEntryPartDto {
   @IsNumber()
   employeeId?: number;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  warehouseId?: number;
+  warehouseId: number;
 
   @IsOptional()
   @IsNumber()

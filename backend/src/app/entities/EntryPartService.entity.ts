@@ -83,4 +83,4 @@ export class EntryPartService {
     nullable: true,
   })
   deletedAt: Date;
-} 
+}

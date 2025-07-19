@@ -11,7 +11,7 @@ import { QuotationRequest } from '../entities/QuotationRequest.entity';
 import { PaymentGroup } from '../entities/PaymentGroup.entity';
 import { QRService } from './qr.service';
 import { CreatePurchaseOrderDto } from '../dto/purchaseOrder/create-purchase-order.dto';
-import { UpdatePurchaseOrderDto } from '../dto/purchaseOrder/update-purchase-order.dto';
+import { UpdatePurchaseOrderPaymentDto } from '../dto/purchaseOrder/update-purchase-order-payment.dto';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,6 +21,8 @@ import { numberToSpanishWordsCurrency } from '../utils/utils';
 import { EntryPartService } from './entryPart.service';
 import { EntryPartStatus, InspectionStatus } from '../common/enum';
 import { StorageService } from './storage.service';
+import { UpdatePurchaseOrderDto } from '../dto/purchaseOrder/update-purchase-order.dto';
+import { formatNumber } from '../utils/transformer';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -47,12 +49,12 @@ export class PurchaseOrderService {
    */
   async findByQuotation(
     quotationRequestId: number,
-    supplierId: number
-  ): Promise<PurchaseOrder> {
-    const purchaseOrders = await this.purchaseOrderRepository.findOne({
+    supplierId?: number
+  ): Promise<PurchaseOrder | PurchaseOrder[]> {
+    const purchaseOrders = await this.purchaseOrderRepository.find({
       where: {
         quotationRequest: { id: quotationRequestId },
-        supplier: { id: supplierId },
+        ...(supplierId && { supplier: { id: supplierId } }),
       },
       relations: [
         'quotationRequest',
@@ -70,6 +72,10 @@ export class PurchaseOrderService {
       throw new NotFoundException(
         'No se encontraron órdenes de compra para esta cotización'
       );
+    }
+
+    if (supplierId) {
+      return purchaseOrders[0];
     }
 
     return purchaseOrders;
@@ -175,9 +181,9 @@ export class PurchaseOrderService {
   /**
    * 4. Actualizar datos únicos de IGV y paymentMethod
    */
-  async updatePurchaseOrder(
+  async updatePurchaseOrderPayment(
     id: number,
-    updatePurchaseOrderDto: UpdatePurchaseOrderDto
+    updatePurchaseOrderDto: UpdatePurchaseOrderPaymentDto
   ): Promise<PurchaseOrder> {
     await this.findOne(id);
 
@@ -197,6 +203,20 @@ export class PurchaseOrderService {
       ...(observation !== undefined && { observation }),
     });
 
+    return this.findOne(id);
+  }
+
+  async updatePurchaseOrder(
+    id: number,
+    updatePurchaseOrderDto: UpdatePurchaseOrderDto
+  ): Promise<PurchaseOrder> {
+    const purchaseOrder = await this.findOne(id);
+    if (!purchaseOrder) {
+      throw new BadRequestException(
+        'No se puede actualizar una orden de compra que no existe'
+      );
+    }
+    await this.purchaseOrderRepository.update(id, updatePurchaseOrderDto);
     return this.findOne(id);
   }
 
@@ -433,11 +453,16 @@ export class PurchaseOrderService {
       await this.purchaseOrderRepository.save(purchaseOrder);
 
     // Generamos el código con el formato: {warehouse_id}-{purchase_order_id}
-    const warehouseId =
-      quotationRequest.requirement?.warehouse?.id.toString().padStart(3, '0') ||
-      '001';
-    const purchaseOrderId = savedPurchaseOrder.id.toString().padStart(6, '0');
-    const code = `${warehouseId}-${purchaseOrderId}`;
+    const lastPurchaseOrder = await this.getLastPurchaseOrderByType(
+      quotationRequest.requirement?.type
+    );
+    const count = lastPurchaseOrder
+      ? +lastPurchaseOrder.code.split('-')[1] + 1
+      : 1;
+    const code = `${formatNumber(
+      quotationRequest.requirement?.warehouse?.id,
+      4
+    )}-${formatNumber(count, 10)}`;
 
     // Actualizamos el código
     await this.purchaseOrderRepository.update(savedPurchaseOrder.id, { code });
@@ -617,7 +642,20 @@ export class PurchaseOrderService {
       .leftJoinAndSelect('purchaseOrder.exitParts', 'exitParts')
       .where('exitParts.id IS NULL')
       .getMany();
-    
+
     return purchaseOrders;
+  }
+
+  async getLastPurchaseOrderByType(
+    type: 'ARTICLE' | 'SERVICE'
+  ): Promise<PurchaseOrder | null> {
+    const purchaseOrder = await this.purchaseOrderRepository.findOne({
+      where: { requirement: { type } },
+      order: { createdAt: 'DESC' },
+    });
+    if (!purchaseOrder) {
+      return null;
+    }
+    return purchaseOrder;
   }
 }

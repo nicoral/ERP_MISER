@@ -72,7 +72,7 @@ export class PaymentService {
         },
       },
     };
-    
+
     if (search) {
       whereConditions.code = { $like: `%${search}%` };
     }
@@ -83,10 +83,10 @@ export class PaymentService {
         purchaseOrder: true,
       },
       order: {
-        createdAt: 'DESC'
+        createdAt: 'DESC',
       },
       skip: (page - 1) * limit,
-      take: limit
+      take: limit,
     });
 
     return {

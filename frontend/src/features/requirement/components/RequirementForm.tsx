@@ -491,6 +491,7 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
               value={form.costCenterSecondary}
               onChange={handleChange}
               disabled={!form.costCenter}
+              required
             >
               <option value="">Seleccionar centro de costos secundario</option>
               {getSecondaryCostCenters().map(costCenter => (

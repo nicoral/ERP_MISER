@@ -4,17 +4,13 @@ import { type Supplier } from '../../../../types/supplier';
 import { Button } from '../../../../components/common/Button';
 import { FormInput } from '../../../../components/common/FormInput';
 import { useSupplierService } from '../../../../hooks/useSupplierService';
-import type { Requirement } from '../../../../types/requirement';
-import { useCurrentExchangeRate } from '../../../../hooks/useGeneralSettings';
 
 interface SupplierSelectionProps {
-  requirement: Requirement;
   selectedSuppliers: SelectedSupplier[];
   onComplete: (selectedSuppliers: SelectedSupplier[]) => void;
 }
 
 export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
-  requirement,
   selectedSuppliers,
   onComplete,
 }) => {
@@ -59,7 +55,6 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
       setFilteredSuppliers(filtered);
     }
   }, [suppliers, searchTerm, categoryFilter, locationFilter]);
-  const { data: exchangeRate } = useCurrentExchangeRate();
   const handleSupplierToggle = (supplierId: number) => {
     const newSelected = new Set(selectedSupplierIds);
     if (newSelected.has(supplierId)) {
@@ -118,7 +113,7 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
     return Array.from(locations).sort();
   };
 
-  const totalRequirement = 
+  /* const totalRequirement =
     requirement.requirementArticles.reduce(
       (acc, item) =>
         acc +
@@ -135,7 +130,7 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
           : item.unitPrice),
       0
     ) || 0);
-  const minSuppliers = totalRequirement >= 1000 ? 2 : 1;
+  const minSuppliers = totalRequirement >= 1000 ? 2 : 1; */
 
   if (loading) {
     return (
@@ -255,12 +250,12 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 Seleccionados: {selectedSupplierIds.size}
               </span>
-              {selectedSupplierIds.size > 0 &&
+              {/* {selectedSupplierIds.size > 0 &&
                 selectedSupplierIds.size < minSuppliers && (
                   <span className="text-sm text-orange-600 dark:text-orange-400 font-medium">
                     Mínimo {minSuppliers} proveedores requeridos
                   </span>
-                )}
+                )} */}
             </div>
           </div>
         </div>
@@ -377,7 +372,7 @@ export const SupplierSelection: React.FC<SupplierSelectionProps> = ({
       <div className="flex justify-end space-x-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
         <Button
           onClick={handleConfirmSelection}
-          disabled={selectedSupplierIds.size < minSuppliers}
+          //disabled={selectedSupplierIds.size < minSuppliers}
         >
           Confirmar Selección ({selectedSupplierIds.size} proveedores)
         </Button>

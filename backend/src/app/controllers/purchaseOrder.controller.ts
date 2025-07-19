@@ -75,7 +75,7 @@ export class PurchaseOrderController {
     @Param('id') id: string,
     @Body() updatePurchaseOrderDto: UpdatePurchaseOrderDto
   ) {
-    return this.purchaseOrderService.updatePurchaseOrder(
+    return this.purchaseOrderService.updatePurchaseOrderPayment(
       +id,
       updatePurchaseOrderDto
     );

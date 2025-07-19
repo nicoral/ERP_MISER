@@ -21,6 +21,7 @@ import * as path from 'path';
 import * as Handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
 import { QRService } from './qr.service';
+import { formatNumber } from '../utils/transformer';
 
 @Injectable()
 export class EntryPartService {
@@ -45,12 +46,15 @@ export class EntryPartService {
     createEntryPartDto: CreateEntryPartDto,
     status = EntryPartStatus.COMPLETED
   ): Promise<EntryPart> {
-    const { entryPartArticles: articlesData, entryPartServices: servicesData, ...entryPartData } =
-      createEntryPartDto;
+    const {
+      entryPartArticles: articlesData,
+      entryPartServices: servicesData,
+      ...entryPartData
+    } = createEntryPartDto;
 
-    // Generar código automáticamente si no se proporciona
-    const generatedCode =
-      entryPartData.code || (await this.generateEntryPartCode());
+    const generatedCode = await this.generateEntryPartCode(
+      createEntryPartDto.warehouseId
+    );
 
     // Crear la entrada de partes
     const entryPart = this.entryPartRepository.create({
@@ -187,24 +191,21 @@ export class EntryPartService {
     return entryPart;
   }
 
-  private async generateEntryPartCode(): Promise<string> {
-    // Obtener el último código generado
+  private async generateEntryPartCode(warehouseId: number): Promise<string> {
     const lastEntryPart = await this.entryPartRepository.findOne({
       where: {},
       order: { id: 'DESC' },
     });
 
     let nextNumber = 1;
-    if (lastEntryPart && lastEntryPart.code) {
-      // Extraer el número del último código (formato: PI-001, PI-002, etc.)
+    if (lastEntryPart?.code) {
       const match = lastEntryPart.code.match(/PI-(\d+)/);
       if (match) {
         nextNumber = parseInt(match[1]) + 1;
       }
     }
 
-    // Generar el nuevo código con formato PI-XXX
-    return `PI-${nextNumber.toString().padStart(3, '0')}`;
+    return `${formatNumber(warehouseId, 4)}-${formatNumber(nextNumber, 10)}`;
   }
 
   async updateImage(id: number, file: Express.Multer.File): Promise<EntryPart> {

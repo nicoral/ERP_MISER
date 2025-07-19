@@ -1,17 +1,6 @@
-import { IsOptional, IsNumber, IsString, Min, Max } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { CreatePurchaseOrderDto } from './create-purchase-order.dto';
 
-export class UpdatePurchaseOrderDto {
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  igv?: number;
-
-  @IsOptional()
-  @IsString()
-  paymentMethod?: string;
-
-  @IsOptional()
-  @IsString()
-  observation?: string;
-}
+export class UpdatePurchaseOrderDto extends PartialType(
+  CreatePurchaseOrderDto
+) {}
