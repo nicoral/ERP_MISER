@@ -1986,8 +1986,15 @@ export class QuotationService {
     quotationRequest.rejectedAt = new Date();
     quotationRequest.status = QuotationRequestStatus.REJECTED;
 
+
     const savedQuotationRequest =
       await this.quotationRequestRepository.save(quotationRequest);
+
+    if (quotationRequest.finalSelection) {
+      this.finalSelectionRepository.update(quotationRequest.finalSelection.id, {
+        status: FinalSelectionStatus.DRAFT,
+      });
+    }
 
     // Actualizar progreso
     await this.updateQuotationProgress(id);
