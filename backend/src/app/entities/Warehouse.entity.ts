@@ -13,6 +13,8 @@ import { Employee } from './Employee.entity';
 import { WarehouseArticle } from './WarehouseArticle.entity';
 import { Requirement } from './Requirement.entity';
 import { EntryPart } from './EntryPart.entity';
+import { WarehouseFuelStock } from './WarehouseFuelStock.entity';
+import { FuelDailyControl } from './FuelDailyControl.entity';
 
 @Entity()
 export class Warehouse {
@@ -63,6 +65,19 @@ export class Warehouse {
     onDelete: 'CASCADE',
   })
   requirements: Requirement[];
+
+  // Fuel Control Relations
+  @OneToMany(() => WarehouseFuelStock, warehouseFuelStock => warehouseFuelStock.warehouse, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  warehouseFuelStocks: WarehouseFuelStock[];
+
+  @OneToMany(() => FuelDailyControl, fuelDailyControl => fuelDailyControl.warehouse, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  fuelDailyControls: FuelDailyControl[];
 
   @CreateDateColumn({
     name: 'created_at',

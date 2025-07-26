@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { CostCenter } from '../entities/CostCenter.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateCostCenterDto } from '../dto/costCenter/create-costCenter.dto';
@@ -36,6 +36,15 @@ export class CostCenterService {
       .take(limit)
       .getManyAndCount();
     return { data, total };
+  }
+
+  async findAllCostCentersSimple() {
+    return this.costCenterRepository.find({
+      select: ['id', 'description'],
+      where: {
+        parent: IsNull(),
+      },
+    });
   }
 
   async findOneCostCenter(id: number) {

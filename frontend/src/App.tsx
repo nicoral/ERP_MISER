@@ -54,7 +54,9 @@ import RoleDetails from './pages/RoleDetails';
 import { ExitPartDetails } from './features/exitPart/ExitPartDetails';
 import { ExitPartForm } from './features/exitPart/ExitPartForm';
 import { ExitPartList } from './features/exitPart/ExitPartList';
-import FuelControl from './pages/FuelControl';
+import { WarehouseDetailsPage } from './pages/WarehouseDetails';
+import { FuelControlList } from './features/fuelControl/components/FuelControlList';
+import { FuelControlOutputs } from './features/fuelControl/components/FuelControlOutputs';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -84,6 +86,10 @@ const AppRoutes = () => {
           <Route path={ROUTES.WAREHOUSE} element={<Warehouse />} />
           <Route path={ROUTES.WAREHOUSE_CREATE} element={<WarehouseForm />} />
           <Route path={ROUTES.WAREHOUSE_EDIT} element={<WarehouseForm />} />
+          <Route
+            path={ROUTES.WAREHOUSE_DETAILS}
+            element={<WarehouseDetailsPage />}
+          />
           <Route path={ROUTES.ARTICLES} element={<ArticleList />} />
           <Route path={ROUTES.ARTICLE_CREATE} element={<ArticleForm />} />
           <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
@@ -192,7 +198,11 @@ const AppRoutes = () => {
             path={ROUTES.EXIT_PART_DETAILS}
             element={<ExitPartDetails />}
           />
-          <Route path={ROUTES.FUEL_CONTROL} element={<FuelControl />} />
+          <Route path={ROUTES.FUEL_CONTROL} element={<FuelControlList />} />
+          <Route
+            path={ROUTES.FUEL_CONTROL_DETAILS}
+            element={<FuelControlOutputs />}
+          />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

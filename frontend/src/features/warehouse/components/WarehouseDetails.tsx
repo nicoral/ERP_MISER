@@ -9,6 +9,7 @@ import {
 import { useWarehouse } from '../hooks/useWarehouse';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../../components/common/ErrorBanner';
+import { FuelStockSection } from './FuelStockSection';
 
 type Props = {
   warehouse: Warehouse;
@@ -34,15 +35,19 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
+
+      {/* Información General */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">Información General</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+          Información General
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               🏢 {WAREHOUSE_TEXTS.form.fields.name}:{' '}
-              <span className="text-gray-900 dark:text-white">
+              <span className="text-gray-900 dark:text-white font-medium">
                 {warehouseData?.name}
               </span>
             </p>
@@ -50,7 +55,7 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               📍 {WAREHOUSE_TEXTS.form.fields.address}:{' '}
-              <span className="text-gray-900 dark:text-white">
+              <span className="text-gray-900 dark:text-white font-medium">
                 {warehouseData?.address}
               </span>
             </p>
@@ -58,16 +63,17 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               💰 {WAREHOUSE_TEXTS.form.fields.valued}:{' '}
-              <span className="text-gray-900 dark:text-white">
-                {warehouseData?.valued}
+              <span className="text-gray-900 dark:text-white font-medium">
+                ${warehouseData?.valued?.toLocaleString()}
               </span>
             </p>
           </div>
         </div>
       </div>
 
+      {/* Gerente */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
           {WAREHOUSE_TEXTS.form.fields.employee}
         </h3>
         <div className="flex flex-col items-center space-y-4">
@@ -79,25 +85,32 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
                 {warehouseData?.manager.lastName}
               </AvatarFallback>
             </Avatar>
-            <div className="text-center">
-              <h2 className="text-xl font-semibold">
+            <div className="text-center mt-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {warehouseData?.manager.firstName}{' '}
                 {warehouseData?.manager.lastName}
               </h2>
-              <p className="text-gray-500">{warehouseData?.manager.area}</p>
-              <p className="text-gray-500">{warehouseData?.manager.position}</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                {warehouseData?.manager.area}
+              </p>
+              <p className="text-gray-500 dark:text-gray-400">
+                {warehouseData?.manager.position}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Fechas */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">Fechas</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+          Fechas
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               📅 {WAREHOUSE_TEXTS.form.fields.hireDate}:{' '}
-              <span className="text-gray-900 dark:text-white">
+              <span className="text-gray-900 dark:text-white font-medium">
                 {warehouseData?.hireDate
                   ? new Date(warehouseData.hireDate).toLocaleDateString()
                   : '-'}
@@ -107,7 +120,7 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               📅 {WAREHOUSE_TEXTS.form.fields.dismissalDate}:{' '}
-              <span className="text-gray-900 dark:text-white">
+              <span className="text-gray-900 dark:text-white font-medium">
                 {warehouseData?.dismissalDate
                   ? new Date(warehouseData.dismissalDate).toLocaleDateString()
                   : '-'}
@@ -117,9 +130,12 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
         </div>
       </div>
 
+      {/* Estado */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">Estado</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+          Estado
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               📶 {WAREHOUSE_TEXTS.form.fields.active}:{' '}
@@ -130,7 +146,7 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
                     : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                 }`}
               >
-                {warehouseData
+                {warehouseData?.active
                   ? WAREHOUSE_TEXTS.warehouses.table.status.active
                   : WAREHOUSE_TEXTS.warehouses.table.status.inactive}
               </span>
@@ -138,6 +154,14 @@ export const WarehouseDetails: React.FC<Props> = ({ warehouse }) => {
           </div>
         </div>
       </div>
+
+      {/* Stock de Combustible */}
+      {warehouseData?.warehouseFuelStock && (
+        <FuelStockSection
+          fuelStock={warehouseData.warehouseFuelStock}
+          warehouseId={warehouse.id}
+        />
+      )}
     </div>
   );
 };

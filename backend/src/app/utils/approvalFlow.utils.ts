@@ -64,7 +64,7 @@ export function canUserSign(
   userPermissions: string[],
   creatorId: number,
   userId: number,
-  entityType: 'requirement' | 'quotation' = 'requirement'
+  entityType: 'requirement' | 'quotation' | 'fuelControl' = 'requirement'
 ): { canSign: boolean; requiredPermission: string } {
   let canSign = false;
   let requiredPermission = '';
@@ -86,7 +86,8 @@ export function canUserSign(
 
   // Mapear permisos según el tipo de entidad
   const permissionPrefix =
-    entityType === 'requirement' ? 'requirement' : 'quotation';
+    entityType === 'requirement' ? 'requirement' : 
+    entityType === 'quotation' ? 'quotation' : 'fuelControl';
 
   switch (currentStatus) {
     case 'PENDING':

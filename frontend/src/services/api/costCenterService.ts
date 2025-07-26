@@ -46,6 +46,16 @@ export const costCenterService = {
     };
   },
 
+  async getCostCentersSimple(): Promise<CostCenter[]> {
+    const response = await createApiCall<CostCenter[]>(
+      `${BASE_URL}/list/simple`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
   async getCostCenter(id: number): Promise<CostCenter> {
     const response = await createApiCall<CostCenter>(`${BASE_URL}/${id}`, {
       method: 'GET',
@@ -121,6 +131,7 @@ export const costCenterService = {
 // Legacy exports for backward compatibility
 export const getCostCenters = costCenterService.getCostCenters;
 export const getCostCenter = costCenterService.getCostCenter;
+export const getCostCentersSimple = costCenterService.getCostCentersSimple;
 export const createCostCenter = costCenterService.createCostCenter;
 export const updateCostCenter = costCenterService.updateCostCenter;
 export const deleteCostCenter = costCenterService.deleteCostCenter;

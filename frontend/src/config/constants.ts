@@ -31,6 +31,7 @@ export const ROUTES = {
   WAREHOUSE: '/warehouse',
   WAREHOUSE_CREATE: '/warehouse/create',
   WAREHOUSE_EDIT: '/warehouse/:id/edit',
+  WAREHOUSE_DETAILS: '/warehouse/:id/details',
   ARTICLES: '/articles',
   ARTICLE_CREATE: '/articles/create',
   ARTICLE_EDIT: '/articles/:id/edit',
@@ -119,6 +120,10 @@ export const MODULES = [
   {
     key: 'payments',
     label: 'Pagos',
+  },
+  {
+    key: 'fuel_control',
+    label: 'Control de Combustible',
   },
 ];
 

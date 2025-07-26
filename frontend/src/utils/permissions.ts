@@ -1,6 +1,7 @@
 import { getCurrentUser } from '../services/auth/authService';
 import type { Requirement } from '../types/requirement';
 import type { QuotationRequest } from '../types/quotation';
+import type { FuelDailyControl } from '../features/fuelControl/types';
 
 /**
  * Verifica si el usuario actual tiene el permiso especificado
@@ -169,5 +170,49 @@ export const getQuotationSignButtonText = (
     return 'Firmar (Gerencia)';
   } else {
     return 'Aprobado';
+  }
+};
+
+/**
+ * Verifica si el usuario puede firmar un control de combustible según su estado y permisos
+ * @param fuelControl - El control de combustible a verificar
+ * @returns true si el usuario puede firmar, false en caso contrario
+ */
+export const canSignFuelControl = (fuelControl: FuelDailyControl): boolean => {
+  const user = getCurrentUser();
+  if (!user || !user.role || !user.role.permissions) {
+    return false;
+  }
+
+  // Verificar según el estado de las firmas
+  if (!fuelControl.firstSignedAt) {
+    return hasPermission('create_fuel_control');
+  } else if (!fuelControl.secondSignedAt) {
+    // Segunda firma - necesita fuelControl-view-signed1
+    return hasPermission('fuelControl-view-signed1');
+  } else if (!fuelControl.thirdSignedAt) {
+    // Tercera firma - necesita fuelControl-view-signed2
+    return hasPermission('fuelControl-view-signed2');
+  }
+
+  return false;
+};
+
+/**
+ * Obtiene el texto del botón de firma según el estado del control de combustible
+ * @param fuelControl - El control de combustible
+ * @returns El texto del botón
+ */
+export const getFuelControlSignButtonText = (
+  fuelControl: FuelDailyControl
+): string => {
+  if (!fuelControl.firstSignedAt) {
+    return 'Firmar (1ra Firma)';
+  } else if (!fuelControl.secondSignedAt) {
+    return 'Firmar (2da Firma)';
+  } else if (!fuelControl.thirdSignedAt) {
+    return 'Firmar (3ra Firma)';
+  } else {
+    return 'Finalizado';
   }
 };

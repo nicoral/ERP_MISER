@@ -39,6 +39,11 @@ export class CostCenterController {
     return this.costCenterService.findAllCostCenters(page, limit, search);
   }
 
+  @Get('list/simple')
+  async findAllCostCentersSimple() {
+    return this.costCenterService.findAllCostCentersSimple();
+  }
+
   @Get(':id')
   @RequirePermissions('view_cost_centers')
   @AuditDescription('Consulta de centro de costo')

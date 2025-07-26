@@ -103,7 +103,13 @@ const menuItems: MenuItem[] = [
   },
   {
     label: SIDEBAR_TEXTS.process,
-    permission: ['view_requirements'],
+    permission: [
+      'view_requirements',
+      'view_entry_parts',
+      'view_fuel_control',
+      'view_quotations',
+      'view_payments',
+    ],
     icon: <ShoppingCartIcon className="w-5 h-5" />,
     subItems: [
       {
@@ -133,13 +139,13 @@ const menuItems: MenuItem[] = [
       {
         label: SIDEBAR_TEXTS.exitPart,
         path: ROUTES.EXIT_PARTS,
-        permission: [],
+        permission: ['view_entry_parts'],
         icon: <ExitPartIcon className="w-4 h-4" />,
       },
       {
         label: SIDEBAR_TEXTS.fuelControl,
         path: ROUTES.FUEL_CONTROL,
-        permission: [],
+        permission: ['view_fuel_control'],
         icon: <FuelControlIcon className="w-5 h-5" />,
       },
     ],

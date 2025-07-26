@@ -3,6 +3,8 @@ import type {
   Warehouse,
   WarehouseCreate,
   WarehouseFilters,
+  WarehouseFuelStockUpdate,
+  WarehouseFuelStock,
 } from '../../types/warehouse';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/warehouses`;
@@ -81,6 +83,35 @@ export const warehouseService = {
     });
     return response;
   },
+
+  // Fuel Stock Methods
+  async updateWarehouseFuelStock(
+    warehouseId: number,
+    updateData: WarehouseFuelStockUpdate
+  ): Promise<WarehouseFuelStock> {
+    const response = await createApiCall<WarehouseFuelStock>(
+      `${BASE_URL}/fuel-stock/${warehouseId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      }
+    );
+    return response;
+  },
+
+  async configureWarehouseFuelStock(
+    warehouseId: number,
+    configData: WarehouseFuelStockUpdate
+  ): Promise<WarehouseFuelStock> {
+    const response = await createApiCall<WarehouseFuelStock>(
+      `${BASE_URL}/fuel-stock/${warehouseId}/configure`,
+      {
+        method: 'POST',
+        body: JSON.stringify(configData),
+      }
+    );
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility
@@ -89,3 +120,7 @@ export const getWarehouseById = warehouseService.getWarehouseById;
 export const createWarehouse = warehouseService.createWarehouse;
 export const updateWarehouse = warehouseService.updateWarehouse;
 export const deleteWarehouse = warehouseService.deleteWarehouse;
+export const updateWarehouseFuelStock =
+  warehouseService.updateWarehouseFuelStock;
+export const configureWarehouseFuelStock =
+  warehouseService.configureWarehouseFuelStock;

@@ -35,6 +35,10 @@ import { EntryPartArticle } from '../../app/entities/EntryPartArticle.entity';
 import { ExitPart } from '../../app/entities/ExitPart.entity';
 import { ExitPartArticle } from '../../app/entities/ExitPartArticle.entity';
 import { EntryPartService } from '../../app/entities/EntryPartService.entity';
+import { WarehouseFuelStock } from '../../app/entities/WarehouseFuelStock.entity';
+import { FuelDailyControl } from '../../app/entities/FuelDailyControl.entity';
+import { FuelOutput } from '../../app/entities/FuelOutput.entity';
+import { FuelStockMovement } from '../../app/entities/FuelStockMovement.entity';
 
 @Global()
 @Module({
@@ -75,6 +79,10 @@ import { EntryPartService } from '../../app/entities/EntryPartService.entity';
         EntryPartService,
         ExitPart,
         ExitPartArticle,
+        WarehouseFuelStock,
+        FuelDailyControl,
+        FuelOutput,
+        FuelStockMovement,
       ],
     }),
   ],

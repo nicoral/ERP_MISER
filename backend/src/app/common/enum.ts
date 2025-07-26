@@ -42,3 +42,27 @@ export enum InspectionStatus {
   REJECTED = 'REJECTED',
   OBSERVED = 'OBSERVED',
 }
+
+// Fuel Control Enums
+export enum FuelDailyControlStatus {
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
+  SIGNED_1 = 'SIGNED_1',
+  SIGNED_2 = 'SIGNED_2',
+  SIGNED_3 = 'SIGNED_3',
+  FINALIZED = 'FINALIZED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum FuelOutputStatus {
+  PENDING = 'PENDING',
+  SIGNED = 'SIGNED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum FuelMovementType {
+  OPENING = 'OPENING',
+  OUTPUT = 'OUTPUT',
+  ADJUSTMENT = 'ADJUSTMENT',
+  CLOSING = 'CLOSING',
+}

@@ -11,6 +11,7 @@ import { WarehouseModule } from './app/modules/warehouse.module';
 import { ArticleModule } from './app/modules/article.module';
 import { SupplierModule } from './app/modules/supplier.module';
 import { QuotationModule } from './app/modules/quotation.module';
+import { FuelControlModule } from './app/modules/fuelControl.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './app/common/audit.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ import { ExitPartModule } from './app/modules/exitPart.module';
     ArticleModule,
     SupplierModule,
     QuotationModule,
+    FuelControlModule,
     AuditLogModule,
     CostCenterModule,
     RequirementModule,

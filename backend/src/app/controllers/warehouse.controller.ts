@@ -11,11 +11,13 @@ import {
 } from '@nestjs/common';
 import { WarehouseService } from '../services/warehouse.service';
 import { Warehouse } from '../entities/Warehouse.entity';
+import { WarehouseFuelStock } from '../entities/WarehouseFuelStock.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { CreateWarehouseDto } from '../dto/warehouse/create-warehouse.dto';
 import { UpdateWarehouseDto } from '../dto/warehouse/update-warehouse.dto';
+import { UpdateWarehouseFuelStockDto } from '../dto/fuelControl/update-warehouse-fuel-stock.dto';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
 
 @Controller('warehouses')
@@ -75,5 +77,26 @@ export class WarehouseController {
   @AuditDescription('Eliminación de almacén')
   async deleteWarehouse(@Param('id') id: number): Promise<void> {
     return this.warehouseService.deleteWarehouse(id);
+  }
+
+  // Fuel Stock Endpoints
+  @Put('fuel-stock/:warehouseId')
+  @RequirePermissions('update_fuel_stock')
+  @AuditDescription('Actualización de stock de combustible')
+  async updateWarehouseFuelStock(
+    @Param('warehouseId') warehouseId: number,
+    @Body() updateData: UpdateWarehouseFuelStockDto
+  ): Promise<WarehouseFuelStock> {
+    return this.warehouseService.updateWarehouseFuelStock(warehouseId, updateData);
+  }
+
+  @Post('fuel-stock/:warehouseId/configure')
+  @RequirePermissions('update_fuel_stock')
+  @AuditDescription('Configuración inicial de stock de combustible')
+  async configureFuelStock(
+    @Param('warehouseId') warehouseId: number,
+    @Body() configData: UpdateWarehouseFuelStockDto
+  ): Promise<WarehouseFuelStock> {
+    return this.warehouseService.updateWarehouseFuelStock(warehouseId, configData);
   }
 }

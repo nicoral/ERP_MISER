@@ -18,6 +18,8 @@ import { QuotationRequest } from './QuotationRequest.entity';
 import { FinalSelection } from './FinalSelection.entity';
 import { PaymentDetail } from './PaymentDetail.entity';
 import { EntryPart } from './EntryPart.entity';
+import { FuelOutput } from './FuelOutput.entity';
+import { FuelStockMovement } from './FuelStockMovement.entity';
 
 @Entity()
 export class Employee {
@@ -127,6 +129,25 @@ export class Employee {
     onDelete: 'CASCADE',
   })
   entryParts: EntryPart[];
+
+  // Fuel Control Relations
+  @OneToMany(() => FuelOutput, fuelOutput => fuelOutput.registeredByEmployee, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  registeredFuelOutputs: FuelOutput[];
+
+  @OneToMany(() => FuelOutput, fuelOutput => fuelOutput.operatorEmployee, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  operatedFuelOutputs: FuelOutput[];
+
+  @OneToMany(() => FuelStockMovement, fuelStockMovement => fuelStockMovement.employee, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  fuelStockMovements: FuelStockMovement[];
 
   @CreateDateColumn({
     name: 'created_at',

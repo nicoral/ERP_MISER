@@ -10,8 +10,6 @@ import {
 import type { Warehouse } from '../../../types/warehouse';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
-import { Modal } from '../../../components/common/Modal';
-import { WarehouseDetails } from './WarehouseDetails';
 import { useWarehouses, useWarehouseDelete } from '../hooks/useWarehouse';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
@@ -24,10 +22,6 @@ export const WarehouseList = () => {
   const [filters, setFilters] = useState({ search: '' });
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(
-    null
-  );
 
   // Hook con datos y estados automáticos de React Query
   const { data, isLoading, isFetching } = useWarehouses(page, 10, {
@@ -52,6 +46,8 @@ export const WarehouseList = () => {
   const handleCreate = () => navigate(ROUTES.WAREHOUSE_CREATE);
   const handleEdit = (id: number) =>
     navigate(ROUTES.WAREHOUSE_EDIT.replace(':id', id.toString()));
+  const handleViewDetails = (id: number) =>
+    navigate(ROUTES.WAREHOUSE_DETAILS.replace(':id', id.toString()));
 
   const handleDelete = async (warehouse: Warehouse) => {
     if (
@@ -113,10 +109,7 @@ export const WarehouseList = () => {
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: WAREHOUSE_TEXTS.warehouses.table.actions.view,
-      onClick: (warehouse: Warehouse) => {
-        setSelectedWarehouse(warehouse);
-        setShowDetailsModal(true);
-      },
+      onClick: (warehouse: Warehouse) => handleViewDetails(warehouse.id),
     },
     ...(hasPermission('update_warehouse')
       ? [
@@ -218,16 +211,6 @@ export const WarehouseList = () => {
           pageSize={10}
         />
       </div>
-
-      <Modal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        title={`🏢 ${selectedWarehouse?.name ?? ''}`}
-      >
-        {selectedWarehouse && (
-          <WarehouseDetails warehouse={selectedWarehouse} />
-        )}
-      </Modal>
     </div>
   );
 };

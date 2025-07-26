@@ -4,12 +4,15 @@ import {
   getWarehouses,
   updateWarehouse,
   deleteWarehouse,
+  updateWarehouseFuelStock,
+  configureWarehouseFuelStock,
 } from '../../../services/api/warehouseService';
 
 import type {
   Warehouse,
   WarehouseCreate,
   WarehouseFilters,
+  WarehouseFuelStockUpdate,
 } from '../../../types/warehouse';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -78,6 +81,42 @@ export const useWarehouseDelete = () => {
     mutationFn: (id: number) => deleteWarehouse(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+    },
+  });
+};
+
+// 🟡 UPDATE Warehouse Fuel Stock
+export const useWarehouseFuelStockUpdate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      warehouseId,
+      data,
+    }: {
+      warehouseId: number;
+      data: WarehouseFuelStockUpdate;
+    }) => updateWarehouseFuelStock(warehouseId, data),
+    onSuccess: (_, { warehouseId }) => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse', warehouseId] });
+    },
+  });
+};
+
+// 🟡 CONFIGURE Warehouse Fuel Stock
+export const useWarehouseFuelStockConfigure = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      warehouseId,
+      data,
+    }: {
+      warehouseId: number;
+      data: WarehouseFuelStockUpdate;
+    }) => configureWarehouseFuelStock(warehouseId, data),
+    onSuccess: (_, { warehouseId }) => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse', warehouseId] });
     },
   });
 };
