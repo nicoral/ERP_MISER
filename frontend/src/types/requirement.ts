@@ -84,3 +84,9 @@ export interface CreateRequirementServiceDto {
   durationType?: 'HORA' | 'CONTRATO' | 'DIA' | 'JORNADA';
   duration?: number;
 }
+
+export enum RequirementStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}

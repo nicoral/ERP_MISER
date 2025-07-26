@@ -19,7 +19,7 @@ import { canSignRequirement } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
 import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 import { useState } from 'react';
-import { RequirementStatus } from '../../../../../backend/src/app/common/enum';
+import { RequirementStatus } from '../../../types/requirement';
 import { RejectModal } from './modals/RejectModal';
 import { UploadInformModal } from './modals/uploadInform';
 

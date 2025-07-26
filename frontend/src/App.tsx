@@ -54,9 +54,10 @@ import RoleDetails from './pages/RoleDetails';
 import { ExitPartDetails } from './features/exitPart/ExitPartDetails';
 import { ExitPartForm } from './features/exitPart/ExitPartForm';
 import { ExitPartList } from './features/exitPart/ExitPartList';
-import { WarehouseDetailsPage } from './pages/WarehouseDetails';
 import { FuelControlList } from './features/fuelControl/components/FuelControlList';
 import { FuelControlOutputs } from './features/fuelControl/components/FuelControlOutputs';
+import { SupplierView } from './features/supplier/components/SupplierView';
+import { WarehouseView } from './features/warehouse/components/WarehouseView';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -86,10 +87,7 @@ const AppRoutes = () => {
           <Route path={ROUTES.WAREHOUSE} element={<Warehouse />} />
           <Route path={ROUTES.WAREHOUSE_CREATE} element={<WarehouseForm />} />
           <Route path={ROUTES.WAREHOUSE_EDIT} element={<WarehouseForm />} />
-          <Route
-            path={ROUTES.WAREHOUSE_DETAILS}
-            element={<WarehouseDetailsPage />}
-          />
+          <Route path={ROUTES.WAREHOUSE_VIEW} element={<WarehouseView />} />
           <Route path={ROUTES.ARTICLES} element={<ArticleList />} />
           <Route path={ROUTES.ARTICLE_CREATE} element={<ArticleForm />} />
           <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
@@ -103,6 +101,7 @@ const AppRoutes = () => {
           <Route path={ROUTES.SUPPLIERS} element={<SupplierList />} />
           <Route path={ROUTES.SUPPLIERS_CREATE} element={<SupplierForm />} />
           <Route path={ROUTES.SUPPLIERS_EDIT} element={<SupplierForm />} />
+          <Route path={ROUTES.SUPPLIERS_VIEW} element={<SupplierView />} />
           <Route path={ROUTES.PROFILE} element={<Profile />} />
           <Route
             path={ROUTES.QUOTATIONS_ARTICLES}

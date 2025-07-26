@@ -8,6 +8,7 @@ import { FuelControlService } from '../services/fuelControl.service';
 import { FuelControlController } from '../controllers/fuelControl.controller';
 import { EmployeeModule } from './employee.module';
 import { RoleModule } from './role.module';
+import { StorageModule } from './storage.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { RoleModule } from './role.module';
       FuelStockMovement,
       WarehouseFuelStock,
     ]),
+    StorageModule,
     EmployeeModule,
     RoleModule,
   ],

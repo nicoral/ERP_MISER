@@ -276,7 +276,7 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
           quantity: '',
           unitPrice: '',
           currency: 'PEN',
-          justification: '',
+          justification: form.observations,
         } as Products,
       ]);
     }
@@ -293,7 +293,7 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
           code: service.code,
           unitPrice: '',
           currency: 'PEN',
-          justification: '',
+          justification: form.observations,
           durationType: 'HORA',
           duration: '',
         } as Services,

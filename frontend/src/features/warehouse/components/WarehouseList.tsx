@@ -46,8 +46,8 @@ export const WarehouseList = () => {
   const handleCreate = () => navigate(ROUTES.WAREHOUSE_CREATE);
   const handleEdit = (id: number) =>
     navigate(ROUTES.WAREHOUSE_EDIT.replace(':id', id.toString()));
-  const handleViewDetails = (id: number) =>
-    navigate(ROUTES.WAREHOUSE_DETAILS.replace(':id', id.toString()));
+  const handleView = (id: number) =>
+    navigate(ROUTES.WAREHOUSE_VIEW.replace(':id', id.toString()));
 
   const handleDelete = async (warehouse: Warehouse) => {
     if (
@@ -109,7 +109,7 @@ export const WarehouseList = () => {
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: WAREHOUSE_TEXTS.warehouses.table.actions.view,
-      onClick: (warehouse: Warehouse) => handleViewDetails(warehouse.id),
+      onClick: (warehouse: Warehouse) => handleView(warehouse.id),
     },
     ...(hasPermission('update_warehouse')
       ? [

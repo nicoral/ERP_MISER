@@ -152,7 +152,7 @@ const menuItems: MenuItem[] = [
   },
   {
     label: SIDEBAR_TEXTS.processService,
-    permission: ['view_requirements'],
+    permission: ['view_requirements', 'view_quotations', 'view_payments'],
     icon: <ProcessIcon className="w-5 h-5" />,
     subItems: [
       {

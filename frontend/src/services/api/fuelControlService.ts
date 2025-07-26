@@ -160,6 +160,21 @@ export const fuelControlService = {
     return response;
   },
 
+  async updateImage(id: number, file: File): Promise<FuelOutput> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await createApiCall<FuelOutput>(
+      `${BASE_URL}/output/${id}/image`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
+    return response;
+  },
+
   async signFuelOutput(id: number): Promise<FuelOutput> {
     const response = await createApiCall<FuelOutput>(
       `${BASE_URL}/output/${id}/sign`,
@@ -217,5 +232,6 @@ export const getFuelOutputs = fuelControlService.getFuelOutputs;
 export const getFuelOutput = fuelControlService.getFuelOutput;
 export const createFuelOutput = fuelControlService.createFuelOutput;
 export const updateFuelOutput = fuelControlService.updateFuelOutput;
+export const updateImage = fuelControlService.updateImage;
 export const signFuelOutput = fuelControlService.signFuelOutput;
 export const getStockMovements = fuelControlService.getStockMovements;

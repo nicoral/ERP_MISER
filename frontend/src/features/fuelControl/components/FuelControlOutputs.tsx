@@ -8,6 +8,7 @@ import {
   useFuelOutputSign,
   useFuelDailyControlClose,
   useFuelDailyControlSign,
+  useFuelOutputImageUpdate,
 } from '../hooks/useFuelControl';
 import type { FuelOutput, CreateFuelOutputDto } from '../types';
 import { Button } from '../../../components/common/Button';
@@ -21,7 +22,14 @@ import { Modal } from '../../../components/common/Modal';
 import { FormInput } from '../../../components/common/FormInput';
 import { SearchableSelect } from '../../../components/common/SearchableSelect';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
-import { Plus, Fuel, ChevronLeft, Check, FileSignature } from 'lucide-react';
+import {
+  Plus,
+  Fuel,
+  ChevronLeft,
+  Check,
+  FileSignature,
+  FileImage,
+} from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 import { ROUTES } from '../../../config/constants';
 import type { CostCenter } from '../../../types/costCenter';
@@ -30,8 +38,9 @@ import { useCostCentersSimple } from '../../../hooks/useCostCenterService';
 import {
   canSignFuelControl,
   getFuelControlSignButtonText,
+  hasPermission,
 } from '../../../utils/permissions';
-import { FuelDailyControlStatus } from '../../../../../backend/src/app/common/enum';
+import { FuelDailyControlStatus } from '../types';
 
 export const FuelControlOutputs: React.FC = () => {
   const { id } = useParams();
@@ -49,6 +58,7 @@ export const FuelControlOutputs: React.FC = () => {
   );
   const { mutate: signFuelOutput, isPending: signingOutput } =
     useFuelOutputSign();
+  const { mutate: updateImage } = useFuelOutputImageUpdate();
   const { mutate: createFuelOutput, isPending: creatingOutput } =
     useFuelOutputCreate();
   const { showSuccess, showError } = useToast();
@@ -60,6 +70,7 @@ export const FuelControlOutputs: React.FC = () => {
   const { mutate: signFuelDailyControl, isPending: signingFuelDailyControl } =
     useFuelDailyControlSign();
   const [showFinalizeWarning, setShowFinalizeWarning] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -89,17 +100,21 @@ export const FuelControlOutputs: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting form data:', formData);
 
     if (!validateForm()) {
       showError('Por favor corrija los errores en el formulario');
       return;
     }
 
+    if (!selectedFile) {
+      showError('Por favor suba una imagen');
+      return;
+    }
+
     try {
       createFuelOutput(formData, {
         onSuccess: newOutput => {
-          console.log('Fuel output created successfully:', newOutput);
+          updateImage({ id: newOutput.id, file: selectedFile });
           showSuccess('Salida de combustible registrada exitosamente');
           setShowAddModal(false);
           resetForm();
@@ -181,6 +196,13 @@ export const FuelControlOutputs: React.FC = () => {
     setFormErrors({});
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -207,6 +229,14 @@ export const FuelControlOutputs: React.FC = () => {
 
   const calculateTotal = () => {
     return fuelOutputs?.reduce((acc, output) => acc + +output.quantity, 0) || 0;
+  };
+
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
+
+  const handleViewImage = (imageUrl: string) => {
+    setSelectedImageUrl(imageUrl);
+    setShowImageModal(true);
   };
 
   // Preparar opciones para los selectores
@@ -291,6 +321,14 @@ export const FuelControlOutputs: React.FC = () => {
   ];
 
   const actions: TableAction<FuelOutput>[] = [
+    {
+      icon: <FileImage className="w-5 h-5 text-blue-600" />,
+      label: 'Foto',
+      isHidden: output => !output.imageUrl,
+      onClick: (output: FuelOutput) => {
+        handleViewImage(output.imageUrl);
+      },
+    },
     {
       icon: signingOutput ? (
         <LoadingSpinner size="sm" className="text-green-600" />
@@ -411,20 +449,22 @@ export const FuelControlOutputs: React.FC = () => {
                 year: 'numeric',
                 month: 'numeric',
                 day: 'numeric',
-              }) && (
-              <Button onClick={() => setShowAddModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Salida
-              </Button>
-            )}
-            {fuelControl.status === 'OPEN' && (
-              <Button
-                className="bg-red-600 hover:bg-red-700"
-                onClick={() => setShowFinalizeWarning(true)}
-              >
-                Finalizar día
-              </Button>
-            )}
+              }) &&
+              hasPermission('create_fuel_control') && (
+                <Button onClick={() => setShowAddModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Salida
+                </Button>
+              )}
+            {fuelControl.status === 'OPEN' &&
+              hasPermission('create_fuel_control') && (
+                <Button
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => setShowFinalizeWarning(true)}
+                >
+                  Finalizar día
+                </Button>
+              )}
             {fuelControl.status !== 'OPEN' &&
               canSignFuelControl(fuelControl) && (
                 <Button
@@ -580,12 +620,11 @@ export const FuelControlOutputs: React.FC = () => {
                 id="quantity"
                 name="quantity"
                 label="Cantidad (galones) *"
-                type="number"
+                type="decimal"
                 value={formData.quantity}
                 onChange={handleChange}
                 required
                 min="0"
-                step="0.1"
               />
               {formErrors.quantity && (
                 <p className="text-red-500 text-sm mt-1">
@@ -598,16 +637,21 @@ export const FuelControlOutputs: React.FC = () => {
                 id="hourMeter"
                 name="hourMeter"
                 label="Horometro"
-                type="number"
+                type="decimal"
                 value={formData.hourMeter}
                 onChange={handleChange}
                 required
                 min="0"
-                step="0.1"
               />
             </div>
             <div className="col-span-1 md:col-span-2">
-              <FormInput id="file" name="file" label="Foto" type="file" />
+              <FormInput
+                id="file"
+                name="file"
+                label="Foto"
+                type="file"
+                onChange={handleFileChange}
+              />
             </div>
           </div>
 
@@ -662,6 +706,60 @@ export const FuelControlOutputs: React.FC = () => {
                 {closingFuelDailyControl
                   ? '🔄 Finalizando...'
                   : 'Sí, Finalizar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {showImageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Visualizar Imagen
+              </h2>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="bg-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex justify-center">
+              {selectedImageUrl && (
+                <img
+                  src={selectedImageUrl}
+                  alt="Imagen de salida de combustible"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                  onError={e => {
+                    console.error('Error loading image:', e);
+                    showError('Error al cargar la imagen');
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <Button
+                onClick={() => setShowImageModal(false)}
+                variant="outline"
+              >
+                Cerrar
               </Button>
             </div>
           </div>

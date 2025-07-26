@@ -8,6 +8,8 @@ import {
   UseGuards,
   Query,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FuelControlService } from '../services/fuelControl.service';
 import { FuelDailyControl } from '../entities/FuelDailyControl.entity';
@@ -21,6 +23,8 @@ import { UpdateFuelDailyControlDto } from '../dto/fuelControl/update-fuel-daily-
 import { CreateFuelOutputDto } from '../dto/fuelControl/create-fuel-output.dto';
 import { UpdateFuelOutputDto } from '../dto/fuelControl/update-fuel-output.dto';
 import { AuditDescription } from '../common/decorators/audit-description.decorator';
+import { FuelDailyControlStatus } from '../common/enum';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('fuel-control')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -50,10 +54,11 @@ export class FuelControlController {
   @AuditDescription('Consulta de controles diarios de combustible')
   async getFuelDailyControls(
     @Query('warehouseId') warehouseId?: number,
+    @Query('status') status?: FuelDailyControlStatus,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
   ): Promise<{ data: FuelDailyControl[]; total: number }> {
-    return this.fuelControlService.getFuelDailyControls(warehouseId, page, limit);
+    return this.fuelControlService.getFuelDailyControls(page, limit, warehouseId, status);
   }
 
   @Put('daily-control/:id/close')
@@ -112,6 +117,17 @@ export class FuelControlController {
     @Body() updateDto: UpdateFuelOutputDto
   ): Promise<FuelOutput> {
     return this.fuelControlService.updateFuelOutput(id, updateDto);
+  }
+
+  @Post('output/:id/image')
+  @RequirePermissions('update_fuel_control')
+  @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Actualización de imagen de salida de combustible')
+  async updateImage(@Param('id') id: number, @UploadedFile() file: Express.Multer.File): Promise<FuelOutput> {
+    if (!file) {
+      throw new Error('No se ha proporcionado ningún archivo');
+    }
+    return this.fuelControlService.updateImage(id, file);
   }
 
   @Post('output/:id/sign')

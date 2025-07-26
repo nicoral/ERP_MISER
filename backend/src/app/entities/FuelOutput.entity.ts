@@ -28,6 +28,9 @@ export class FuelOutput extends ApprovalFlowBase {
   @Column('decimal', { precision: 10, scale: 2, name: 'hour_meter', nullable: false })
   hourMeter: number;
 
+  @Column('varchar', { name: 'image_url', nullable: true, length: 255 })
+  imageUrl: string;
+
   @Column({
     type: 'enum',
     enum: FuelOutputStatus,

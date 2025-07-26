@@ -32,7 +32,7 @@ export const MainLayout = () => {
           isSidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'
         }`}
       >
-        <div className="p-6 h-full">
+        <div className="p-3 h-full sm:p-6">
           <Outlet />
         </div>
       </main>

@@ -54,6 +54,7 @@ export interface FuelOutput {
   operatorEmployee?: Employee;
   outputTime: string;
   status: FuelOutputStatus;
+  imageUrl: string;
   createdAt: Date;
   updatedAt: Date;
 }

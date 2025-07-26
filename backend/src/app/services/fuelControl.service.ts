@@ -18,6 +18,7 @@ import { FuelDailyControlStatus, FuelOutputStatus, FuelMovementType } from '../c
 import { EmployeeService } from './employee.service';
 import { RoleService } from './role.service';
 import { canUserSign, processSignature, isLowAmount } from '../utils/approvalFlow.utils';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class FuelControlService {
@@ -31,7 +32,8 @@ export class FuelControlService {
     @InjectRepository(WarehouseFuelStock)
     private readonly warehouseFuelStockRepository: Repository<WarehouseFuelStock>,
     private readonly employeeService: EmployeeService,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    private readonly storageService: StorageService
   ) {}
 
   // Fuel Daily Control Methods
@@ -97,9 +99,10 @@ export class FuelControlService {
   }
 
   async getFuelDailyControls(
-    warehouseId?: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    warehouseId?: number,
+    status?: FuelDailyControlStatus
   ): Promise<{ data: FuelDailyControl[]; total: number }> {
     const query = this.fuelDailyControlRepository
       .createQueryBuilder('control')
@@ -108,6 +111,10 @@ export class FuelControlService {
 
     if (warehouseId) {
       query.where('control.warehouse.id = :warehouseId', { warehouseId });
+    }
+
+    if (status) {
+      query.where('control.status = :status', { status });
     }
 
     query.skip((page - 1) * limit).take(limit);
@@ -124,6 +131,14 @@ export class FuelControlService {
 
     if (control.status !== FuelDailyControlStatus.OPEN) {
       throw new BadRequestException('Control is not in OPEN status');
+    }
+
+    const outputsPending = await this.fuelOutputRepository.find({
+      where: { fuelDailyControl: { id }, status: FuelOutputStatus.PENDING },
+    });
+
+    if (outputsPending.length > 0) {
+      throw new BadRequestException('Control has outputs pending');
     }
 
     control.status = FuelDailyControlStatus.CLOSED;
@@ -250,18 +265,18 @@ export class FuelControlService {
 
     // Actualizar stock
     await this.warehouseFuelStockRepository.update(fuelStock.id, 
-      { currentStock: fuelStock.currentStock - createDto.quantity });
+      { currentStock: Number(fuelStock.currentStock) - Number(createDto.quantity) });
 
     // Actualizar total de salidas del control diario
     await this.fuelDailyControlRepository.update(dailyControl.id, 
-      { totalOutputs: dailyControl.totalOutputs + createDto.quantity });
+      { totalOutputs: Number(dailyControl.totalOutputs) + Number(createDto.quantity) });
 
     // Crear movimiento de salida
     await this.createStockMovement(
       dailyControl.warehouse.id,
       FuelMovementType.OUTPUT,
-      fuelStock.currentStock + createDto.quantity,
-      fuelStock.currentStock,
+      Number(fuelStock.currentStock) + Number(createDto.quantity),
+      Number(fuelStock.currentStock),
       userId,
       `Fuel output: ${createDto.quantity}`
     );
@@ -303,6 +318,25 @@ export class FuelControlService {
     }
 
     Object.assign(output, updateDto);
+    return this.fuelOutputRepository.save(output);
+  }
+
+  async updateImage(id: number, file: Express.Multer.File): Promise<FuelOutput> {
+    const output = await this.getFuelOutput(id);
+    if (!output) {
+      throw new NotFoundException('Fuel output not found');
+    }
+    if (output.imageUrl) {
+      await this.storageService.removeFileByUrl(output.imageUrl);
+    }
+    const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `fuel-outputs/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype
+    );
+    output.imageUrl = uploadResult.url;
     return this.fuelOutputRepository.save(output);
   }
 

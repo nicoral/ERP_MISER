@@ -10,6 +10,7 @@ import {
   updateFuelOutput,
   signFuelOutput,
   getStockMovements,
+  updateImage,
 } from '../../../services/api/fuelControlService';
 
 import type {
@@ -142,6 +143,20 @@ export const useFuelOutputUpdate = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateFuelOutputDto }) =>
       updateFuelOutput(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['fuel-output', id] });
+      queryClient.invalidateQueries({ queryKey: ['fuel-outputs'] });
+    },
+  });
+};
+
+// 🟡 UPDATE Fuel Output Image
+export const useFuelOutputImageUpdate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) =>
+      updateImage(id, file),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['fuel-output', id] });
       queryClient.invalidateQueries({ queryKey: ['fuel-outputs'] });

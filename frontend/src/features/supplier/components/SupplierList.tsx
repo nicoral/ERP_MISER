@@ -14,8 +14,7 @@ import {
 } from '../../../types/supplier';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
-import { Modal } from '../../../components/common/Modal';
-import { SupplierDetails } from './SupplierDetails';
+
 import { useSuppliers, useDeleteSupplier } from '../hooks/useSupplier';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
@@ -32,10 +31,6 @@ export const SupplierList = () => {
   });
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
-    null
-  );
 
   // Hook con datos y estados automáticos de React Query
   const { data, isLoading, isFetching } = useSuppliers(page, 10, filters);
@@ -58,6 +53,9 @@ export const SupplierList = () => {
   const handleCreate = () => navigate(ROUTES.SUPPLIERS_CREATE);
   const handleEdit = (id: number) =>
     navigate(ROUTES.SUPPLIERS_EDIT.replace(':id', id.toString()));
+
+  const handleView = (id: number) =>
+    navigate(ROUTES.SUPPLIERS_VIEW.replace(':id', id.toString()));
 
   const handleDelete = async (supplier: Supplier) => {
     if (
@@ -127,10 +125,7 @@ export const SupplierList = () => {
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
       label: 'Ver Detalles',
-      onClick: (supplier: Supplier) => {
-        setSelectedSupplier(supplier);
-        setShowDetailsModal(true);
-      },
+      onClick: (supplier: Supplier) => handleView(supplier.id),
     },
     ...(hasPermission('update_suppliers')
       ? [
@@ -248,14 +243,6 @@ export const SupplierList = () => {
           pageSize={10}
         />
       </div>
-
-      <Modal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        title={`🏢 ${selectedSupplier?.businessName ?? ''}`}
-      >
-        {selectedSupplier && <SupplierDetails supplier={selectedSupplier} />}
-      </Modal>
     </div>
   );
 };
