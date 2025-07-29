@@ -200,7 +200,7 @@ export const getCurrentStepFromQuotation = (
     return QuotationStep.SUPPLIER_SELECTION;
   }
 
-  // Si tiene proveedores pero si no se enviaron todas las órdenes
+  // Si tiene proveedores pero no se enviaron todas las órdenes
   const hasNotAllSentOrders = quotationRequest.quotationSuppliers.some(
     qs => qs.status !== QuotationSupplierStatus.SENT
   );
@@ -208,23 +208,23 @@ export const getCurrentStepFromQuotation = (
     return QuotationStep.GENERATE_ORDERS;
   }
 
-  // Si tiene órdenes enviadas pero ninguno ha enviado cotizaciones
-  const hasSupplierQuotations = quotationRequest.quotationSuppliers.some(
+  // Si tiene órdenes enviadas pero no todos los proveedores tienen cotizaciones recibidas
+  const allSuppliersHaveQuotations = quotationRequest.quotationSuppliers.every(
     qs => qs.supplierQuotation
   );
-  if (!hasSupplierQuotations) {
+  if (!allSuppliersHaveQuotations) {
     return QuotationStep.RECEIVE_QUOTATIONS;
   }
 
-  // Si tiene cotizaciones pero ninguna está enviada
-  const hasSubmittedQuotations = quotationRequest.quotationSuppliers.some(
+  // Si todos tienen cotizaciones pero no todas están enviadas
+  const allQuotationsSubmitted = quotationRequest.quotationSuppliers.every(
     qs => qs.supplierQuotation?.status === 'SUBMITTED'
   );
-  if (!hasSubmittedQuotations) {
+  if (!allQuotationsSubmitted) {
     return QuotationStep.RECEIVE_QUOTATIONS;
   }
 
-  // Si tiene cotizaciones enviadas pero no hay selección final
+  // Si todas las cotizaciones están enviadas pero no hay selección final
   if (quotationRequest.finalSelection === null) {
     return QuotationStep.COMPARE_QUOTATIONS;
   }

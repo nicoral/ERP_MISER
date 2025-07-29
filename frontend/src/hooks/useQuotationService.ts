@@ -295,6 +295,15 @@ export const useQuotationService = () => {
     [handleRequest]
   );
 
+  const uploadQuotationFile = useCallback(
+    async (quotationId: number, file: File) => {
+      return handleRequest(() =>
+        quotationService.uploadQuotationFile(quotationId, file)
+      );
+    },
+    [handleRequest]
+  );
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -336,5 +345,7 @@ export const useQuotationService = () => {
     sendQuotationOrder,
     sendAllQuotationOrders,
     applyGeneralTermsToAll,
+    // File upload
+    uploadQuotationFile,
   };
 };

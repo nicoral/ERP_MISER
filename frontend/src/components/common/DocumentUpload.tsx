@@ -85,12 +85,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
   const handleDownload = () => {
     if (currentUrl) {
-      const link = document.createElement('a');
-      link.href = currentUrl;
-      link.download = `ficha-tecnica.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Abrir en nueva pestaña en lugar de descargar
+      window.open(currentUrl, '_blank');
     }
   };
 

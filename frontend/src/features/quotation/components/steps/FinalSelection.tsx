@@ -652,12 +652,17 @@ export const FinalSelection: React.FC<FinalSelectionProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between">
-        <Button onClick={onBack}>← Volver</Button>
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
+        <Button 
+          onClick={onBack}
+          className="w-full sm:w-auto order-2 sm:order-1"
+        >
+          ← Volver
+        </Button>
         <Button
           onClick={handleShowApprovalWarning} //{handleGeneratePurchaseOrder}
           disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="w-full sm:w-auto order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 text-white"
         >
           {loading ? '🔄 Generando...' : '✅ Completar Proceso'}
         </Button>

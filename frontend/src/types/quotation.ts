@@ -119,6 +119,7 @@ export interface SupplierQuotation {
   notes?: string;
   methodOfPayment?: string;
   igv?: string;
+  quotationFile?: string;
   quotationSupplier: QuotationSupplier;
   supplierQuotationItems: SupplierQuotationItem[];
   supplierQuotationServiceItems: SupplierQuotationServiceItem[];
@@ -244,7 +245,9 @@ export interface UpdateQuotationRequestDto {
 export interface CreateSupplierQuotationDto {
   quotationRequestId: number;
   supplierId: number;
+  quotationNumber?: string;
   notes?: string;
+  submitQuotation?: boolean;
   items: Array<{
     articleId: number;
     quantity: number;
@@ -338,8 +341,10 @@ export interface UpdateQuotationOrderDto {
   supplierId: number;
   orderNumber?: string;
   terms?: string;
+  deadline?: string;
   selectedArticles?: number[];
   selectedServices?: number[];
+  sendOrder?: boolean;
 }
 
 export interface SendQuotationOrderDto {
@@ -461,6 +466,8 @@ export interface ReceivedQuotation {
   requirementId: number;
   receivedAt: Date;
   validUntil: Date;
+  quotationNumber?: string;
+  quotationFile?: string;
   items: ReceivedQuotationItem[];
   serviceItems: ReceivedQuotationServiceItem[];
   totalAmount: number;

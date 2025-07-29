@@ -418,6 +418,34 @@ export const quotationService = {
     );
     return response;
   },
+
+  async uploadQuotationFile(
+    quotationId: number,
+    file: File
+  ): Promise<SupplierQuotation> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await createApiCall<SupplierQuotation>(
+        `${BASE_URL}/supplier-quotation/${quotationId}/file`,
+        {
+          method: 'POST',
+          body: formData,
+        },
+        false,
+        true
+      );
+      return response;
+    } catch (error) {
+      console.error('Error uploading quotation file:', error);
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Error al subir el archivo de cotización'
+      );
+    }
+  },
 };
 
 export default quotationService;

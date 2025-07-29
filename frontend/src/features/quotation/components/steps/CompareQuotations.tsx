@@ -1310,7 +1310,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
             <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
               Análisis de Mejores Precios
             </h4>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {/* Productos */}
               {comparisonData.map(comparison => {
                 const bestQuote = comparison.bestPrice;
@@ -1319,17 +1319,21 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                 return (
                   <div
                     key={comparison.articleId}
-                    className="flex justify-between items-center text-sm"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded"
                   >
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {comparison.article.name}
-                    </span>
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-green-600 dark:text-green-400">
-                        {bestQuote.currency}{' '}
-                        {(Number(bestQuote.unitPrice) || 0).toFixed(2)}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {comparison.article.name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {comparison.article.code}
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 flex-shrink-0">
+                      <span className="font-medium text-green-600 dark:text-green-400 text-sm">
+                        {bestQuote.currency} {(Number(bestQuote.unitPrice) || 0).toFixed(2)}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {bestQuote.supplier.businessName}
                       </span>
                     </div>
@@ -1345,17 +1349,21 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                 return (
                   <div
                     key={comparison.serviceId}
-                    className="flex justify-between items-center text-sm"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded"
                   >
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {comparison.service.name}
-                    </span>
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-green-600 dark:text-green-400">
-                        {bestQuote.currency}{' '}
-                        {(Number(bestQuote.unitPrice) || 0).toFixed(2)}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {comparison.service.name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {comparison.service.code}
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 flex-shrink-0">
+                      <span className="font-medium text-green-600 dark:text-green-400 text-sm">
+                        {bestQuote.currency} {(Number(bestQuote.unitPrice) || 0).toFixed(2)}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {bestQuote.supplier.businessName}
                       </span>
                     </div>
@@ -1387,19 +1395,21 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                       <div className="font-medium">
                         {bestSupplierInfo.supplier?.businessName}
                       </div>
-                      <div className="text-xs mt-1">
-                        {bestSupplierInfo.quotedCount} de{' '}
-                        {bestSupplierInfo.totalItemsCount} items cotizados (
-                        {bestSupplierInfo.quotedPercentage.toFixed(0)}%
-                        cobertura)
+                      <div className="text-xs mt-1 flex flex-wrap gap-1">
+                        <span>
+                          {bestSupplierInfo.quotedCount} de{' '}
+                          {bestSupplierInfo.totalItemsCount} items cotizados (
+                          {bestSupplierInfo.quotedPercentage.toFixed(0)}%
+                          cobertura)
+                        </span>
                         {bestSupplierInfo.notAvailableCount > 0 && (
-                          <span className="text-red-500 ml-2">
+                          <span className="text-red-500">
                             • {bestSupplierInfo.notAvailableCount} no
                             disponibles
                           </span>
                         )}
                         {bestSupplierInfo.notQuotedCount > 0 && (
-                          <span className="text-gray-500 ml-2">
+                          <span className="text-gray-500">
                             • {bestSupplierInfo.notQuotedCount} no cotizados
                           </span>
                         )}
@@ -1470,26 +1480,26 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                         : 'border-gray-200 dark:border-gray-700'
                     }`}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                       <div className="flex-1">
                         <div className="font-medium text-gray-900 dark:text-white">
                           {supplier?.businessName}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <div className="flex items-center space-x-4">
-                            <span>
+                          <div className="flex flex-wrap gap-2 sm:gap-4">
+                            <span className="flex-shrink-0">
                               <span className="font-medium text-green-600 dark:text-green-400">
                                 {quotedCount}
                               </span>{' '}
                               cotizados
                             </span>
-                            <span>
+                            <span className="flex-shrink-0">
                               <span className="font-medium text-red-600 dark:text-red-400">
                                 {notAvailableCount}
                               </span>{' '}
                               no disponibles
                             </span>
-                            <span>
+                            <span className="flex-shrink-0">
                               <span className="font-medium text-gray-600 dark:text-gray-400">
                                 {notQuotedCount}
                               </span>{' '}
@@ -1502,7 +1512,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
                           </div>
                         </div>
                       </div>
-                      <div className="text-right ml-4">
+                      <div className="text-left sm:text-right sm:ml-4 flex-shrink-0">
                         <div
                           className={`font-bold ${
                             isBestTotal
@@ -1533,8 +1543,13 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
       )}
 
       {/* Action Buttons */}
-      <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button onClick={onBack}>← Volver</Button>
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <Button 
+          onClick={onBack}
+          className="w-full sm:w-auto order-2 sm:order-1"
+        >
+          ← Volver
+        </Button>
         <Button
           onClick={handleContinue}
           disabled={
@@ -1544,6 +1559,7 @@ export const CompareQuotations: React.FC<CompareQuotationsProps> = ({
             isSubmitting ||
             loading
           }
+          className="w-full sm:w-auto order-1 sm:order-2"
         >
           {isSubmitting || loading ? (
             <>

@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -92,7 +93,15 @@ export class CreateSupplierQuotationDto {
 
   @IsOptional()
   @IsString()
+  quotationNumber?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  submitQuotation?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

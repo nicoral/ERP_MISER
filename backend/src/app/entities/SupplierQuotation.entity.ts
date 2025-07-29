@@ -56,6 +56,9 @@ export class SupplierQuotation {
   @Column('text', { nullable: true })
   notes: string;
 
+  @Column({ nullable: true })
+  quotationFile: string;
+
   @OneToOne(
     () => QuotationSupplier,
     quotationSupplier => quotationSupplier.supplierQuotation,

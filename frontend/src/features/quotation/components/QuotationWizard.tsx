@@ -618,62 +618,86 @@ export const QuotationWizard: React.FC<QuotationWizardProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex items-center justify-center">
-            {stepTitles.map((title, index) => (
-              <div key={index} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
-                      index <= currentStep
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                    }`}
-                  >
-                    {index + 1}
+          {/* Mobile: Solo mostrar el paso actual */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-medium bg-blue-600 text-white">
+                  {currentStep + 1}
+                </div>
+                <div className="mt-2 text-sm text-center">
+                  <div className="font-medium text-blue-600 dark:text-blue-400">
+                    {stepTitles[currentStep]}
                   </div>
-                  <div className="mt-2 text-xs text-center max-w-20">
-                    <div
-                      className={`font-medium ${
-                        index <= currentStep
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-gray-500 dark:text-gray-400'
-                      }`}
-                    >
-                      {title}
-                    </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Paso {currentStep + 1} de {stepTitles.length}
                   </div>
                 </div>
-                {index < stepTitles.length - 1 && (
-                  <div
-                    className={`w-12 h-0.5 mx-2 ${
-                      index < currentStep
-                        ? 'bg-blue-600'
-                        : 'bg-gray-200 dark:bg-gray-700'
-                    }`}
-                  />
-                )}
               </div>
-            ))}
+            </div>
+          </div>
+
+          {/* Tablet and Desktop: Mostrar todos los pasos */}
+          <div className="hidden md:block">
+            <div className="flex items-center justify-center">
+              <div className="grid grid-cols-5 gap-4 max-w-4xl">
+                {stepTitles.map((title, index) => (
+                  <div key={index} className="flex items-center">
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                          index <= currentStep
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                      <div className="mt-2 text-xs text-center">
+                        <div
+                          className={`font-medium ${
+                            index <= currentStep
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {title}
+                        </div>
+                      </div>
+                    </div>
+                    {index < stepTitles.length - 1 && (
+                      <div
+                        className={`w-12 h-0.5 mx-2 ${
+                          index < currentStep
+                            ? 'bg-blue-600'
+                            : 'bg-gray-200 dark:bg-gray-700'
+                        }`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Step Description */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white truncate">
                 {stepTitles[currentStep]}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                 {stepDescriptions[currentStep]}
               </p>
             </div>
             <Button
               onClick={handleShowExitModal}
-              className="text-white border-red-300 hover:bg-black-50  dark:border-black-600 dark:hover:bg-red-900/20 bg-red-500"
+              className="text-white border-red-300 hover:bg-black-50 dark:border-black-600 dark:hover:bg-red-900/20 bg-red-500 flex-shrink-0"
             >
               🚪 Salir
             </Button>

@@ -11,6 +11,7 @@ import { useQuotationService } from '../../../../hooks/useQuotationService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { Button } from '../../../../components/common/Button';
 import { FormInput } from '../../../../components/common/FormInput';
+import { DocumentUpload } from '../../../../components/common/DocumentUpload';
 import type { Requirement } from '../../../../types/requirement';
 import { useCurrentExchangeRate } from '../../../../hooks/useGeneralSettings';
 import type { RequirementService } from '../../../../types/requirement';
@@ -50,6 +51,8 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
             requirementId: quotationRequest.requirement.id,
             receivedAt: new Date(qs.supplierQuotation.receivedAt),
             validUntil: new Date(qs.supplierQuotation.validUntil),
+            quotationNumber: qs.supplierQuotation.quotationNumber || '',
+            quotationFile: qs.supplierQuotation.quotationFile || '',
             items: qs.supplierQuotation.supplierQuotationItems
               .filter(item => item.requirementArticle) // Filtrar items válidos
               .map(item => ({
@@ -93,9 +96,16 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
 
   const quotationRequestId = quotationRequest.id;
 
-  const { createSupplierQuotation, submitSupplierQuotation, loading, error } =
+  const { createSupplierQuotation, uploadQuotationFile, loading, error } =
     useQuotationService();
   const { showSuccess, showError } = useToast();
+
+  // Mostrar errores cuando cambien
+  useEffect(() => {
+    if (error) {
+      showError('Error', error);
+    }
+  }, [error, showError]);
 
   const [quotations, setQuotations] = useState<
     Record<number, ReceivedQuotation>
@@ -103,6 +113,9 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
   const [editingSupplier, setEditingSupplier] = useState<number | null>(null);
   const [selectedProductsBySupplier, setSelectedProductsBySupplier] = useState<
     Record<number, number[]>
+  >({});
+  const [quotationFiles, setQuotationFiles] = useState<
+    Record<number, File | null>
   >({});
 
   // 1. Agregar hooks y tipos para manejar servicios
@@ -250,12 +263,19 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
         reasonNotAvailable: '',
       }));
 
+      // Obtener el código de cotización del paso anterior
+      const quotationSupplier = quotationRequest.quotationSuppliers.find(
+        qs => qs.supplier.id === editingSupplier
+      );
+      const orderNumber = quotationSupplier?.orderNumber || '';
+
       const newQuotation: ReceivedQuotation = {
         id: Date.now(),
         supplierId: editingSupplier,
         requirementId: requirement.id,
         receivedAt: new Date(),
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        quotationNumber: orderNumber,
         items: initialItems,
         serviceItems: initialServiceItems,
         totalAmount: 0,
@@ -471,88 +491,11 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
     });
   };
 
-  const handleSaveDraft = async (supplierId: number) => {
-    const quotation = quotations[supplierId];
-    if (!quotation) return;
-
-    setQuotations(prev => ({
+  const handleFileUpload = (supplierId: number, file: File | null) => {
+    setQuotationFiles(prev => ({
       ...prev,
-      [supplierId]: {
-        ...prev[supplierId]!,
-        status: 'DRAFT',
-      },
+      [supplierId]: file,
     }));
-
-    const createData: CreateSupplierQuotationDto = {
-      quotationRequestId: quotationRequestId,
-      supplierId: supplierId,
-      notes: quotation.notes || '',
-      items: quotation.items
-        .filter(
-          item =>
-            item.requirementArticleId &&
-            typeof item.requirementArticleId === 'number'
-        ) // Filtrar items que tengan requirementArticleId válido
-        .map(item => ({
-          articleId: item.requirementArticleId!, // Ya verificamos que existe arriba
-          quantity: item.quantity,
-          unitPrice:
-            item.status === QuotationItemStatus.QUOTED
-              ? item.unitPrice
-              : undefined,
-          deliveryTime:
-            item.status === QuotationItemStatus.QUOTED
-              ? item.deliveryTime
-              : undefined,
-          currency: item.currency || 'PEN',
-          notes: item.notes || undefined,
-          status: item.status,
-          reasonNotAvailable: item.reasonNotAvailable || undefined,
-        })),
-      serviceItems: (servicesQuotationItems[supplierId] || [])
-        .filter(item => item.service)
-        .map(item => ({
-          serviceId: item.service.id,
-          unitPrice:
-            item.status === QuotationItemStatus.QUOTED
-              ? item.unitPrice
-              : undefined,
-          deliveryTime:
-            item.status === QuotationItemStatus.QUOTED
-              ? item.deliveryTime
-              : undefined,
-          currency: item.currency || 'PEN',
-          notes: item.notes || undefined,
-          status: item.status,
-          reasonNotAvailable: item.reasonNotAvailable || undefined,
-          duration: item.duration,
-          durationType: item.durationType,
-        })),
-    };
-
-    const createdQuotation = await createSupplierQuotation(createData);
-    if (createdQuotation) {
-      setQuotations(prev => ({
-        ...prev,
-        [supplierId]: {
-          ...prev[supplierId]!,
-          id: createdQuotation.id,
-          status: 'DRAFT',
-          updatedAt: new Date(),
-        },
-      }));
-      showSuccess(
-        'Borrador guardado',
-        'La cotización se ha guardado como borrador exitosamente'
-      );
-      return createdQuotation;
-    } else {
-      showError(
-        'Error al guardar',
-        error || 'No se pudo guardar el borrador. Inténtalo de nuevo.'
-      );
-      return null;
-    }
   };
 
   const handleSubmitQuotation = async (supplierId: number) => {
@@ -562,63 +505,101 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
     }
 
     try {
-      let quotationId = quotation.id;
+      const createData: CreateSupplierQuotationDto = {
+        quotationRequestId: quotationRequestId,
+        supplierId: supplierId,
+        quotationNumber: quotation.quotationNumber || '',
+        notes: quotation.notes || '',
+        submitQuotation: true,
+        items: quotation.items
+          .filter(
+            item =>
+              item.requirementArticleId &&
+              typeof item.requirementArticleId === 'number'
+          )
+          .map(item => ({
+            articleId: item.requirementArticleId!,
+            quantity: item.quantity,
+            unitPrice:
+              item.status === QuotationItemStatus.QUOTED
+                ? item.unitPrice
+                : undefined,
+            deliveryTime:
+              item.status === QuotationItemStatus.QUOTED
+                ? item.deliveryTime
+                : undefined,
+            currency: item.currency || 'PEN',
+            notes: item.notes || undefined,
+            status: item.status,
+            reasonNotAvailable: item.reasonNotAvailable || undefined,
+          })),
+        serviceItems: (servicesQuotationItems[supplierId] || [])
+          .filter(item => item.service)
+          .map(item => ({
+            serviceId: item.service.id,
+            unitPrice:
+              item.status === QuotationItemStatus.QUOTED
+                ? item.unitPrice
+                : undefined,
+            deliveryTime:
+              item.status === QuotationItemStatus.QUOTED
+                ? item.deliveryTime
+                : undefined,
+            currency: item.currency || 'PEN',
+            notes: item.notes || undefined,
+            status: item.status,
+            reasonNotAvailable: item.reasonNotAvailable || undefined,
+            duration: item.duration,
+            durationType: item.durationType,
+          })),
+      };
 
-      // Primero crear la cotización si no existe o tiene ID temporal
-      if (!quotationId || quotationId < 0) {
-        // IDs temporales son menores a 1000
-        const savedQuotation = await handleSaveDraft(supplierId);
+      const createdQuotation = await createSupplierQuotation(createData);
 
-        // Si no se pudo guardar, mostrar error
-        if (!savedQuotation) {
-          showError(
-            'Error al guardar',
-            'No se pudo guardar la cotización antes de enviarla'
+      if (createdQuotation) {
+        // Subir archivo si existe
+        const file = quotationFiles[supplierId];
+        if (file) {
+          const uploadedQuotation = await uploadQuotationFile(
+            createdQuotation.id,
+            file
           );
-          return;
+
+          if (!uploadedQuotation) {
+            showError(
+              'Advertencia',
+              `La cotización se guardó pero hubo un problema al subir el archivo: ${error || 'Error desconocido'}`
+            );
+          }
         }
 
-        // Obtener el ID de la cotización guardada
-        quotationId = savedQuotation.id;
-      }
-
-      // Luego enviar la cotización si tenemos un ID válido
-      if (quotationId && quotationId >= 0) {
-        const submittedQuotation = await submitSupplierQuotation(quotationId);
-
-        if (submittedQuotation) {
-          // Solo actualizar el estado, mantener todos los datos existentes
-          setQuotations(prev => ({
-            ...prev,
-            [supplierId]: {
-              ...prev[supplierId]!,
-              status: 'SUBMITTED',
-              updatedAt: new Date(),
-            },
-          }));
-          showSuccess(
-            'Cotización enviada',
-            'La cotización se ha enviado exitosamente'
-          );
-          setEditingSupplier(null);
-        } else {
-          showError(
-            'Error al enviar cotización',
-            'No se pudo enviar la cotización. Inténtalo de nuevo.'
-          );
-        }
+        setQuotations(prev => ({
+          ...prev,
+          [supplierId]: {
+            ...prev[supplierId]!,
+            id: createdQuotation.id,
+            status: 'SUBMITTED',
+            updatedAt: new Date(),
+          },
+        }));
+        showSuccess(
+          'Cotización guardada y enviada',
+          'La cotización se ha guardado y enviado exitosamente'
+        );
+        setEditingSupplier(null);
       } else {
         showError(
-          'Error al enviar cotización',
-          'No se pudo obtener un ID válido para la cotización'
+          'Error al guardar y enviar cotización',
+          error ||
+            'No se pudo guardar y enviar la cotización. Inténtalo de nuevo.'
         );
       }
     } catch (error) {
       showError(
-        'Error al enviar cotización',
+        'Error al guardar y enviar cotización',
         error instanceof Error
           ? error.message
-          : 'Ocurrió un error al enviar la cotización. Inténtalo de nuevo.'
+          : 'Ocurrió un error al guardar y enviar la cotización. Inténtalo de nuevo.'
       );
     }
   };
@@ -724,8 +705,8 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
 
       {/* Suppliers Tabs */}
       <div className="mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-8">
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+          <div className="flex flex-wrap gap-1 p-1">
             {selectedSuppliers
               .filter(selectedSupplier => selectedSupplier.supplier) // Filtrar proveedores válidos
               .map(selectedSupplier => {
@@ -735,30 +716,34 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
                 const selectedCount = getSelectedProductsCount(supplier.id);
 
                 return (
-                  <button
+                  <div
                     key={supplier.id}
                     onClick={() => setEditingSupplier(supplier.id)}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`flex-shrink-0 px-3 py-2 rounded-md cursor-pointer transition-all duration-200 min-w-0 ${
                       isActive
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                        ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400 font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <div className="flex items-center space-x-2">
-                      <span>{supplier.businessName}</span>
-                      <span className="text-xs text-gray-400">
-                        ({selectedCount} productos)
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+                      <span className="text-sm font-medium truncate">
+                        {supplier.businessName}
                       </span>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}
-                      >
-                        {status}
-                      </span>
+                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                          ({selectedCount} productos)
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(status)}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
-          </nav>
+          </div>
         </div>
       </div>
 
@@ -780,24 +765,11 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
               </div>
               <div className="flex space-x-2">
                 <Button
-                  onClick={() => handleSaveDraft(editingSupplier)}
+                  onClick={() => handleSubmitQuotation(editingSupplier)}
                   className="text-sm"
-                  disabled={loading}
+                  disabled={loading || !editingSupplier}
                 >
-                  💾 Guardar borrador
-                </Button>
-                <Button
-                  onClick={() => {
-                    handleSubmitQuotation(editingSupplier);
-                  }}
-                  className="text-sm"
-                  disabled={
-                    loading ||
-                    !editingSupplier ||
-                    quotations[editingSupplier].status !== 'DRAFT'
-                  }
-                >
-                  ✅ Enviar cotización
+                  ✅ Guardar y Enviar cotización
                 </Button>
               </div>
             </div>
@@ -825,25 +797,30 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
                 }}
               />
               <FormInput
-                label="Válida hasta"
-                type="date"
-                value={
-                  quotations[editingSupplier]?.validUntil
-                    .toISOString()
-                    .split('T')[0] ||
-                  new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split('T')[0]
-                }
+                label="Código de cotización"
+                type="text"
+                value={quotations[editingSupplier]?.quotationNumber || ''}
                 onChange={e => {
                   setQuotations(prev => ({
                     ...prev,
                     [editingSupplier]: {
                       ...prev[editingSupplier]!,
-                      validUntil: new Date(e.target.value),
+                      quotationNumber: e.target.value,
                     },
                   }));
                 }}
+                placeholder="Ingresa el código de cotización..."
+              />
+            </div>
+
+            {/* File Upload */}
+            <div className="mb-6">
+              <DocumentUpload
+                label="Archivo de cotización"
+                accept=".pdf,.doc,.docx,.xls,.xlsx"
+                maxSize={10}
+                onChange={file => handleFileUpload(editingSupplier, file)}
+                currentUrl={quotations[editingSupplier]?.quotationFile}
               />
             </div>
 
@@ -1337,11 +1314,17 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button onClick={onBack}>← Volver</Button>
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <Button
+          onClick={onBack}
+          className="w-full sm:w-auto order-2 sm:order-1"
+        >
+          ← Volver
+        </Button>
         <Button
           onClick={handleContinue}
           disabled={Object.keys(quotations).length === 0 || loading}
+          className="w-full sm:w-auto order-1 sm:order-2"
         >
           Continuar al siguiente paso
         </Button>

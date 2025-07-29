@@ -11,6 +11,8 @@ import {
   Req,
   Res,
   Query,
+  UploadedFile, 
+  UseInterceptors,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { QuotationService } from '../services/quotation.service';
@@ -29,12 +31,13 @@ import { UpdateQuotationBasicDto } from '../dto/quotation/update-quotation-basic
 import {
   UpdateQuotationOrderDto,
   ApplyGeneralTermsDto,
+  SendQuotationOrderDto
 } from '../dto/quotation/update-quotation-order.dto';
-import { SendQuotationOrderDto } from '../dto/quotation/update-quotation-order.dto';
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';
 import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
 import { GeneratePurchaseOrderDto } from '../dto/quotation/generate-purchase-order.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('quotation')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -381,5 +384,16 @@ export class QuotationController {
       console.log(error);
       res.status(400).json({ message: error });
     }
+  }
+
+  @Post('supplier-quotation/:id/file')
+  @RequirePermissions('update_quotation')
+  @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Subida de archivo de cotización de proveedor')
+  async uploadQuotationFile(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return this.quotationService.uploadQuotationFile(+id, file);
   }
 }

@@ -554,8 +554,15 @@ export class QuotationService {
   async createSupplierQuotation(
     createSupplierQuotationDto: CreateSupplierQuotationDto
   ): Promise<SupplierQuotation> {
-    const { quotationRequestId, supplierId, notes, items, serviceItems } =
-      createSupplierQuotationDto;
+    const {
+      quotationRequestId,
+      supplierId,
+      quotationNumber,
+      notes,
+      submitQuotation,
+      items,
+      serviceItems,
+    } = createSupplierQuotationDto;
 
     // Verify quotation request exists and validate type
     const quotationRequest = await this.getQuotationRequestOrders(
@@ -599,8 +606,9 @@ export class QuotationService {
     if (existingQuotation) {
       // Update existing quotation by deleting and recreating items
       await this.supplierQuotationRepository.update(existingQuotation.id, {
-        status: SupplierQuotationStatus.DRAFT,
+        status: submitQuotation ? SupplierQuotationStatus.SUBMITTED : SupplierQuotationStatus.DRAFT,
         notes: notes,
+        quotationNumber: quotationNumber || existingQuotation.quotationNumber,
       });
 
       if (items && items.length > 0) {
@@ -753,12 +761,12 @@ export class QuotationService {
 
     // Create supplier quotation
     const supplierQuotation = this.supplierQuotationRepository.create({
-      quotationNumber: `${quotationRequest.code}-${formatNumber(+supplierId, 3)}`,
+      quotationNumber: quotationNumber || `${quotationRequest.code}-${formatNumber(+supplierId, 3)}`,
       receivedAt: new Date(),
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       currency: 'PEN',
       notes: notes,
-      status: SupplierQuotationStatus.DRAFT,
+      status: submitQuotation ? SupplierQuotationStatus.SUBMITTED : SupplierQuotationStatus.DRAFT,
       quotationSupplier: { id: quotationSupplier.id },
     });
 
@@ -977,6 +985,8 @@ export class QuotationService {
         'quotationSuppliers.supplier',
         'quotationSuppliers.quotationSupplierArticles',
         'quotationSuppliers.quotationSupplierArticles.requirementArticle',
+        'quotationSuppliers.quotationSupplierServices',
+        'quotationSuppliers.quotationSupplierServices.requirementService',
       ]
     );
 
@@ -989,8 +999,15 @@ export class QuotationService {
       );
     }
 
-    const { supplierId, orderNumber, terms, selectedArticles } =
-      updateQuotationOrderDto;
+    const {
+      supplierId,
+      orderNumber,
+      terms,
+      deadline,
+      selectedArticles,
+      selectedServices,
+      sendOrder,
+    } = updateQuotationOrderDto;
 
     // Find the quotation supplier
     const quotationSupplier = quotationRequest.quotationSuppliers.find(
@@ -1003,10 +1020,18 @@ export class QuotationService {
     }
 
     // Update quotation supplier
+    const status = sendOrder ? QuotationSupplierStatus.SENT : QuotationSupplierStatus.SAVED;
+    const sentAt = sendOrder
+      ? new Date()
+      : deadline
+        ? new Date(deadline)
+        : quotationSupplier.sentAt;
+    
     await this.quotationSupplierRepository.update(quotationSupplier.id, {
       orderNumber: orderNumber || quotationSupplier.orderNumber,
       terms: terms || quotationSupplier.terms,
-      status: QuotationSupplierStatus.SAVED,
+      sentAt: sentAt,
+      status: status,
     });
 
     // Update articles if provided
@@ -1038,6 +1063,41 @@ export class QuotationService {
           added.map(articleId => ({
             quotationSupplier: { id: quotationSupplier.id },
             requirementArticle: { id: articleId },
+            quantity: 1,
+          }))
+        );
+      }
+    }
+
+    // Update services if provided
+    if (selectedServices && selectedServices.length > 0) {
+      const { quotationSupplierServices: qSServices } = quotationSupplier;
+      const quotationSupplierServicesIds = qSServices.map(
+        qss => qss.requirementService.id
+      );
+      const selectedServicesIds = selectedServices;
+
+      if (arraysAreEqual(quotationSupplierServicesIds, selectedServicesIds)) {
+        return this.findOneQuotationRequest(quotationRequestId);
+      }
+
+      const { eliminated, added } = compareArraysNumbers(
+        quotationSupplierServicesIds,
+        selectedServicesIds
+      );
+
+      if (eliminated.length > 0) {
+        await this.quotationSupplierServiceRepository.delete({
+          quotationSupplier: { id: quotationSupplier.id },
+          requirementService: In(eliminated),
+        });
+      }
+
+      if (added.length > 0) {
+        await this.quotationSupplierServiceRepository.save(
+          added.map(serviceId => ({
+            quotationSupplier: { id: quotationSupplier.id },
+            requirementService: { id: serviceId },
             quantity: 1,
           }))
         );
@@ -2672,5 +2732,38 @@ export class QuotationService {
     } catch (error) {
       console.error('Error updating purchase order in background:', error);
     }
+  }
+
+  async uploadQuotationFile(
+    id: number,
+    file: Express.Multer.File
+  ): Promise<SupplierQuotation> {
+    const supplierQuotation = await this.supplierQuotationRepository.findOne({
+      where: { id },
+    });
+
+    if (!supplierQuotation) {
+      throw new NotFoundException('Supplier quotation not found');
+    }
+
+    // Eliminar archivo anterior si existe
+    if (supplierQuotation.quotationFile) {
+      await this.storageService.removeFileByUrl(supplierQuotation.quotationFile);
+    }
+
+    // Generar nombre único para el archivo
+    const fileName = `${id}-quotation-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `quotations/${fileName}`;
+
+    // Subir archivo a Supabase Storage
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype
+    );
+
+    // Actualizar la cotización con la URL del archivo
+    supplierQuotation.quotationFile = uploadResult.url;
+    return this.supplierQuotationRepository.save(supplierQuotation);
   }
 }

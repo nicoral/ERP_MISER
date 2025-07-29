@@ -6,6 +6,7 @@ import {
   IsString,
   IsArray,
   IsDateString,
+  IsBoolean,
   ValidateNested,
 } from 'class-validator';
 
@@ -23,9 +24,22 @@ export class UpdateQuotationOrderDto {
   terms?: string;
 
   @IsOptional()
+  @IsDateString()
+  deadline?: string;
+
+  @IsOptional()
   @IsArray()
   @IsNumber({}, { each: true })
   selectedArticles?: number[];
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  selectedServices?: number[];
+
+  @IsOptional()
+  @IsBoolean()
+  sendOrder?: boolean;
 }
 
 export class SendQuotationOrderDto {

@@ -3,7 +3,6 @@ import {
   type SelectedSupplier,
   type QuotationOrder,
   type UpdateQuotationOrderDto,
-  type SendQuotationOrderDto,
   QuotationSupplierStatus,
   type QuotationRequest,
 } from '../../../../types/quotation';
@@ -28,7 +27,6 @@ interface LoadingStates {
   exportingPdf: number | null;
   savingOrder: number | null;
   sendingOrder: number | null;
-  applyingGeneralTerms: boolean;
   sendingAllOrders: boolean;
 }
 
@@ -74,15 +72,21 @@ const ArticleSelection: React.FC<{
 }) => {
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
         <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
           Seleccionar artículos
         </h5>
-        <div className="flex space-x-2">
-          <Button onClick={() => onSelectAll(supplierId)} className="text-xs">
+        <div className="flex flex-wrap gap-1">
+          <Button
+            onClick={() => onSelectAll(supplierId)}
+            className="text-xs px-2 py-1 min-w-0"
+          >
             Seleccionar todos
           </Button>
-          <Button onClick={() => onDeselectAll(supplierId)} className="text-xs">
+          <Button
+            onClick={() => onDeselectAll(supplierId)}
+            className="text-xs px-2 py-1 min-w-0"
+          >
             Deseleccionar
           </Button>
         </div>
@@ -141,15 +145,21 @@ const ServiceSelection: React.FC<{
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
         <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
           Seleccionar servicios
         </h5>
-        <div className="flex space-x-2">
-          <Button onClick={() => onSelectAll(supplierId)} className="text-xs">
+        <div className="flex flex-wrap gap-1">
+          <Button
+            onClick={() => onSelectAll(supplierId)}
+            className="text-xs px-2 py-1 min-w-0"
+          >
             Seleccionar todos
           </Button>
-          <Button onClick={() => onDeselectAll(supplierId)} className="text-xs">
+          <Button
+            onClick={() => onDeselectAll(supplierId)}
+            className="text-xs px-2 py-1 min-w-0"
+          >
             Deseleccionar
           </Button>
         </div>
@@ -246,8 +256,7 @@ const ActionButtons: React.FC<{
   loadingStates: LoadingStates;
   onEditTerms: (supplierId: number) => void;
   onExportPDF: (supplierId: number) => void;
-  onSaveOrder: (supplierId: number) => void;
-  onSendOrder: (supplierId: number) => void;
+  onSaveAndSendOrder: (supplierId: number) => void;
 }> = ({
   supplierId,
   order,
@@ -256,8 +265,7 @@ const ActionButtons: React.FC<{
   loadingStates,
   onEditTerms,
   onExportPDF,
-  onSaveOrder,
-  onSendOrder,
+  onSaveAndSendOrder,
 }) => {
   const totalSelected = selectedArticlesCount + selectedServicesCount;
 
@@ -289,40 +297,24 @@ const ActionButtons: React.FC<{
         )}
       </Button>
       <Button
-        onClick={() => onSaveOrder(supplierId)}
+        onClick={() => onSaveAndSendOrder(supplierId)}
         className="text-xs"
         disabled={
-          totalSelected === 0 || loadingStates.savingOrder === supplierId
+          totalSelected === 0 ||
+          loadingStates.savingOrder === supplierId ||
+          order?.status === 'SENT'
         }
+        variant={order?.status === 'SENT' ? 'outline' : 'primary'}
       >
         {loadingStates.savingOrder === supplierId ? (
           <>
             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-            Guardando...
-          </>
-        ) : (
-          '💾 Guardar'
-        )}
-      </Button>
-      <Button
-        onClick={() => onSendOrder(supplierId)}
-        className="text-xs"
-        disabled={
-          !order ||
-          totalSelected === 0 ||
-          loadingStates.sendingOrder === supplierId
-        }
-        variant={order?.status === 'SENT' ? 'outline' : 'primary'}
-      >
-        {loadingStates.sendingOrder === supplierId ? (
-          <>
-            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-            Enviando...
+            Guardando y enviando...
           </>
         ) : order?.status === 'SENT' ? (
           '✅ Enviada'
         ) : (
-          '📤 Enviar'
+          '💾📤 Guardar y Enviar'
         )}
       </Button>
     </div>
@@ -369,12 +361,10 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     Record<number, Set<number>>
   >({});
   const [editingOrder, setEditingOrder] = useState<number | null>(null);
-  const [deadline, setDeadline] = useState(
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  );
+  const [deadline] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const [editingTerms, setEditingTerms] = useState<string>('');
-  const [generalTerms, setGeneralTerms] = useState<string>(
-    'Términos estándar de cotización'
+  const [editingDeadline, setEditingDeadline] = useState<Date>(
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   );
 
   // Estados de carga optimizados
@@ -383,20 +373,13 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     exportingPdf: null,
     savingOrder: null,
     sendingOrder: null,
-    applyingGeneralTerms: false,
     sendingAllOrders: false,
   });
 
   // Flag para evitar cargas múltiples
   const [hasLoadedData, setHasLoadedData] = useState(false);
 
-  const {
-    updateQuotationOrder,
-    sendQuotationOrder,
-    applyGeneralTermsToAll,
-    sendAllQuotationOrders,
-    error,
-  } = useQuotationService();
+  const { updateQuotationOrder, error } = useQuotationService();
   const { showSuccess, showError } = useToast();
 
   // Memoizar valores calculados
@@ -465,6 +448,9 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     (supplierId: number) => {
       const currentOrder = orders[supplierId];
       setEditingTerms(currentOrder?.terms || 'Términos estándar de cotización');
+      setEditingDeadline(
+        currentOrder?.deadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      );
       setEditingOrder(supplierId);
     },
     [orders]
@@ -487,6 +473,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
         const updateData: UpdateQuotationOrderDto = {
           supplierId,
           terms: editingTerms,
+          deadline: editingDeadline.toISOString().split('T')[0] + 'T00:00:00',
           selectedArticles: selectedArticlesToSend,
           selectedServices: selectedServicesToSend,
         };
@@ -505,11 +492,12 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                 supplierId,
                 requirementId: requirement.id,
                 orderNumber: '',
-                deadline: new Date(deadline),
+                deadline: editingDeadline,
                 status: QuotationSupplierStatus.PENDING,
                 createdAt: new Date(),
               }),
               terms: editingTerms,
+              deadline: editingDeadline,
               updatedAt: new Date(),
             },
           }));
@@ -572,7 +560,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     [quotationRequestId, selectedSuppliers, showSuccess, showError]
   );
 
-  const handleSaveOrder = useCallback(
+  const handleSaveAndSendOrder = useCallback(
     async (supplierId: number) => {
       setLoadingStates(prev => ({ ...prev, savingOrder: supplierId }));
 
@@ -586,6 +574,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
           terms: order.terms,
           selectedArticles: Array.from(selectedArticles[supplierId] || []),
           selectedServices: Array.from(selectedServices[supplierId] || []),
+          sendOrder: true,
         };
 
         const result = await updateQuotationOrder(
@@ -598,17 +587,14 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
             ...prev,
             [supplierId]: {
               ...prev[supplierId]!,
-              status:
-                result.quotationSuppliers.find(
-                  qs => qs.supplier.id === supplierId
-                )?.status || QuotationSupplierStatus.PENDING,
+              status: QuotationSupplierStatus.SENT,
               updatedAt: new Date(),
             },
           }));
 
           showSuccess(
-            'Orden guardada',
-            `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} guardada exitosamente`
+            'Orden guardada y enviada',
+            `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} guardada y enviada exitosamente`
           );
         } else {
           showError(
@@ -633,173 +619,116 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
     ]
   );
 
-  const handleSendOrder = useCallback(
-    async (supplierId: number) => {
-      setLoadingStates(prev => ({ ...prev, sendingOrder: supplierId }));
-
-      try {
-        const order = orders[supplierId];
-        if (!order) return;
-
-        const sendData: SendQuotationOrderDto = {
-          supplierId,
-          orderNumber: order.orderNumber,
-          terms: order.terms,
-        };
-
-        const result = await sendQuotationOrder(quotationRequestId, sendData);
-
-        if (result) {
-          setOrders(prev => ({
-            ...prev,
-            [supplierId]: {
-              ...prev[supplierId]!,
-              status: QuotationSupplierStatus.SENT,
-              updatedAt: new Date(),
-            },
-          }));
-
-          showSuccess(
-            'Orden enviada',
-            `Orden para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName} enviada exitosamente`
-          );
-        } else {
-          showError(
-            'Error al enviar orden',
-            error || 'No se pudo enviar la orden. Inténtalo de nuevo.'
-          );
-        }
-      } finally {
-        setLoadingStates(prev => ({ ...prev, sendingOrder: null }));
-      }
-    },
-    [
-      orders,
-      sendQuotationOrder,
-      quotationRequestId,
-      selectedSuppliers,
-      showSuccess,
-      showError,
-      error,
-    ]
-  );
-
   const handleSendAllOrders = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, sendingAllOrders: true }));
 
     try {
-      const result = await sendAllQuotationOrders(quotationRequestId);
+      // Validar que todas las órdenes tengan productos seleccionados
+      const ordersWithNoProducts: string[] = [];
 
-      if (result) {
+      selectedSuppliers.forEach(selectedSupplier => {
+        const supplierId = selectedSupplier.supplier.id;
+        const selectedArticlesCount = selectedArticles[supplierId]?.size || 0;
+        const selectedServicesCount = selectedServices[supplierId]?.size || 0;
+
+        if (selectedArticlesCount === 0 && selectedServicesCount === 0) {
+          ordersWithNoProducts.push(selectedSupplier.supplier.businessName);
+        }
+      });
+
+      if (ordersWithNoProducts.length > 0) {
+        showError(
+          'Órdenes sin productos',
+          `Las siguientes cotizaciones no tienen productos anexados: ${ordersWithNoProducts.join(', ')}`
+        );
+        return;
+      }
+
+      // Enviar cada orden individualmente
+      const results = await Promise.allSettled(
+        selectedSuppliers.map(async selectedSupplier => {
+          const supplierId = selectedSupplier.supplier.id;
+          const order = orders[supplierId];
+
+          if (!order) return null;
+
+          const updateData: UpdateQuotationOrderDto = {
+            supplierId,
+            orderNumber: order.orderNumber,
+            terms: order.terms,
+            selectedArticles: Array.from(selectedArticles[supplierId] || []),
+            selectedServices: Array.from(selectedServices[supplierId] || []),
+            sendOrder: true,
+          };
+
+          return await updateQuotationOrder(quotationRequestId, updateData);
+        })
+      );
+
+      // Verificar resultados
+      const successfulOrders: string[] = [];
+      const failedOrders: string[] = [];
+
+      results.forEach((result, index) => {
+        const supplier = selectedSuppliers[index];
+        if (result.status === 'fulfilled' && result.value) {
+          successfulOrders.push(supplier.supplier.businessName);
+        } else {
+          failedOrders.push(supplier.supplier.businessName);
+        }
+      });
+
+      // Actualizar estado de órdenes exitosas
+      if (successfulOrders.length > 0) {
         setOrders(prevOrders => {
           const updatedOrders: Record<number, QuotationOrder> = {};
           Object.keys(prevOrders).forEach(supplierId => {
             const supplierIdNum = parseInt(supplierId);
+            const supplier = selectedSuppliers.find(
+              s => s.supplier.id === supplierIdNum
+            );
+            const wasSuccessful = successfulOrders.includes(
+              supplier?.supplier.businessName || ''
+            );
+
             updatedOrders[supplierIdNum] = {
               ...prevOrders[supplierIdNum],
-              status: QuotationSupplierStatus.SENT,
+              status: wasSuccessful
+                ? QuotationSupplierStatus.SENT
+                : prevOrders[supplierIdNum].status,
             };
           });
           return updatedOrders;
         });
+      }
 
+      // Mostrar mensajes de resultado
+      if (successfulOrders.length > 0 && failedOrders.length === 0) {
         showSuccess(
           'Órdenes enviadas',
           'Todas las órdenes se han enviado exitosamente'
         );
+      } else if (successfulOrders.length > 0 && failedOrders.length > 0) {
+        showError(
+          'Envío parcial',
+          `Órdenes enviadas: ${successfulOrders.join(', ')}. Fallidas: ${failedOrders.join(', ')}`
+        );
       } else {
         showError(
           'Error al enviar órdenes',
-          error || 'No se pudieron enviar las órdenes. Inténtalo de nuevo.'
+          'No se pudieron enviar las órdenes. Inténtalo de nuevo.'
         );
       }
     } finally {
       setLoadingStates(prev => ({ ...prev, sendingAllOrders: false }));
     }
   }, [
-    sendAllQuotationOrders,
+    selectedSuppliers,
+    orders,
+    selectedArticles,
+    selectedServices,
+    updateQuotationOrder,
     quotationRequestId,
-    showSuccess,
-    showError,
-    error,
-  ]);
-
-  const handleApplyGeneralTermsToAll = useCallback(async () => {
-    setLoadingStates(prev => ({ ...prev, applyingGeneralTerms: true }));
-
-    try {
-      const result = await applyGeneralTermsToAll(quotationRequestId, {
-        terms: generalTerms,
-        deadline: new Date(deadline),
-        selectedArticles:
-          requirement.requirementArticles.map(ra => ({
-            articleId: ra.id,
-            quantity: ra.quantity,
-          })) || [],
-        selectedServices:
-          requirement.requirementServices?.map(rs => ({
-            serviceId: rs.service.id,
-            duration: rs.duration || 0,
-            durationType: rs.durationType || 'DIA',
-          })) || [],
-      });
-
-      if (result) {
-        const newOrders: Record<number, QuotationOrder> = {};
-        const newSelectedArticles: Record<number, Set<number>> = {};
-        const newSelectedServices: Record<number, Set<number>> = {};
-
-        result.quotationSuppliers.forEach(quotationSupplier => {
-          const supplierId = quotationSupplier.supplier.id;
-
-          newOrders[supplierId] = {
-            id: quotationSupplier.id,
-            supplierId,
-            requirementId: requirement.id,
-            orderNumber: quotationSupplier.orderNumber || '',
-            terms: quotationSupplier.terms || '',
-            deadline: new Date(deadline),
-            status: quotationSupplier.status,
-            createdAt: new Date(quotationSupplier.createdAt),
-            updatedAt: new Date(quotationSupplier.updatedAt),
-          };
-
-          newSelectedArticles[supplierId] = new Set(
-            quotationSupplier.quotationSupplierArticles.map(
-              qsa => qsa.requirementArticle.id
-            )
-          );
-          newSelectedServices[supplierId] = new Set(
-            quotationSupplier.quotationSupplierServices.map(
-              qss => qss.requirementService.id
-            )
-          );
-        });
-
-        setOrders(newOrders);
-        setSelectedArticles(newSelectedArticles);
-        setSelectedServices(newSelectedServices);
-
-        showSuccess(
-          'Términos aplicados',
-          'Se han aplicado los términos generales y guardado todas las órdenes con todos los artículos y servicios seleccionados'
-        );
-      }
-    } catch {
-      showError(
-        'Error al aplicar términos',
-        'No se pudieron aplicar los términos generales a todas las órdenes'
-      );
-    } finally {
-      setLoadingStates(prev => ({ ...prev, applyingGeneralTerms: false }));
-    }
-  }, [
-    applyGeneralTermsToAll,
-    quotationRequestId,
-    generalTerms,
-    deadline,
-    requirement.requirementArticles,
-    requirement.requirementServices,
     showSuccess,
     showError,
   ]);
@@ -967,44 +896,6 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
         </p>
       </div>
 
-      {/* Global Settings */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-        <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-          Configuración General
-        </h4>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInput
-              label="Fecha límite de cotización"
-              type="date"
-              value={deadline.toISOString().split('T')[0]}
-              onChange={e => setDeadline(new Date(e.target.value))}
-            />
-          </div>
-          <div className="space-y-3">
-            <FormInput
-              label="Términos generales de cotización"
-              type="textarea"
-              value={generalTerms}
-              onChange={e => setGeneralTerms(e.target.value)}
-              placeholder="Ingresa los términos generales que se aplicarán a todas las órdenes..."
-            />
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={handleApplyGeneralTermsToAll}
-                disabled={loadingStates.applyingGeneralTerms}
-                className="text-sm bg-blue-500 text-white"
-              >
-                {loadingStates.applyingGeneralTerms
-                  ? 'Aplicando...'
-                  : 'Aplicar términos y crear órdenes'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Suppliers Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {selectedSuppliers.map(selectedSupplier => {
@@ -1040,6 +931,16 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
               <div className="p-4">
                 {isEditing ? (
                   <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormInput
+                        label="Fecha límite de cotización"
+                        type="date"
+                        value={editingDeadline.toISOString().split('T')[0]}
+                        onChange={e =>
+                          setEditingDeadline(new Date(e.target.value))
+                        }
+                      />
+                    </div>
                     <FormInput
                       label="Términos de cotización"
                       type="textarea"
@@ -1120,8 +1021,7 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
                       loadingStates={loadingStates}
                       onEditTerms={handleEditTerms}
                       onExportPDF={handleExportPDF}
-                      onSaveOrder={handleSaveOrder}
-                      onSendOrder={handleSendOrder}
+                      onSaveAndSendOrder={handleSaveAndSendOrder}
                     />
                   </div>
                 )}
@@ -1196,11 +1096,17 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-        <Button onClick={onBack}>← Volver</Button>
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <Button
+          onClick={onBack}
+          className="w-full sm:w-auto order-2 sm:order-1"
+        >
+          ← Volver
+        </Button>
         <Button
           onClick={handleContinue}
           disabled={statistics.totalOrders === 0}
+          className="w-full sm:w-auto order-1 sm:order-2"
         >
           Continuar al siguiente paso
         </Button>
