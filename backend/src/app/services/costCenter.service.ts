@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { In, IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository, DataSource } from 'typeorm';
 import { CostCenter } from '../entities/CostCenter.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateCostCenterDto } from '../dto/costCenter/create-costCenter.dto';
@@ -19,7 +19,10 @@ export class CostCenterService {
   @InjectRepository(CostCenter)
   private readonly costCenterRepository: Repository<CostCenter>;
 
-  constructor(private readonly excelImportService: ExcelImportService) {}
+  constructor(
+    private readonly excelImportService: ExcelImportService,
+    private readonly dataSource: DataSource
+  ) {}
 
   async findAllCostCenters(page: number, limit: number, search?: string) {
     const query = this.costCenterRepository.createQueryBuilder('costCenter');
@@ -187,6 +190,15 @@ export class CostCenterService {
       const costCenter = costCenters[i];
       const rowNumber = i + 2; // +2 porque Excel empieza en 1 y la primera fila son headers
 
+      // Validar ID
+      if (!costCenter.id || costCenter.id <= 0) {
+        errors.push({
+          row: rowNumber,
+          error: 'El ID es obligatorio y debe ser mayor a 0',
+        });
+        continue;
+      }
+
       // Validar descripción
       if (
         !costCenter.description ||
@@ -198,13 +210,24 @@ export class CostCenterService {
         });
       }
 
+      // Verificar si el ID ya existe
+      const existingCostCenter = await this.costCenterRepository.findOne({
+        where: { id: costCenter.id },
+      });
+      if (existingCostCenter) {
+        errors.push({
+          row: rowNumber,
+          error: `El ID '${costCenter.id}' ya existe`,
+        });
+      }
+
       // Validar código si se proporciona
       if (costCenter.code && costCenter.code.trim().length > 0) {
         // Verificar si el código ya existe
-        const existingCostCenter = await this.costCenterRepository.findOne({
+        const existingCostCenterByCode = await this.costCenterRepository.findOne({
           where: { code: costCenter.code },
         });
-        if (existingCostCenter) {
+        if (existingCostCenterByCode) {
           errors.push({
             row: rowNumber,
             error: `El código '${costCenter.code}' ya existe`,
@@ -214,13 +237,14 @@ export class CostCenterService {
 
       // Validar equipo padre si se especifica
       if (costCenter.parentCode && costCenter.parentCode.trim().length > 0) {
-        const parentCostCenter = await this.costCenterRepository.findOne({
-          where: { code: costCenter.parentCode },
-        });
-        if (!parentCostCenter) {
+        // Verificar que el equipo padre esté definido en el archivo recibido
+        const parentExists = costCenters.some(
+          cc => cc.code === costCenter.parentCode && cc.id !== costCenter.id
+        );
+        if (!parentExists) {
           errors.push({
             row: rowNumber,
-            error: `El equipo padre '${costCenter.parentCode}' no existe`,
+            error: `El equipo padre '${costCenter.parentCode}' no está definido en el archivo`,
           });
         }
       }
@@ -254,20 +278,12 @@ export class CostCenterService {
             })) || undefined;
         }
 
-        // Crear el equipo
-        const newCostCenter = this.costCenterRepository.create({
-          description: costCenter.description,
-          code: costCenter.code,
-          serial: costCenter.serial,
-          codeMine: costCenter.codeMine,
-          model: costCenter.model,
-          brand: costCenter.brand,
-          licensePlate: costCenter.licensePlate,
-          owner: costCenter.owner,
-          parent: parentCostCenter,
-        });
+        // Crear el centro de costo con ID específico
+        await this.forceInsertCostCenterWithId(
+          costCenter,
+          parentCostCenter?.id
+        );
 
-        await this.costCenterRepository.save(newCostCenter);
         results.success++;
       } catch (error) {
         results.errors.push({
@@ -278,6 +294,52 @@ export class CostCenterService {
     }
 
     return results;
+  }
+
+  /**
+   * Fuerza la inserción de un centro de costo con ID específico y reinicia la secuencia
+   */
+  private async forceInsertCostCenterWithId(
+    costCenterData: ImportCostCenterRowDto,
+    parentId?: number
+  ): Promise<CostCenter> {
+    try {
+      // Forzar inserción con ID específico
+      const insertQuery = `
+        INSERT INTO cost_center (
+          id, description, code, serial, code_mine, model, brand, 
+          license_plate, owner, parent_id, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `;
+
+      await this.dataSource.query(insertQuery, [
+        costCenterData.id,
+        costCenterData.description,
+        costCenterData.code || null,
+        costCenterData.serial || null,
+        costCenterData.codeMine || null,
+        costCenterData.model || null,
+        costCenterData.brand || null,
+        costCenterData.licensePlate || null,
+        costCenterData.owner || null,
+        parentId || null,
+        new Date(),
+        new Date(),
+      ]);
+
+      // Reiniciar la secuencia
+      await this.dataSource.query(`
+        SELECT setval('cost_center_id_seq', (SELECT MAX(id) FROM cost_center));
+      `);
+
+      // Retornar el centro de costo creado
+      const costCenter = await this.findOneCostCenter(costCenterData.id!);
+      return costCenter;
+    } catch (error) {
+      console.error(`FORCE INSERT - ERROR: ${error.message}`);
+      console.error(`FORCE INSERT - Stack trace: ${error.stack}`);
+      throw error;
+    }
   }
 
   generateCostCenterTemplate(): Buffer {

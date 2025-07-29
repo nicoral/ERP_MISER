@@ -1,4 +1,5 @@
 export interface ImportCostCenterRowDto {
+  id?: number; // ID específico para el centro de costo
   description: string;
   code?: string;
   serial?: string;

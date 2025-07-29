@@ -157,6 +157,7 @@ export class ExcelImportService {
 
       // Validar encabezados requeridos
       const requiredHeaders = [
+        'ID',
         'Descripción',
         'Código',
         'Serial',
@@ -191,15 +192,16 @@ export class ExcelImportService {
         }
 
         const costCenterData: ImportCostCenterRowDto = {
-          description: String(row[0] || '').trim(),
-          code: String(row[1] || '').trim() || undefined,
-          serial: String(row[2] || '').trim() || undefined,
-          codeMine: String(row[3] || '').trim() || undefined,
-          model: String(row[4] || '').trim() || undefined,
-          brand: String(row[5] || '').trim() || undefined,
-          licensePlate: String(row[6] || '').trim() || undefined,
-          owner: String(row[7] || '').trim() || undefined,
-          parentCode: String(row[8] || '').trim() || undefined,
+          id: row[0] ? Number(row[0]) : undefined,
+          description: String(row[1] || '').trim(),
+          code: String(row[2] || '').trim() || undefined,
+          serial: String(row[3] || '').trim() || undefined,
+          codeMine: String(row[4] || '').trim() || undefined,
+          model: String(row[5] || '').trim() || undefined,
+          brand: String(row[6] || '').trim() || undefined,
+          licensePlate: String(row[7] || '').trim() || undefined,
+          owner: String(row[8] || '').trim() || undefined,
+          parentCode: String(row[9] || '').trim() || undefined,
         };
 
         costCenters.push(costCenterData);
@@ -635,6 +637,7 @@ export class ExcelImportService {
   generateCostCenterTemplate(): Buffer {
     const template = [
       [
+        'ID',
         'Descripción',
         'Código',
         'Serial',
@@ -646,6 +649,7 @@ export class ExcelImportService {
         'Equipo Padre',
       ],
       [
+        '1',
         'Excavadora CAT 320',
         'CAT001',
         'SN123456',
@@ -656,8 +660,9 @@ export class ExcelImportService {
         'Empresa Minera S.A.',
         '',
       ],
-      ['Cargador Frontal', '', '', '', '', '', '', '', 'CAT001'],
+      ['2', 'Cargador Frontal', '', '', '', '', '', '', '', 'CAT001'],
       [
+        '3',
         'Camión Volquete',
         'VOL001',
         'SN345678',
@@ -674,6 +679,7 @@ export class ExcelImportService {
 
     // Configurar el ancho de las columnas
     const columnWidths = [
+      { wch: 8 },  // ID
       { wch: 30 }, // Descripción
       { wch: 15 }, // Código
       { wch: 15 }, // Serial

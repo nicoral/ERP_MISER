@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 import { options } from './dataSource';
 import { Employee } from '../../app/entities/Employee.entity';
@@ -86,6 +87,14 @@ import { FuelStockMovement } from '../../app/entities/FuelStockMovement.entity';
       ],
     }),
   ],
-  exports: [TypeOrmModule],
+  providers: [
+    {
+      provide: DataSource,
+      useFactory: () => {
+        return new DataSource(options);
+      },
+    },
+  ],
+  exports: [TypeOrmModule, DataSource],
 })
 export class DatabaseModule {}
