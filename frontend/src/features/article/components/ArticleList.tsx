@@ -15,8 +15,6 @@ import {
 import type { Article, ArticleFilters } from '../../../types/article';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../../config/constants';
-import { Modal } from '../../../components/common/Modal';
-import { ArticleDetails } from './ArticleDetails';
 import { useArticles, useDeleteArticle } from '../hooks/useArticle';
 import { hasPermission } from '../../../utils/permissions';
 import { useToast } from '../../../contexts/ToastContext';
@@ -30,8 +28,6 @@ export const ArticleList = () => {
   const [filters, setFilters] = useState<ArticleFilters>({ search: '' });
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
@@ -133,10 +129,9 @@ export const ArticleList = () => {
   const actions: TableAction<Article>[] = [
     {
       icon: <EyeIcon className="w-5 h-5 text-green-600" />,
-      label: WAREHOUSE_TEXTS.articles.table.actions.view,
+      label: 'Ver Detalle',
       onClick: (article: Article) => {
-        setSelectedArticle(article);
-        setShowDetailsModal(true);
+        navigate(ROUTES.ARTICLE_VIEW.replace(':id', article.id.toString()));
       },
     },
     ...(hasPermission('update_articles')
@@ -248,14 +243,6 @@ export const ArticleList = () => {
           pageSize={10}
         />
       </div>
-
-      <Modal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        title={`📦 ${selectedArticle?.name ?? ''}`}
-      >
-        {selectedArticle && <ArticleDetails article={selectedArticle} />}
-      </Modal>
 
       <ExcelImportModal
         isOpen={showImportModal}

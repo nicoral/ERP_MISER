@@ -1,15 +1,36 @@
 import { createApiCall } from './httpInterceptor';
 import type { PurchaseOrder } from '../../types/purchaseOrder';
+import type { PaginatedResponse } from '../../types/generic';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/purchase-order`;
 
 export const purchaseOrderService = {
   // Obtener todas las órdenes de compra
-  async getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
-    const response = await createApiCall<PurchaseOrder[]>(BASE_URL, {
+  async getAllPurchaseOrders(
+    page: number,
+    limit: number,
+    type: 'ARTICLE' | 'SERVICE'
+  ): Promise<PaginatedResponse<PurchaseOrder>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    queryParams.append('type', type);
+
+    const response = await createApiCall<{
+      data: PurchaseOrder[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`${BASE_URL}?${queryParams.toString()}`, {
       method: 'GET',
     });
-    return response;
+    return {
+      data: response.data,
+      total: response.total,
+      page: response.page,
+      pageSize: response.limit,
+      totalPages: Math.ceil(response.total / response.limit),
+    };
   },
 
   // Obtener órdenes de compra por cotización y proveedor

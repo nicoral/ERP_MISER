@@ -120,6 +120,8 @@ export const SIDEBAR_TEXTS = {
   entryPart: 'Parte de ingreso',
   exitPart: 'Parte de salida',
   fuelControl: 'Combustible',
+  purchaseOrdersArticles: 'Ordenes de compra',
+  purchaseOrdersServices: 'Ordenes de servicios',
 };
 
 export const HEADER_TEXTS = {

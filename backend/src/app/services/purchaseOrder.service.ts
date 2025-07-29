@@ -497,8 +497,16 @@ export class PurchaseOrderService {
   /**
    * Método auxiliar para encontrar todas las órdenes de compra
    */
-  async findAll(): Promise<PurchaseOrder[]> {
-    return this.purchaseOrderRepository.find({
+  async findAll(page: number, limit: number, type: 'ARTICLE' | 'SERVICE'): Promise<{
+    data: PurchaseOrder[];
+    total: number;
+  }> {
+    const [purchaseOrders, total] = await this.purchaseOrderRepository.findAndCount({
+      where: {
+        requirement: {
+          type: type,
+        },
+      },
       relations: [
         'quotationRequest',
         'supplier',
@@ -509,7 +517,14 @@ export class PurchaseOrderService {
         'costCenterEntity',
       ],
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data: purchaseOrders,
+      total,
+    };
   }
 
   /**

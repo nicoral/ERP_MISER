@@ -17,11 +17,15 @@ import {
   useUpdateArticle,
 } from '../hooks/useArticle';
 import { useWarehouses } from '../../warehouse/hooks/useWarehouse';
-import { uploadArticleImage } from '../../../services/api/articleService';
+import {
+  uploadArticleImage,
+  uploadArticleTechnicalSheet,
+} from '../../../services/api/articleService';
 import { FormSelect } from '../../../components/common/FormSelect';
 import { PlusIcon, TrashIcon } from '../../../components/common/Icons';
 import type { Warehouse } from '../../../types/warehouse';
 import { ImagePreview } from '../../../components/common/ImagePreview';
+import { DocumentUpload } from '../../../components/common/DocumentUpload';
 import type {
   Brand,
   WarehouseStock,
@@ -76,6 +80,8 @@ export const ArticleForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedTechnicalSheet, setSelectedTechnicalSheet] =
+    useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +106,13 @@ export const ArticleForm = () => {
 
       if (selectedFile) {
         await uploadArticleImage(savedArticle.id, selectedFile);
+      }
+
+      if (selectedTechnicalSheet) {
+        await uploadArticleTechnicalSheet(
+          savedArticle.id,
+          selectedTechnicalSheet
+        );
       }
 
       navigate(ROUTES.ARTICLES);
@@ -365,6 +378,22 @@ export const ArticleForm = () => {
               }}
             />
           </div>
+        </div>
+
+        {/* Ficha Técnica */}
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+            📄 Ficha Técnica (Opcional)
+          </h3>
+          <DocumentUpload
+            currentUrl={article?.technicalSheetUrl}
+            onChange={file => {
+              setSelectedTechnicalSheet(file);
+            }}
+            accept=".pdf,.doc,.docx,.txt"
+            maxSize={10}
+            label="Subir Ficha Técnica"
+          />
         </div>
 
         {/* Configuración de Almacenes */}

@@ -36,6 +36,7 @@ export const ROUTES = {
   ARTICLES: '/articles',
   ARTICLE_CREATE: '/articles/create',
   ARTICLE_EDIT: '/articles/:id/edit',
+  ARTICLE_VIEW: '/articles/:id/view',
   SERVICES: '/services',
   SUPPLIERS: '/suppliers',
   SUPPLIERS_CREATE: '/suppliers/create',
@@ -76,6 +77,8 @@ export const ROUTES = {
   FUEL_CONTROL_DETAILS: '/fuel-control/:id/details',
   FUEL_CONTROL_EDIT: '/fuel-control/:id/edit',
   FUEL_CONTROL_CREATE: '/fuel-control/create',
+  PURCHASE_ORDERS_ARTICLES: '/purchase-orders/articles',
+  PURCHASE_ORDERS_SERVICES: '/purchase-orders/services',
 } as const;
 
 export const MODULES = [

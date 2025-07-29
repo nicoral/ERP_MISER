@@ -517,6 +517,16 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
                 </option>
               ))}
             </FormSelect>
+
+            <FormSelect
+              id="quotation"
+              name="quotation"
+              label="Tipo"
+              onChange={handleChange}
+            >
+              <option value="ARTICLE">Articulo</option>
+              <option value="SERVICE">Combustible Cisterna</option>
+            </FormSelect>
           </div>
 
           <div className="mt-4">

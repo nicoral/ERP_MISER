@@ -45,6 +45,9 @@ export class CreateArticleDto {
   brandId: number;
 
   @IsOptional()
+  technicalSheetUrl?: string;
+
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => CreateArticleWarehouseDto)
   warehouseArticles: CreateArticleWarehouseDto[];

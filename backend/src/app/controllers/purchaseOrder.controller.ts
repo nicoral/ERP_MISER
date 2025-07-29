@@ -7,6 +7,7 @@ import {
   Delete,
   UseGuards,
   Res,
+  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { PurchaseOrderService } from '../services/purchaseOrder.service';
@@ -24,8 +25,12 @@ export class PurchaseOrderController {
   @Get()
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener todas las órdenes de compra')
-  findAll() {
-    return this.purchaseOrderService.findAll();
+  findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('type') type: 'ARTICLE' | 'SERVICE' = 'ARTICLE'
+  ) {
+    return this.purchaseOrderService.findAll(+page, +limit, type);
   }
 
   @Get(':id')

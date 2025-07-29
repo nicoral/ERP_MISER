@@ -17,6 +17,7 @@ import { Dashboard } from './pages/Dashboard';
 import { AuthProvider } from './contexts/AuthContext';
 import { PrivateRoute } from './components/common/PrivateRoute';
 import { ArticleList } from './features/article/components/ArticleList';
+import { ArticleView } from './features/article/components/ArticleView';
 import { ServiceList } from './features/service/components/ServiceList';
 import { ServiceForm } from './features/service/components/ServiceForm';
 import { ServiceDetails } from './features/service/components/ServiceDetails';
@@ -58,6 +59,7 @@ import { FuelControlList } from './features/fuelControl/components/FuelControlLi
 import { FuelControlOutputs } from './features/fuelControl/components/FuelControlOutputs';
 import { SupplierView } from './features/supplier/components/SupplierView';
 import { WarehouseView } from './features/warehouse/components/WarehouseView';
+import { PurchaseOrderList } from './features/puchaseOrder/components/purchaseOrderList';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -91,6 +93,7 @@ const AppRoutes = () => {
           <Route path={ROUTES.ARTICLES} element={<ArticleList />} />
           <Route path={ROUTES.ARTICLE_CREATE} element={<ArticleForm />} />
           <Route path={ROUTES.ARTICLE_EDIT} element={<ArticleForm />} />
+          <Route path={ROUTES.ARTICLE_VIEW} element={<ArticleView />} />
           <Route path={ROUTES.SERVICES} element={<ServiceList />} />
           <Route path={`${ROUTES.SERVICES}/create`} element={<ServiceForm />} />
           <Route
@@ -202,6 +205,14 @@ const AppRoutes = () => {
             path={ROUTES.FUEL_CONTROL_DETAILS}
             element={<FuelControlOutputs />}
           />
+          <Route
+            path={ROUTES.PURCHASE_ORDERS_ARTICLES}
+            element={<PurchaseOrdersArticlesRoute />}
+          />
+          <Route
+            path={ROUTES.PURCHASE_ORDERS_SERVICES}
+            element={<PurchaseOrdersServicesRoute />}
+          />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
@@ -230,6 +241,9 @@ const PaymentsServicesRoute = () => <PaymentList type="SERVICE" />;
 
 const PaymentArticlesDetailsRoute = () => <PaymentDetails type="ARTICLE" />;
 const PaymentServicesDetailsRoute = () => <PaymentDetails type="SERVICE" />;
+
+const PurchaseOrdersArticlesRoute = () => <PurchaseOrderList type="ARTICLE" />;
+const PurchaseOrdersServicesRoute = () => <PurchaseOrderList type="SERVICE" />;
 
 function App() {
   return (

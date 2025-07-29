@@ -9,6 +9,25 @@ import type { PaginatedResponse } from '../../types/generic';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/articles`;
 
+export const uploadArticleTechnicalSheet = async (
+  id: number,
+  file: File
+): Promise<Article> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await createApiCall<Article>(
+    `${BASE_URL}/${id}/technical-sheet`,
+    {
+      method: 'POST',
+      body: formData,
+    },
+    false,
+    true
+  );
+  return response;
+};
+
 export const articleService = {
   async getArticles(
     page: number = 1,
@@ -83,6 +102,22 @@ export const articleService = {
 
     const response = await createApiCall<Article>(
       `${BASE_URL}/${id}/image`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
+    return response;
+  },
+
+  async uploadArticleTechnicalSheet(id: number, file: File): Promise<Article> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await createApiCall<Article>(
+      `${BASE_URL}/${id}/technical-sheet`,
       {
         method: 'POST',
         body: formData,

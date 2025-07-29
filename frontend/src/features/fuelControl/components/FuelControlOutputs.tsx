@@ -523,9 +523,12 @@ export const FuelControlOutputs: React.FC = () => {
               <h3 className="text-lg font-semibold mb-2">Firmas</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {[
-                  { label: 'Cisternero', date: fuelControl?.firstSignedAt },
                   {
-                    label: 'Administración',
+                    label: 'Operador de Cisterna de Combustible',
+                    date: fuelControl?.firstSignedAt,
+                  },
+                  {
+                    label: 'Ingeniero residente',
                     date: fuelControl?.secondSignedAt,
                   },
                   { label: 'Logística', date: fuelControl?.thirdSignedAt },

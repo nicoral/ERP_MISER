@@ -194,6 +194,27 @@ export class ArticleService {
     return this.articleRepository.save(article);
   }
 
+  async updateTechnicalSheet(id: number, file: Express.Multer.File): Promise<Article> {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+    if (article.technicalSheetUrl) {
+      await this.storageService.removeFileByUrl(article.technicalSheetUrl);
+    }
+    const fileName = `${id}-technical-sheet-${Date.now()}.${file.originalname.split('.').pop()}`;
+    const path = `articles/technical-sheets/${fileName}`;
+    const uploadResult = await this.storageService.uploadFile(
+      path,
+      file.buffer,
+      file.mimetype
+    );
+    article.technicalSheetUrl = uploadResult.url;
+    return this.articleRepository.save(article);
+  }
+
   async remove(id: number): Promise<void> {
     const article = await this.findOne(id);
     await this.articleRepository.softRemove(article);

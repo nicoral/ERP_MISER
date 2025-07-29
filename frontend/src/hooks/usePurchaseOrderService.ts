@@ -3,10 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/api/purchaseOrderService';
 import type { PurchaseOrder } from '../types/purchaseOrder';
 
-export const usePurchaseOrders = () => {
+export const usePurchaseOrders = (
+  page: number,
+  limit: number,
+  type: 'ARTICLE' | 'SERVICE'
+) => {
   return useQuery({
-    queryKey: ['purchase-orders'],
-    queryFn: purchaseOrderService.getAllPurchaseOrders,
+    queryKey: ['purchase-orders', page, limit, type],
+    queryFn: () => purchaseOrderService.getAllPurchaseOrders(page, limit, type),
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    retry: false,
   });
 };
 

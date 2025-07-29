@@ -93,6 +93,17 @@ export class ArticleController {
     return this.articleService.updateImage(id, file);
   }
 
+  @Post(':id/technical-sheet')
+  @RequirePermissions('update_articles')
+  @UseInterceptors(FileInterceptor('file'))
+  @AuditDescription('Actualización de ficha técnica de artículo')
+  async uploadTechnicalSheet(
+    @Param('id') id: number,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return this.articleService.updateTechnicalSheet(id, file);
+  }
+
   @Delete(':id')
   @RequirePermissions('delete_articles')
   @AuditDescription('Eliminación de artículo')

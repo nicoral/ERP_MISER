@@ -44,6 +44,9 @@ export class Article {
   @Column('varchar', { length: 255, name: 'image_url', nullable: true })
   imageUrl: string;
 
+  @Column('varchar', { length: 255, name: 'technical_sheet_url', nullable: true })
+  technicalSheetUrl: string;
+
   @OneToMany(
     () => WarehouseArticle,
     warehouseArticle => warehouseArticle.article,

@@ -9,6 +9,7 @@ export interface Article {
   rotationClassification: string;
   active: boolean;
   imageUrl?: string;
+  technicalSheetUrl?: string;
   warehouseArticles: WarehouseStock[];
   brand: Brand;
   createdAt: Date;
@@ -60,5 +61,6 @@ export interface ArticleCreateDto {
   active: boolean;
   brandId: number;
   imageUrl?: string;
+  technicalSheetUrl?: string;
   warehouseArticles: WarehouseStockCreate[];
 }

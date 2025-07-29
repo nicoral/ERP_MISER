@@ -125,6 +125,12 @@ const menuItems: MenuItem[] = [
         icon: <CalculatorIcon className="w-4 h-4" />,
       },
       {
+        label: SIDEBAR_TEXTS.purchaseOrdersArticles,
+        path: ROUTES.PURCHASE_ORDERS_ARTICLES,
+        permission: ['view_quotations'],
+        icon: <ShoppingCartIcon className="w-4 h-4" />,
+      },
+      {
         label: SIDEBAR_TEXTS.payments,
         path: ROUTES.PAYMENTS_ARTICLES,
         permission: ['view_payments'],
@@ -166,6 +172,12 @@ const menuItems: MenuItem[] = [
         path: ROUTES.QUOTATIONS_SERVICES,
         permission: ['view_quotations'],
         icon: <CalculatorIcon className="w-4 h-4" />,
+      },
+      {
+        label: SIDEBAR_TEXTS.purchaseOrdersServices,
+        path: ROUTES.PURCHASE_ORDERS_SERVICES,
+        permission: ['view_quotations'],
+        icon: <ShoppingCartIcon className="w-4 h-4" />,
       },
       {
         label: SIDEBAR_TEXTS.payments,
