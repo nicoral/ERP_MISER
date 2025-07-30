@@ -1,18 +1,38 @@
 import { createApiCall } from './httpInterceptor';
-import type { EntryPart } from '../../types/entryPart';
 import type {
+  EntryPart,
   CreateEntryPartDto,
   UpdateEntryPartDto,
 } from '../../types/entryPart';
+import { EntryPartType } from '../../types/entryPart';
+import type { PaginatedResponse } from '../../types/generic';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/entry-parts`;
 
 export const entryPartService = {
-  async getEntryParts(): Promise<EntryPart[]> {
-    const response = await createApiCall<EntryPart[]>(BASE_URL, {
-      method: 'GET',
-    });
-    return response;
+  async getEntryParts(
+    page: number,
+    limit: number,
+    type: EntryPartType
+  ): Promise<PaginatedResponse<EntryPart>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    queryParams.append('type', type);
+
+    const response = await createApiCall<PaginatedResponse<EntryPart>>(
+      `${BASE_URL}?${queryParams.toString()}`,
+      {
+        method: 'GET',
+      }
+    );
+    return {
+      data: response.data,
+      total: response.total,
+      page: page,
+      pageSize: limit,
+      totalPages: Math.ceil(response.total / limit),
+    };
   },
 
   async getEntryPart(id: number): Promise<EntryPart> {

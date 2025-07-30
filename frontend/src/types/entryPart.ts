@@ -8,6 +8,11 @@ export enum EntryPartStatus {
   COMPLETED = 'COMPLETED',
 }
 
+export enum EntryPartType {
+  ARTICLE = 'ARTICLE',
+  SERVICE = 'SERVICE',
+}
+
 export interface EntryPart {
   id: number;
   code: string;

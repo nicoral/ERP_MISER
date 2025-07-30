@@ -12,7 +12,7 @@ import { Article } from '../entities/Article.entity';
 import { Service } from '../entities/Service.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { CreateEntryPartDto } from '../dto/entryPart/create-entryPart.dto';
-import { EntryPartStatus, InspectionStatus } from '../common/enum';
+import { EntryPartStatus, EntryPartType, InspectionStatus } from '../common/enum';
 import { UpdateEntryPartDto } from '../dto/entryPart/update-entryPart.dto';
 import { Employee } from '../entities/Employee.entity';
 import { StorageService } from './storage.service';
@@ -62,7 +62,7 @@ export class EntryPartService {
         ? { id: createEntryPartDto.warehouseId }
         : undefined,
       code: generatedCode,
-      imageUrl: entryPartData.imageUrl,
+      imageUrl: undefined,
       observation: entryPartData.observation,
       entryDate: new Date(createEntryPartDto.entryDate),
       purchaseOrder: createEntryPartDto.purchaseOrderId
@@ -72,6 +72,7 @@ export class EntryPartService {
         ? { id: createEntryPartDto.employeeId }
         : undefined,
       status,
+      type: articlesData.length > 0 ? EntryPartType.ARTICLE : EntryPartType.SERVICE,
     });
 
     const savedEntryPart = await this.entryPartRepository.save(entryPart);
@@ -153,17 +154,28 @@ export class EntryPartService {
     return this.findOne(savedEntryPart.id);
   }
 
-  async findAll(): Promise<EntryPart[]> {
-    return this.entryPartRepository.find({
+  async findAll(
+    page: number,
+    limit: number,
+    type: EntryPartType
+  ): Promise<{ data: EntryPart[]; total: number }> {
+    const [entryParts, total] = await this.entryPartRepository.findAndCount({
       relations: {
         employee: true,
         purchaseOrder: true,
         warehouse: true,
       },
+      where: {
+        type
+      },
       order: {
         createdAt: 'DESC',
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return { data: entryParts, total };
   }
 
   async findOne(id: number): Promise<EntryPart> {
@@ -198,11 +210,8 @@ export class EntryPartService {
     });
 
     let nextNumber = 1;
-    if (lastEntryPart?.code) {
-      const match = lastEntryPart.code.match(/PI-(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1]) + 1;
-      }
+    if (lastEntryPart?.id) {
+      nextNumber = +lastEntryPart.id + 1;
     }
 
     return `${formatNumber(warehouseId, 4)}-${formatNumber(nextNumber, 10)}`;

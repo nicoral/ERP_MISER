@@ -53,6 +53,36 @@ export class CreateExitPartArticleDto {
   articleId: number;
 }
 
+export class CreateExitPartServiceDto {
+  @IsNotEmpty()
+  @IsString()
+  code: string;
+
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  duration: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  received: number;
+
+  @IsOptional()
+  @IsString()
+  inspection?: InspectionStatus;
+
+  @IsOptional()
+  @IsString()
+  observation?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  serviceId: number;
+}
+
 export class CreateExitPartDto {
   @IsOptional()
   @IsString()
@@ -82,4 +112,9 @@ export class CreateExitPartDto {
   @ValidateNested({ each: true })
   @Type(() => CreateExitPartArticleDto)
   exitPartArticles: CreateExitPartArticleDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateExitPartServiceDto)
+  exitPartServices: CreateExitPartServiceDto[];
 }

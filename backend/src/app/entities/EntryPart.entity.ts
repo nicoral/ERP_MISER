@@ -13,7 +13,7 @@ import { PurchaseOrder } from './PurchaseOrder.entity';
 import { Employee } from './Employee.entity';
 import { EntryPartArticle } from './EntryPartArticle.entity';
 import { EntryPartService } from './EntryPartService.entity';
-import { EntryPartStatus } from '../common/enum';
+import { EntryPartStatus, EntryPartType } from '../common/enum';
 import { Warehouse } from './Warehouse.entity';
 
 @Entity()
@@ -39,6 +39,9 @@ export class EntryPart {
 
   @Column({ type: 'date' })
   entryDate: Date;
+
+  @Column({ type: 'enum', enum: EntryPartType, default: EntryPartType.ARTICLE })
+  type: EntryPartType;
 
   // Relación con PurchaseOrder (opcional)
   @ManyToOne(() => PurchaseOrder, { nullable: true, onDelete: 'SET NULL' })

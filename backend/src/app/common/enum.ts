@@ -43,6 +43,16 @@ export enum InspectionStatus {
   OBSERVED = 'OBSERVED',
 }
 
+export enum EntryPartType {
+  ARTICLE = 'ARTICLE',
+  SERVICE = 'SERVICE',
+}
+
+export enum ExitPartType {
+  ARTICLE = 'ARTICLE',
+  SERVICE = 'SERVICE',
+}
+
 // Fuel Control Enums
 export enum FuelDailyControlStatus {
   OPEN = 'OPEN',

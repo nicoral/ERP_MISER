@@ -4,15 +4,35 @@ import type {
   CreateExitPartDto,
   UpdateExitPartDto,
 } from '../../types/exitPart';
+import type { PaginatedResponse } from '../../types/generic';
+import type { EntryPartType } from '../../types/entryPart';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/exit-parts`;
 
 export const exitPartService = {
-  async getExitParts(): Promise<ExitPart[]> {
-    const response = await createApiCall<ExitPart[]>(BASE_URL, {
-      method: 'GET',
-    });
-    return response;
+  async getExitParts(
+    page: number,
+    limit: number,
+    type: EntryPartType
+  ): Promise<PaginatedResponse<ExitPart>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    queryParams.append('type', type);
+
+    const response = await createApiCall<PaginatedResponse<ExitPart>>(
+      `${BASE_URL}?${queryParams.toString()}`,
+      {
+        method: 'GET',
+      }
+    );
+    return {
+      data: response.data,
+      total: response.total,
+      page: page,
+      pageSize: limit,
+      totalPages: Math.ceil(response.total / limit),
+    };
   },
 
   async getExitPart(id: number): Promise<ExitPart> {

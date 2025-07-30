@@ -40,6 +40,7 @@ import { WarehouseFuelStock } from '../../app/entities/WarehouseFuelStock.entity
 import { FuelDailyControl } from '../../app/entities/FuelDailyControl.entity';
 import { FuelOutput } from '../../app/entities/FuelOutput.entity';
 import { FuelStockMovement } from '../../app/entities/FuelStockMovement.entity';
+import { ExitPartService } from '../../app/entities/ExitPartService.entity';
 
 @Global()
 @Module({
@@ -80,6 +81,7 @@ import { FuelStockMovement } from '../../app/entities/FuelStockMovement.entity';
         EntryPartService,
         ExitPart,
         ExitPartArticle,
+        ExitPartService,
         WarehouseFuelStock,
         FuelDailyControl,
         FuelOutput,

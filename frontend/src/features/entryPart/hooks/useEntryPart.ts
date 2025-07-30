@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { entryPartService } from '../../../services/api/entryPartService';
-import type { UpdateEntryPartDto } from '../../../types/entryPart';
+import type {
+  EntryPartType,
+  UpdateEntryPartDto,
+} from '../../../types/entryPart';
 
-export const useEntryParts = () => {
+export const useEntryParts = (
+  page: number,
+  limit: number,
+  type: EntryPartType
+) => {
   return useQuery({
-    queryKey: ['entry-parts'],
-    queryFn: entryPartService.getEntryParts,
+    queryKey: ['entry-parts', page, limit, type],
+    queryFn: () => entryPartService.getEntryParts(page, limit, type),
   });
 };
 

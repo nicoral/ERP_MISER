@@ -12,10 +12,16 @@ import {
 } from '../../components/common/Table';
 import { EyeIcon, EditIcon } from '../../components/common/Icons';
 import type { ExitPart } from '../../types/exitPart';
+import { EntryPartType } from '../../types/entryPart';
 
-export const ExitPartList = () => {
+export const ExitPartList = (props: { type?: EntryPartType }) => {
   const navigate = useNavigate();
-  const { data: exitParts, isLoading, error } = useExitParts();
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useExitParts(
+    page,
+    10,
+    props.type || EntryPartType.ARTICLE
+  );
   const [localError, setLocalError] = useState<string | null>(null);
 
   if (isLoading) {
@@ -56,11 +62,27 @@ export const ExitPartList = () => {
   };
 
   const handleView = (exitPart: ExitPart) => {
-    navigate(ROUTES.EXIT_PART_DETAILS.replace(':id', exitPart.id.toString()));
+    if (props.type === EntryPartType.ARTICLE) {
+      navigate(
+        ROUTES.EXIT_PART_DETAILS_ARTICLES.replace(':id', exitPart.id.toString())
+      );
+    } else {
+      navigate(
+        ROUTES.EXIT_PART_DETAILS_SERVICES.replace(':id', exitPart.id.toString())
+      );
+    }
   };
 
   const handleEdit = (exitPart: ExitPart) => {
-    navigate(ROUTES.EXIT_PART_EDIT.replace(':id', exitPart.id.toString()));
+    if (props.type === EntryPartType.ARTICLE) {
+      navigate(
+        ROUTES.EXIT_PART_EDIT_ARTICLES.replace(':id', exitPart.id.toString())
+      );
+    } else {
+      navigate(
+        ROUTES.EXIT_PART_EDIT_SERVICES.replace(':id', exitPart.id.toString())
+      );
+    }
   };
 
   const columns: TableColumn<ExitPart>[] = [
@@ -154,10 +176,18 @@ export const ExitPartList = () => {
 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Partes de Salida
+          {props.type === EntryPartType.ARTICLE
+            ? 'Partes de Salida de Compras'
+            : 'Partes de Salida de Servicios'}
         </h2>
         <button
-          onClick={() => navigate(ROUTES.EXIT_PART_CREATE)}
+          onClick={() =>
+            navigate(
+              props.type === EntryPartType.ARTICLE
+                ? ROUTES.EXIT_PART_CREATE_ARTICLES
+                : ROUTES.EXIT_PART_CREATE_SERVICES
+            )
+          }
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Nuevo Parte de Salida
@@ -167,11 +197,16 @@ export const ExitPartList = () => {
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         <Table<ExitPart>
           columns={columns}
-          data={exitParts || []}
+          data={data?.data || []}
           keyField="id"
           loading={isLoading}
           actions={actions}
           pageSize={10}
+          pagination={{
+            page: page,
+            totalPages: data?.totalPages ?? 1,
+            onPageChange: setPage,
+          }}
         />
       </div>
     </div>

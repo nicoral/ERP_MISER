@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { exitPartService } from '../../../services/api/exitPartService';
 import type { UpdateExitPartDto } from '../../../types/exitPart';
+import type { EntryPartType } from '../../../types/entryPart';
 
-export const useExitParts = () => {
+export const useExitParts = (
+  page: number,
+  limit: number,
+  type: EntryPartType
+) => {
   return useQuery({
-    queryKey: ['exit-parts'],
-    queryFn: exitPartService.getExitParts,
+    queryKey: ['exit-parts', page, limit, type],
+    queryFn: () => exitPartService.getExitParts(page, limit, type),
   });
 };
 

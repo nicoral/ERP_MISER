@@ -15,13 +15,18 @@ import {
   type TableAction,
 } from '../../components/common/Table';
 import { EyeIcon, EditIcon } from '../../components/common/Icons';
-import type { EntryPart } from '../../types/entryPart';
+import { type EntryPart, EntryPartType } from '../../types/entryPart';
 import { useToast } from '../../contexts/ToastContext';
 import { FileIcon, Loader2 } from 'lucide-react';
 
-export const EntryPartList = () => {
+export const EntryPartList = (props: { type?: EntryPartType }) => {
   const navigate = useNavigate();
-  const { data: entryParts, isLoading, error } = useEntryParts();
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useEntryParts(
+    page,
+    10,
+    props.type || EntryPartType.ARTICLE
+  );
   const [localError, setLocalError] = useState<string | null>(null);
   const generatePdfReception = useGetEntryPartReceptionConformity();
   const generatePdfEntryPart = useGetEntryPartPdf();
@@ -102,11 +107,33 @@ export const EntryPartList = () => {
   };
 
   const handleView = (entryPart: EntryPart) => {
-    navigate(ROUTES.ENTRY_PART_DETAILS.replace(':id', entryPart.id.toString()));
+    if (props.type === EntryPartType.ARTICLE) {
+      navigate(
+        ROUTES.ENTRY_PART_DETAILS_ARTICLES.replace(
+          ':id',
+          entryPart.id.toString()
+        )
+      );
+    } else {
+      navigate(
+        ROUTES.ENTRY_PART_DETAILS_SERVICES.replace(
+          ':id',
+          entryPart.id.toString()
+        )
+      );
+    }
   };
 
   const handleEdit = (entryPart: EntryPart) => {
-    navigate(ROUTES.ENTRY_PART_EDIT.replace(':id', entryPart.id.toString()));
+    if (props.type === EntryPartType.ARTICLE) {
+      navigate(
+        ROUTES.ENTRY_PART_EDIT_ARTICLES.replace(':id', entryPart.id.toString())
+      );
+    } else {
+      navigate(
+        ROUTES.ENTRY_PART_EDIT_SERVICES.replace(':id', entryPart.id.toString())
+      );
+    }
   };
 
   const columns: TableColumn<EntryPart>[] = [
@@ -228,10 +255,18 @@ export const EntryPartList = () => {
 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Partes de Ingreso
+          {props.type === EntryPartType.ARTICLE
+            ? 'Partes de Ingreso de Compras'
+            : 'Partes de Ingreso de Servicios'}
         </h2>
         <button
-          onClick={() => navigate(ROUTES.ENTRY_PART_CREATE)}
+          onClick={() =>
+            navigate(
+              props.type === EntryPartType.ARTICLE
+                ? ROUTES.ENTRY_PART_CREATE_ARTICLES
+                : ROUTES.ENTRY_PART_CREATE_SERVICES
+            )
+          }
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Nuevo Parte de Ingreso
@@ -241,11 +276,16 @@ export const EntryPartList = () => {
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         <Table<EntryPart>
           columns={columns}
-          data={entryParts || []}
+          data={data?.data || []}
           keyField="id"
           loading={isLoading}
           actions={actions}
           pageSize={10}
+          pagination={{
+            page: page,
+            totalPages: data?.totalPages ?? 1,
+            onPageChange: setPage,
+          }}
         />
       </div>
     </div>

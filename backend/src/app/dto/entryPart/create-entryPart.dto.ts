@@ -97,9 +97,6 @@ export class CreateEntryPartServiceDto {
 }
 
 export class CreateEntryPartDto {
-  @IsNotEmpty()
-  @IsString()
-  imageUrl?: string;
 
   @IsOptional()
   @IsString()

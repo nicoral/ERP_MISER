@@ -60,6 +60,7 @@ import { FuelControlOutputs } from './features/fuelControl/components/FuelContro
 import { SupplierView } from './features/supplier/components/SupplierView';
 import { WarehouseView } from './features/warehouse/components/WarehouseView';
 import { PurchaseOrderList } from './features/puchaseOrder/components/purchaseOrderList';
+import { EntryPartType } from './types/entryPart';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -182,7 +183,14 @@ const AppRoutes = () => {
             element={<PaymentServicesDetailsRoute />}
           />
 
-          <Route path={ROUTES.ENTRY_PARTS} element={<EntryPartList />} />
+          <Route
+            path={ROUTES.ENTRY_PARTS_ARTICLES}
+            element={<EntryPartsArticlesRoute />}
+          />
+          <Route
+            path={ROUTES.ENTRY_PARTS_SERVICES}
+            element={<EntryPartsServicesRoute />}
+          />
           <Route path={ROUTES.ENTRY_PART_CREATE} element={<EntryPartForm />} />
           <Route path={ROUTES.ENTRY_PART_EDIT} element={<EntryPartForm />} />
           <Route
@@ -193,11 +201,36 @@ const AppRoutes = () => {
             path={ROUTES.PURCHASE_ORDER_DETAILS}
             element={<PurchaseOrder />}
           />
-          <Route path={ROUTES.EXIT_PARTS} element={<ExitPartList />} />
-          <Route path={ROUTES.EXIT_PART_CREATE} element={<ExitPartForm />} />
-          <Route path={ROUTES.EXIT_PART_EDIT} element={<ExitPartForm />} />
           <Route
-            path={ROUTES.EXIT_PART_DETAILS}
+            path={ROUTES.EXIT_PARTS_ARTICLES}
+            element={<ExitPartsArticlesRoute />}
+          />
+          <Route
+            path={ROUTES.EXIT_PARTS_SERVICES}
+            element={<ExitPartsServicesRoute />}
+          />
+          <Route
+            path={ROUTES.EXIT_PART_CREATE_ARTICLES}
+            element={<ExitPartForm />}
+          />
+          <Route
+            path={ROUTES.EXIT_PART_EDIT_ARTICLES}
+            element={<ExitPartForm />}
+          />
+          <Route
+            path={ROUTES.EXIT_PART_DETAILS_ARTICLES}
+            element={<ExitPartDetails />}
+          />
+          <Route
+            path={ROUTES.EXIT_PART_CREATE_SERVICES}
+            element={<ExitPartForm />}
+          />
+          <Route
+            path={ROUTES.EXIT_PART_EDIT_SERVICES}
+            element={<ExitPartForm />}
+          />
+          <Route
+            path={ROUTES.EXIT_PART_DETAILS_SERVICES}
             element={<ExitPartDetails />}
           />
           <Route path={ROUTES.FUEL_CONTROL} element={<FuelControlList />} />
@@ -244,6 +277,19 @@ const PaymentServicesDetailsRoute = () => <PaymentDetails type="SERVICE" />;
 
 const PurchaseOrdersArticlesRoute = () => <PurchaseOrderList type="ARTICLE" />;
 const PurchaseOrdersServicesRoute = () => <PurchaseOrderList type="SERVICE" />;
+
+const EntryPartsArticlesRoute = () => (
+  <EntryPartList type={EntryPartType.ARTICLE} />
+);
+const EntryPartsServicesRoute = () => (
+  <EntryPartList type={EntryPartType.SERVICE} />
+);
+const ExitPartsArticlesRoute = () => (
+  <ExitPartList type={EntryPartType.ARTICLE} />
+);
+const ExitPartsServicesRoute = () => (
+  <ExitPartList type={EntryPartType.SERVICE} />
+);
 
 function App() {
   return (

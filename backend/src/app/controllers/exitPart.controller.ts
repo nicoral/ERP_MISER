@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -17,6 +18,7 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 import { ExitPartService } from '../services/exitPart.service';
 import { CreateExitPartDto } from '../dto/exitPart/create-exitPart.dto';
 import { ExitPart } from '../entities/ExitPart.entity';
+import { ExitPartType } from '../common/enum';
 
 @Controller('exit-parts')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -47,8 +49,12 @@ export class ExitPartController {
   @Get()
   @RequirePermissions('view_entry_parts')
   @AuditDescription('Consulta de partes de ingreso')
-  async findAll() {
-    return this.exitPartService.findAll();
+  async findAll(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('type') type: ExitPartType
+  ) {
+    return this.exitPartService.findAll(page, limit, type);
   }
 
   @Get(':id')

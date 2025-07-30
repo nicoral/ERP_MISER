@@ -8,10 +8,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ExitPartArticle } from '../entities/ExitPartArticle.entity';
 import { CreateExitPartDto } from '../dto/exitPart/create-exitPart.dto';
-import { ExitPartStatus } from '../common/enum';
+import { ExitPartStatus, ExitPartType } from '../common/enum';
 import { Article } from '../entities/Article.entity';
 import { StorageService } from './storage.service';
 import { formatNumber } from '../utils/transformer';
+import { Service } from '../entities/Service.entity';
+import { ExitPartService as ExitPartServiceEntity } from '../entities/ExitPartService.entity';
 
 @Injectable()
 export class ExitPartService {
@@ -20,14 +22,22 @@ export class ExitPartService {
     private readonly exitPartRepository: Repository<ExitPart>,
     @InjectRepository(ExitPartArticle)
     private readonly exitPartArticleRepository: Repository<ExitPartArticle>,
+    @InjectRepository(ExitPartService)
+    private readonly exitPartServiceRepository: Repository<ExitPartService>,
+    @InjectRepository(Service)
+    private readonly serviceRepository: Repository<Service>,
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
     private readonly storageService: StorageService,
     private readonly dataSource: DataSource
-  ) {}
+  ) { }
 
-  async findAll(): Promise<ExitPart[]> {
-    return this.exitPartRepository.find({
+  async findAll(
+    page: number,
+    limit: number,
+    type: ExitPartType
+  ): Promise<{ data: ExitPart[]; total: number }> {
+    const [exitParts, total] = await this.exitPartRepository.findAndCount({
       relations: {
         employee: true,
         purchaseOrder: true,
@@ -36,7 +46,13 @@ export class ExitPartService {
       order: {
         createdAt: 'DESC',
       },
+      where: {
+        type,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data: exitParts, total };
   }
 
   async findOne(id: number): Promise<ExitPart> {
@@ -60,7 +76,7 @@ export class ExitPartService {
   }
 
   async createExitPart(exitPart: CreateExitPartDto): Promise<ExitPart> {
-    const { exitPartArticles, ...exitPartData } = exitPart;
+    const { exitPartArticles, exitPartServices, ...exitPartData } = exitPart;
 
     // Usar transacción para asegurar atomicidad
     return await this.dataSource.transaction(async manager => {
@@ -133,6 +149,31 @@ export class ExitPartService {
 
       await manager.save(ExitPartArticle, newExitPartArticles);
 
+      const newExitPartServices = await Promise.all(
+        exitPartServices.map(async service => {
+          const serviceEntity = await manager.findOne(Service, {
+            where: { id: service.serviceId },
+          });
+
+          if (!serviceEntity) {
+            throw new NotFoundException(`Servicio no encontrado`);
+          }
+
+          return manager.create(ExitPartServiceEntity, {
+            code: service.code,
+            name: service.name,
+            duration: service.duration,
+            received: service.received,
+            inspection: service.inspection,
+            observation: service.observation,
+            exitPart: savedExitPart,
+            service: serviceEntity,
+          });
+        })
+      );
+
+      await manager.save(ExitPartServiceEntity, newExitPartServices);
+
       return savedExitPart;
     });
   }
@@ -145,12 +186,9 @@ export class ExitPartService {
     });
 
     let nextNumber = 1;
-    if (lastExitPart?.code) {
+    if (lastExitPart?.id) {
       // Extraer el número del último código (formato: PI-001, PI-002, etc.)
-      const match = lastExitPart.code.match(/PS-(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1]) + 1;
-      }
+      nextNumber = +lastExitPart.id + 1;
     }
 
     // Generar el nuevo código con formato PI-XXX

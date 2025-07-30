@@ -10,6 +10,7 @@ import {
   UploadedFile,
   Put,
   Res,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EntryPartService } from '../services/entryPart.service';
@@ -21,6 +22,7 @@ import { AuditDescription } from '../common/decorators/audit-description.decorat
 import { EntryPart } from '../entities/EntryPart.entity';
 import { UpdateEntryPartDto } from '../dto/entryPart/update-entryPart.dto';
 import { Response } from 'express';
+import { EntryPartType } from '../common/enum';
 
 @Controller('entry-parts')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -51,8 +53,12 @@ export class EntryPartController {
   @Get()
   @RequirePermissions('view_entry_parts')
   @AuditDescription('Consulta de partes de ingreso')
-  async findAll() {
-    return this.entryPartService.findAll();
+  async findAll(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('type') type: EntryPartType
+  ) {
+    return this.entryPartService.findAll(page, limit, type);
   }
 
   @Get(':id')

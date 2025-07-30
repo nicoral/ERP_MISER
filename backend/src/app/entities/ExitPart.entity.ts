@@ -12,8 +12,9 @@ import {
 import { PurchaseOrder } from './PurchaseOrder.entity';
 import { Employee } from './Employee.entity';
 import { ExitPartArticle } from './ExitPartArticle.entity';
-import { ExitPartStatus } from '../common/enum';
+import { ExitPartStatus, ExitPartType } from '../common/enum';
 import { Warehouse } from './Warehouse.entity';
+import { ExitPartService } from './ExitPartService.entity';
 
 @Entity()
 export class ExitPart {
@@ -39,6 +40,9 @@ export class ExitPart {
   @Column({ type: 'date' })
   exitDate: Date;
 
+  @Column({ type: 'enum', enum: ExitPartType, nullable: true })
+  type: ExitPartType;
+
   // Relación con PurchaseOrder (opcional)
   @ManyToOne(() => PurchaseOrder, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'purchase_order_id' })
@@ -60,6 +64,14 @@ export class ExitPart {
     { cascade: true, onDelete: 'CASCADE' }
   )
   exitPartArticles: ExitPartArticle[];
+
+  // Relación con los servicios de salida
+  @OneToMany(
+    () => ExitPartService,
+    exitPartService => exitPartService.exitPart,
+    { cascade: true, onDelete: 'CASCADE' }
+  )
+  exitPartServices: ExitPartService[];
 
   @CreateDateColumn({
     name: 'created_at',
