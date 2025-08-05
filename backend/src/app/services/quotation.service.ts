@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Not, Repository } from 'typeorm';
@@ -35,7 +36,12 @@ import { FinalSelectionItem } from '../entities/FinalSelectionItem.entity';
 import { FinalSelectionServiceItem } from '../entities/FinalSelectionServiceItem.entity';
 import { RequirementService } from './requirement.service';
 import { SupplierService } from './supplier.service';
-import { calculateApprovalProgress } from '../utils/approvalFlow.utils';
+import {
+  calculateApprovalProgress,
+  canUserSignWithConfiguration,
+  processSignatureWithConfiguration,
+  validateSignatureEligibility,
+} from '../utils/approvalFlow.utils';
 import { CreateQuotationRequestDto } from '../dto/quotation/create-quotation-request.dto';
 import { UpdateQuotationRequestDto } from '../dto/quotation/update-quotation-request.dto';
 import { formatNumber } from '../utils/transformer';
@@ -62,10 +68,15 @@ import * as puppeteer from 'puppeteer';
 import { QuotationFiltersDto } from '../dto/quotation/filters-quotation.dto';
 import { Requirement } from '../entities/Requirement.entity';
 import { PurchaseOrderService } from './purchaseOrder.service';
-import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
+import {
+  PurchaseOrder,
+  PurchaseOrderStatus,
+} from '../entities/PurchaseOrder.entity';
 import { QRService } from './qr.service';
 import { GeneralSettingsService } from './generalSettings.service';
 import { StorageService } from './storage.service';
+import { DocumentApprovalConfigurationService } from './documentApprovalConfiguration.service';
+import { DocumentApprovalConfiguration } from '../entities/DocumentApprovalConfiguration.entity';
 
 @Injectable()
 export class QuotationService {
@@ -99,7 +110,8 @@ export class QuotationService {
     private readonly purchaseOrderService: PurchaseOrderService,
     private readonly qrService: QRService,
     private readonly generalSettingsService: GeneralSettingsService,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
+    private readonly documentApprovalConfigurationService: DocumentApprovalConfigurationService
   ) {}
 
   // ========================================
@@ -606,7 +618,9 @@ export class QuotationService {
     if (existingQuotation) {
       // Update existing quotation by deleting and recreating items
       await this.supplierQuotationRepository.update(existingQuotation.id, {
-        status: submitQuotation ? SupplierQuotationStatus.SUBMITTED : SupplierQuotationStatus.DRAFT,
+        status: submitQuotation
+          ? SupplierQuotationStatus.SUBMITTED
+          : SupplierQuotationStatus.DRAFT,
         notes: notes,
         quotationNumber: quotationNumber || existingQuotation.quotationNumber,
       });
@@ -761,12 +775,16 @@ export class QuotationService {
 
     // Create supplier quotation
     const supplierQuotation = this.supplierQuotationRepository.create({
-      quotationNumber: quotationNumber || `${quotationRequest.code}-${formatNumber(+supplierId, 3)}`,
+      quotationNumber:
+        quotationNumber ||
+        `${quotationRequest.code}-${formatNumber(+supplierId, 3)}`,
       receivedAt: new Date(),
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       currency: 'PEN',
       notes: notes,
-      status: submitQuotation ? SupplierQuotationStatus.SUBMITTED : SupplierQuotationStatus.DRAFT,
+      status: submitQuotation
+        ? SupplierQuotationStatus.SUBMITTED
+        : SupplierQuotationStatus.DRAFT,
       quotationSupplier: { id: quotationSupplier.id },
     });
 
@@ -1020,13 +1038,15 @@ export class QuotationService {
     }
 
     // Update quotation supplier
-    const status = sendOrder ? QuotationSupplierStatus.SENT : QuotationSupplierStatus.SAVED;
+    const status = sendOrder
+      ? QuotationSupplierStatus.SENT
+      : QuotationSupplierStatus.SAVED;
     const sentAt = sendOrder
       ? new Date()
       : deadline
         ? new Date(deadline)
         : quotationSupplier.sentAt;
-    
+
     await this.quotationSupplierRepository.update(quotationSupplier.id, {
       orderNumber: orderNumber || quotationSupplier.orderNumber,
       terms: terms || quotationSupplier.terms,
@@ -1904,13 +1924,14 @@ export class QuotationService {
       quotationRequestId: quotationRequest.id,
       supplierId: supplierId,
       createdById: quotationRequest.createdBy.id,
-      orderNumber: `OC-${quotationRequest.code}-${supplierId}`,
+      orderNumber: `${quotationRequest.requirement.type === 'ARTICLE' ? 'OC' : 'OS'}-${quotationRequest.code}-${supplierId}`,
       issueDate: new Date(),
       supplierName: supplier.businessName,
       supplierRUC: supplier.ruc,
       supplierAddress: supplier.address,
       supplierLocation: '',
       supplierPhone: supplier.mobile || '',
+      requirementId: quotationRequest.requirement.id,
       items: allItems,
       paymentMethod: paymentMethod || 'POR DEFINIR',
       deliveryDate: 'POR DEFINIR',
@@ -1925,7 +1946,57 @@ export class QuotationService {
       createPurchaseOrderDto
     );
 
-    return purchaseOrder;
+    // Copiar automáticamente las firmas de la cotización a la orden de compra
+    if (quotationRequest.firstSignature) {
+      purchaseOrder.firstSignature = quotationRequest.firstSignature;
+      purchaseOrder.firstSignedBy = quotationRequest.firstSignedBy;
+      purchaseOrder.firstSignedAt = quotationRequest.firstSignedAt;
+    }
+
+    if (quotationRequest.secondSignature) {
+      purchaseOrder.secondSignature = quotationRequest.secondSignature;
+      purchaseOrder.secondSignedBy = quotationRequest.secondSignedBy;
+      purchaseOrder.secondSignedAt = quotationRequest.secondSignedAt;
+    }
+
+    if (quotationRequest.thirdSignature) {
+      purchaseOrder.thirdSignature = quotationRequest.thirdSignature;
+      purchaseOrder.thirdSignedBy = quotationRequest.thirdSignedBy;
+      purchaseOrder.thirdSignedAt = quotationRequest.thirdSignedAt;
+    }
+
+    if (quotationRequest.fourthSignature) {
+      purchaseOrder.fourthSignature = quotationRequest.fourthSignature;
+      purchaseOrder.fourthSignedBy = quotationRequest.fourthSignedBy;
+      purchaseOrder.fourthSignedAt = quotationRequest.fourthSignedAt;
+    }
+
+    // Actualizar estado basado en las firmas copiadas
+    if (quotationRequest.status === 'APPROVED') {
+      purchaseOrder.status = PurchaseOrderStatus.APPROVED;
+    } else if (quotationRequest.fourthSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_4;
+    } else if (quotationRequest.thirdSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_3;
+    } else if (quotationRequest.secondSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_2;
+    } else if (quotationRequest.firstSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_1;
+    }
+
+    // Guardar la orden de compra con las firmas copiadas
+    const savedPurchaseOrder =
+      await this.purchaseOrderService.savePurchaseOrderWithSignatures(
+        purchaseOrder
+      );
+
+    // Aplicar configuración de firmas heredada de la cotización
+    await this.applySignatureConfigurationFromQuotation(
+      savedPurchaseOrder.id,
+      quotationRequest
+    );
+
+    return savedPurchaseOrder;
   }
 
   async removeFinalSelection(id: number): Promise<void> {
@@ -1949,22 +2020,9 @@ export class QuotationService {
     userId: number
   ): Promise<QuotationRequest> {
     const quotationRequest = await this.findOneQuotationRequest(id);
-
-    // Verificar que tenga selección final
-    if (!quotationRequest.finalSelection) {
-      throw new BadRequestException(
-        'No se puede firmar una cotización sin selección final'
-      );
-    }
-
-    // Importar utilidades
-    const { canUserSign, processSignature, isLowAmount } = await import(
-      '../utils/approvalFlow.utils'
-    );
-
-    // Obtener empleado y permisos
     const employee =
       await this.requirementService['employeeService'].findOne(userId);
+
     if (!employee) {
       throw new NotFoundException('Empleado no encontrado');
     }
@@ -1973,58 +2031,73 @@ export class QuotationService {
       throw new BadRequestException('El usuario no tiene firma registrada');
     }
 
+    // Obtener el rol del empleado con sus permisos
     const role = await this.requirementService['roleService'].findById(
       employee.role.id
     );
     const userPermissions = role.permissions.map(p => p.name);
 
-    // Verificar permisos
-    const { canSign } = canUserSign(
+    // Calcular monto total
+    const totalAmount = quotationRequest.quotationSuppliers.reduce(
+      (acc, qs) => acc + Number(qs.supplierQuotation?.totalAmount || 0),
+      0
+    );
+
+    // Obtener umbral de monto bajo desde configuración
+    const lowAmountThreshold =
+      await this.generalSettingsService.getLowAmountThreshold();
+
+    // Obtener configuración específica del documento
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'quotation',
+        quotationRequest.id
+      );
+
+    // Validaciones de negocio
+    validateSignatureEligibility(
+      quotationRequest,
+      userId,
+      'quotation',
+      totalAmount
+    );
+
+    // Verificar permisos usando configuración dinámica
+    const { canSign, level, reason } = await canUserSignWithConfiguration(
       quotationRequest,
       userPermissions,
-      quotationRequest.createdBy.id,
+      quotationRequest.requirement.employee.id,
       userId,
+      configurations,
+      totalAmount,
+      lowAmountThreshold,
       'quotation'
     );
 
-    // Para la primera firma, verificar que sea el creador de la cotización
-    if (
-      !quotationRequest.firstSignedBy &&
-      userId !== quotationRequest.createdBy.id
-    ) {
-      throw new BadRequestException(
-        'Solo el creador de la cotización puede realizar la primera firma'
-      );
-    }
-
     if (!canSign) {
-      throw new BadRequestException(
-        'No tienes permisos para firmar esta cotización'
-      );
+      const errorMessage = `No puedes firmar esta cotización. ${reason}`;
+      throw new ForbiddenException(errorMessage);
     }
 
-    // Calcular monto total para determinar si es de monto bajo
-    const totalAmount =
-      quotationRequest.finalSelection.finalSelectionItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
+    // Procesar firma usando configuración dinámica
+    const { updatedEntity, becameApproved } =
+      await processSignatureWithConfiguration(
+        quotationRequest,
+        userId,
+        employee.signature,
+        level,
+        configurations
       );
-    const isLowAmountQuotation = isLowAmount(totalAmount);
-
-    // Procesar firma
-    const { updatedEntity, becameApproved } = processSignature(
-      quotationRequest,
-      userId,
-      employee.signature,
-      isLowAmountQuotation
-    );
 
     // Actualizar entidad
     Object.assign(quotationRequest, updatedEntity);
     const savedQuotationRequest =
       await this.quotationRequestRepository.save(quotationRequest);
 
-    // === AUTOGENERATE PAYMENT GROUP IF QUOTATION BECAME APPROVED ===
+    // Sincronizar firmas con órdenes de compra existentes
+    await this.syncSignaturesToPurchaseOrders(savedQuotationRequest);
+
+    // Si la cotización fue aprobada, generar órdenes de compra
     if (becameApproved) {
       this.purchaseOrderService.approvePurchaseOrders(quotationRequest.id);
     }
@@ -2414,6 +2487,19 @@ export class QuotationService {
     });
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
+    // Obtener configuración de firmas para determinar cuáles mostrar
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'quotation',
+        quotation.id
+      );
+
+    // Generar firmas dinámicas basadas en la configuración
+    const dynamicSignatures = await this.generateDynamicSignatures(
+      quotation,
+      configurations
+    );
+
     // Preparar datos para el template
     const data = {
       // Información de la cotización
@@ -2467,123 +2553,48 @@ export class QuotationService {
               })
             : '',
           contact: qs.supplier.email || '',
-          location: qs.supplier.address || '',
-          totalAmount: calculatedTotal,
-          currency:
-            qs.supplierQuotation?.supplierQuotationItems?.[0]?.currency ||
-            'PEN',
-          deliveryTime:
-            qs.supplierQuotation?.supplierQuotationItems?.[0]?.deliveryTime ||
-            0,
-          paymentTerms: qs.terms || '',
-          notes: qs.supplierQuotation?.notes || '',
+          phone: qs.supplier.mobile || '',
+          address: qs.supplier.address || '',
+          total: calculatedTotal,
+          currency: 'PEN',
           isSelected: qs.supplier.id === supplierId,
+          items:
+            qs.supplierQuotation?.supplierQuotationItems
+              ?.filter(
+                item =>
+                  selectedArticlesForSupplier.includes(
+                    item.requirementArticle.article.id
+                  ) && item.status === 'QUOTED'
+              )
+              .map(item => ({
+                articleCode: item.requirementArticle.article.code,
+                articleName: item.requirementArticle.article.name,
+                brand: item.requirementArticle.article.brand?.name || '',
+                quantity: item.requirementArticle.quantity,
+                unit: item.requirementArticle.article.unitOfMeasure,
+                unitPrice: item.unitPrice || 0,
+                totalPrice: item.totalPrice || 0,
+                deliveryTime: item.deliveryTime || '',
+              })) || [],
         };
       }),
 
-      // Solo los artículos seleccionados para el proveedor específico
-      articles: quotation.requirement.requirementArticles
-        .filter(reqArticle =>
-          selectedArticlesForSupplier.includes(reqArticle.article.id)
-        )
-        .map((reqArticle, index) => {
-          const articleData = {
-            index: index + 1,
-            unit: reqArticle.article.unitOfMeasure,
-            quantity: reqArticle.quantity,
-            description: reqArticle.article.name,
-            supplierItems: relevantSuppliers.map(qs => {
-              const item = qs.supplierQuotation?.supplierQuotationItems?.find(
-                sqi =>
-                  sqi.requirementArticle.article.id === reqArticle.article.id
-              );
-              return {
-                unitPrice: item?.unitPrice || 0,
-                totalPrice: item?.totalPrice || 0,
-                currency: item?.currency || 'PEN',
-                status: item?.status || 'NOT_QUOTED',
-                isSelected: qs.supplier.id === supplierId,
-              };
-            }),
-          };
-          return articleData;
-        }),
+      // Selección final
+      finalSelection: quotation.finalSelection
+        ? {
+            notes: quotation.finalSelection.notes || '',
+            items: quotation.finalSelection.finalSelectionItems
+              .filter(item => item.supplier.id === supplierId)
+              .map(item => ({
+                supplier: item.supplier,
+                totalPrice: item.totalPrice,
+                currency: item.currency || 'PEN',
+              })),
+          }
+        : null,
 
-      // Selección final (solo para el proveedor específico)
-      finalSelection: {
-        notes: quotation.finalSelection.notes,
-        totalAmount: quotation.finalSelection.finalSelectionItems
-          .filter(item => item.supplier.id === supplierId)
-          .reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0),
-        items: quotation.finalSelection.finalSelectionItems
-          .filter(item => item.supplier.id === supplierId)
-          .map(item => ({
-            article: item.requirementArticle.article,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-            quantity: item.quantity,
-            currency: item.currency,
-            notes: item.notes,
-          })),
-      },
-
-      // Firmas
-      firstSignature: quotation.firstSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              quotation.firstSignature
-            )
-          ).url
-        : null,
-      firstSignedAt: quotation.firstSignedAt
-        ? quotation.firstSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      secondSignature: quotation.secondSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              quotation.secondSignature
-            )
-          ).url
-        : null,
-      secondSignedAt: quotation.secondSignedAt
-        ? quotation.secondSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      thirdSignature: quotation.thirdSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              quotation.thirdSignature
-            )
-          ).url
-        : null,
-      thirdSignedAt: quotation.thirdSignedAt
-        ? quotation.thirdSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      fourthSignature: quotation.fourthSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              quotation.fourthSignature
-            )
-          ).url
-        : null,
-      fourthSignedAt: quotation.fourthSignedAt
-        ? quotation.fourthSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
+      // Firmas dinámicas
+      signatures: dynamicSignatures,
 
       // QR Code
       qrCode: qrDataUrl,
@@ -2727,6 +2738,12 @@ export class QuotationService {
             po.id,
             updatePurchaseOrderDto
           );
+
+          // Aplicar configuración de firmas heredada de la cotización
+          await this.applySignatureConfigurationFromQuotation(
+            po.id,
+            finalSelection.quotationRequest
+          );
         }
       }
     } catch (error) {
@@ -2748,7 +2765,9 @@ export class QuotationService {
 
     // Eliminar archivo anterior si existe
     if (supplierQuotation.quotationFile) {
-      await this.storageService.removeFileByUrl(supplierQuotation.quotationFile);
+      await this.storageService.removeFileByUrl(
+        supplierQuotation.quotationFile
+      );
     }
 
     // Generar nombre único para el archivo
@@ -2765,5 +2784,242 @@ export class QuotationService {
     // Actualizar la cotización con la URL del archivo
     supplierQuotation.quotationFile = uploadResult.url;
     return this.supplierQuotationRepository.save(supplierQuotation);
+  }
+
+  /**
+   * Genera las firmas dinámicas basadas en la configuración
+   */
+  private async generateDynamicSignatures(
+    quotation: QuotationRequest,
+    configurations: DocumentApprovalConfiguration[]
+  ): Promise<
+    Array<{
+      level: number;
+      role: string;
+      roleName: string;
+      signature: string | null;
+      signedAt: string;
+      hasSignature: boolean;
+    }>
+  > {
+    const signatures: Array<{
+      level: number;
+      role: string;
+      roleName: string;
+      signature: string | null;
+      signedAt: string;
+      hasSignature: boolean;
+    }> = [];
+
+    const signatureLevels = ['first', 'second', 'third', 'fourth'];
+    const roleNames: Record<string, string> = {
+      SOLICITANTE: 'V°B° LOGÍSTICA<br>ELABORA',
+      OFICINA_TECNICA: 'V°B° OFICINA TÉCNICA<br>REVISA',
+      ADMINISTRACION: 'V°B° ADMINISTRACIÓN<br>REVISIÓN',
+      GERENCIA: 'V°B° GERENCIA<br>APRUEBA',
+    };
+
+    // Obtener los niveles configurados ordenados
+    const configuredLevels = configurations
+      .sort((a, b) => a.signatureLevel - b.signatureLevel)
+      .map(config => ({
+        level: config.signatureLevel,
+        role: config.roleName,
+        roleName: roleNames[config.roleName] || config.roleName,
+      }));
+
+    // Generar firmas solo para los niveles configurados
+    for (const config of configuredLevels) {
+      const signatureKey = `${signatureLevels[config.level - 1]}Signature`;
+      const signedAtKey = `${signatureLevels[config.level - 1]}SignedAt`;
+
+      const signature = quotation[signatureKey];
+      const signedAt = quotation[signedAtKey];
+
+      signatures.push({
+        level: config.level,
+        role: config.role,
+        roleName: config.roleName,
+        signature: signature
+          ? (await this.storageService.getPrivateFileUrl(signature)).url
+          : null,
+        signedAt: signedAt
+          ? signedAt.toLocaleDateString('es-PE', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            })
+          : '',
+        hasSignature: !!signature,
+      });
+    }
+
+    return signatures;
+  }
+
+  /**
+   * Aplica la configuración de firmas de la cotización a la orden de compra
+   */
+  private async applySignatureConfigurationFromQuotation(
+    purchaseOrderId: number,
+    quotationRequest: QuotationRequest
+  ): Promise<void> {
+    try {
+      // Obtener la configuración de firmas de la cotización
+      const quotationConfigs = 
+        await this.documentApprovalConfigurationService.getConfigurationForDocument(
+          'quotation_request',
+          quotationRequest.id
+        );
+
+      if (quotationConfigs.length > 0) {
+        // Crear configuración de firmas para la orden de compra basada en la cotización
+        const purchaseOrderConfigs = quotationConfigs.map(config => ({
+          signatureLevel: config.signatureLevel,
+          roleName: config.roleName,
+          isRequired: config.isRequired,
+        }));
+
+        // Aplicar la configuración a la orden de compra
+        await this.documentApprovalConfigurationService.createCustomConfiguration(
+          'purchase_order',
+          purchaseOrderId,
+          purchaseOrderConfigs,
+          quotationRequest.createdBy.id // Usar el creador de la cotización
+        );
+
+        console.log(
+          `Configuración de firmas heredada de la cotización ${quotationRequest.id} a la orden de compra ${purchaseOrderId}`
+        );
+      } else {
+        // Si no hay configuración específica de la cotización, aplicar configuración por monto
+        const totalAmount = quotationRequest.quotationSuppliers.reduce(
+          (acc, qs) => acc + Number(qs.supplierQuotation?.totalAmount || 0),
+          0
+        );
+
+        await this.documentApprovalConfigurationService.applyConfigurationByAmount(
+          'purchase_order',
+          purchaseOrderId,
+          totalAmount,
+          quotationRequest.createdBy.id
+        );
+
+        console.log(
+          `Configuración de firmas por monto aplicada a la orden de compra ${purchaseOrderId} (monto: ${totalAmount})`
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error al aplicar configuración de firmas de la cotización a la orden de compra:`,
+        error
+      );
+      // No lanzar error para no interrumpir el flujo principal
+    }
+  }
+
+  /**
+   * Sincroniza las firmas de la cotización con todas las órdenes de compra relacionadas
+   */
+  private async syncSignaturesToPurchaseOrders(
+    quotationRequest: QuotationRequest
+  ): Promise<void> {
+    try {
+      // Obtener todas las órdenes de compra relacionadas con esta cotización
+      const purchaseOrders = await this.purchaseOrderService.findByQuotation(
+        quotationRequest.id
+      );
+
+      if (!purchaseOrders) {
+        return; // No hay órdenes de compra para sincronizar
+      }
+
+      const purchaseOrdersArray = Array.isArray(purchaseOrders) 
+        ? purchaseOrders 
+        : [purchaseOrders];
+
+      if (purchaseOrdersArray.length === 0) {
+        return; // No hay órdenes de compra para sincronizar
+      }
+
+      // Filtrar solo órdenes de compra que tengan esta cotización relacionada
+      const relatedPurchaseOrders = purchaseOrdersArray.filter(
+        po => po.quotationRequest && po.quotationRequest.id === quotationRequest.id
+      );
+
+      if (relatedPurchaseOrders.length === 0) {
+        console.log(
+          `No se encontraron órdenes de compra relacionadas con la cotización ${quotationRequest.id}`
+        );
+        return;
+      }
+
+      // Sincronizar cada orden de compra relacionada
+      for (const purchaseOrder of relatedPurchaseOrders) {
+        await this.syncQuotationSignatureToPurchaseOrder(
+          quotationRequest,
+          purchaseOrder
+        );
+      }
+
+      console.log(
+        `Firmas sincronizadas de la cotización ${quotationRequest.id} a ${relatedPurchaseOrders.length} órdenes de compra`
+      );
+    } catch (error) {
+      console.error(
+        `Error al sincronizar firmas de la cotización ${quotationRequest.id} con órdenes de compra:`,
+        error
+      );
+      // No lanzar error para no interrumpir el flujo principal
+    }
+  }
+
+  /**
+   * Sincroniza las firmas de una cotización específica con una orden de compra específica
+   */
+  private async syncQuotationSignatureToPurchaseOrder(
+    quotationRequest: QuotationRequest,
+    purchaseOrder: PurchaseOrder
+  ): Promise<void> {
+    // Copiar firmas de la cotización a la orden de compra
+    if (quotationRequest.firstSignature) {
+      purchaseOrder.firstSignature = quotationRequest.firstSignature;
+      purchaseOrder.firstSignedBy = quotationRequest.firstSignedBy;
+      purchaseOrder.firstSignedAt = quotationRequest.firstSignedAt;
+    }
+
+    if (quotationRequest.secondSignature) {
+      purchaseOrder.secondSignature = quotationRequest.secondSignature;
+      purchaseOrder.secondSignedBy = quotationRequest.secondSignedBy;
+      purchaseOrder.secondSignedAt = quotationRequest.secondSignedAt;
+    }
+
+    if (quotationRequest.thirdSignature) {
+      purchaseOrder.thirdSignature = quotationRequest.thirdSignature;
+      purchaseOrder.thirdSignedBy = quotationRequest.thirdSignedBy;
+      purchaseOrder.thirdSignedAt = quotationRequest.thirdSignedAt;
+    }
+
+    if (quotationRequest.fourthSignature) {
+      purchaseOrder.fourthSignature = quotationRequest.fourthSignature;
+      purchaseOrder.fourthSignedBy = quotationRequest.fourthSignedBy;
+      purchaseOrder.fourthSignedAt = quotationRequest.fourthSignedAt;
+    }
+
+    // Actualizar estado basado en las firmas de la cotización
+    if (quotationRequest.status === 'APPROVED') {
+      purchaseOrder.status = PurchaseOrderStatus.APPROVED;
+    } else if (quotationRequest.fourthSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_4;
+    } else if (quotationRequest.thirdSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_3;
+    } else if (quotationRequest.secondSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_2;
+    } else if (quotationRequest.firstSignedAt) {
+      purchaseOrder.status = PurchaseOrderStatus.SIGNED_1;
+    }
+
+    // Guardar la orden de compra actualizada
+    await this.purchaseOrderService.savePurchaseOrderWithSignatures(purchaseOrder);
   }
 }

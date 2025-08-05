@@ -1,9 +1,4 @@
-import {
-  IsOptional,
-  IsNumber,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsOptional, IsNumber, IsString, Min } from 'class-validator';
 
 export class UpdateFuelOutputDto {
   @IsOptional()
@@ -26,4 +21,4 @@ export class UpdateFuelOutputDto {
   @IsOptional()
   @IsString()
   observations?: string;
-} 
+}

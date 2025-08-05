@@ -1,11 +1,13 @@
 import { Modal } from '../../../../components/common/Modal';
 import { FormInputFile } from '../../../../components/common/FormInputFile';
+import { Loader2 } from 'lucide-react';
 
 interface UploadInformModalProps {
   isOpen: boolean;
   onClose: () => void;
   handleInformChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: () => void;
+  isLoading?: boolean;
 }
 
 export const UploadInformModal = ({
@@ -13,6 +15,7 @@ export const UploadInformModal = ({
   onClose,
   handleInformChange,
   handleSubmit,
+  isLoading = false,
 }: UploadInformModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Subir Informe">
@@ -28,21 +31,25 @@ export const UploadInformModal = ({
               name="inform"
               accept="application/pdf"
               onChange={handleInformChange}
+              disabled={isLoading}
             />
           </div>
         </div>
         <div className="flex justify-between">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            disabled={isLoading}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
           >
-            Subir
+            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {isLoading ? 'Subiendo...' : 'Subir'}
           </button>
         </div>
       </div>

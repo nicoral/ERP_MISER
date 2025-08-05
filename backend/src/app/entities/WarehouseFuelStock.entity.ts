@@ -18,16 +18,39 @@ export class WarehouseFuelStock {
   @JoinColumn({ name: 'warehouse_id' })
   warehouse: Warehouse;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'current_stock', nullable: false, default: 0 })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'current_stock',
+    nullable: false,
+    default: 0,
+  })
   currentStock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'min_stock', nullable: false, default: 0 })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'min_stock',
+    nullable: false,
+    default: 0,
+  })
   minStock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'max_stock', nullable: false, default: 0 })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'max_stock',
+    nullable: false,
+    default: 0,
+  })
   maxStock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'tank_capacity', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'tank_capacity',
+    nullable: false,
+  })
   tankCapacity: number;
 
   @CreateDateColumn({
@@ -43,4 +66,4 @@ export class WarehouseFuelStock {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
-} 
+}

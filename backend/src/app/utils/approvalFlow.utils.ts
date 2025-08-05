@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+
 export interface ApprovalFlowEntity {
   firstSignature?: string | null;
   firstSignedBy?: number | null;
@@ -17,10 +19,290 @@ export interface ApprovalFlowEntity {
   status?: string;
 }
 
+export interface DocumentApprovalConfiguration {
+  id: number;
+  entityType: string;
+  entityId: number;
+  signatureLevel: number;
+  roleName: string;
+  isRequired: boolean;
+  isActive: boolean;
+}
+
 export interface ProgressCalculationOptions {
   maxProgress?: number;
   approvalSteps?: number;
   baseProgress?: number;
+}
+
+/**
+ * Obtiene la firma por nivel
+ */
+export function getSignatureByLevel(
+  entity: ApprovalFlowEntity,
+  level: number
+): boolean {
+  switch (level) {
+    case 1:
+      return !!entity.firstSignedAt;
+    case 2:
+      return !!entity.secondSignedAt;
+    case 3:
+      return !!entity.thirdSignedAt;
+    case 4:
+      return !!entity.fourthSignedAt;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Verifica si un usuario puede firmar usando configuración específica
+ */
+export async function canUserSignWithConfiguration(
+  entity: ApprovalFlowEntity,
+  userPermissions: string[],
+  creatorId: number,
+  userId: number,
+  configurations: DocumentApprovalConfiguration[],
+  totalAmount: number,
+  lowAmountThreshold: number,
+  entityType: string = 'requirement'
+): Promise<{ canSign: boolean; level: number; reason?: string }> {
+  const isCreator = userId === creatorId;
+
+  for (const config of configurations) {
+    if (!config.isRequired) continue;
+
+    // ✅ Validación 1: Solo creador puede firmar como solicitante
+    if (config.roleName === 'SOLICITANTE') {
+      if (!isCreator) {
+        continue; // No puede firmar como solicitante
+      }
+      if (entity.firstSignedAt) {
+        continue; // Ya fue firmado por solicitante
+      }
+      return { canSign: true, level: config.signatureLevel };
+    }
+
+    // ✅ Validación 2: Gerencia solo para montos altos
+    if (config.roleName === 'GERENCIA') {
+      if (totalAmount < lowAmountThreshold) {
+        continue; // Gerencia no requerida para montos bajos
+      }
+    }
+
+    // ✅ Validación 3: Verificar permisos y si ya fue firmado
+    const hasPermission = userPermissions.includes(
+      `${entityType}-signed-${config.roleName.toLowerCase()}`
+    );
+    const alreadySigned = getSignatureByLevel(entity, config.signatureLevel);
+
+    if (hasPermission && !alreadySigned) {
+      return {
+        canSign: true,
+        level: config.signatureLevel,
+      };
+    }
+  }
+
+  return {
+    canSign: false,
+    level: 0,
+    reason: 'No tienes permisos para firmar en ningún nivel disponible',
+  };
+}
+
+/**
+ * Procesa la firma según la configuración dinámica
+ */
+export async function processSignatureWithConfiguration(
+  entity: ApprovalFlowEntity,
+  userId: number,
+  signature: string,
+  level: number,
+  configurations: Array<{
+    signatureLevel: number;
+    roleName: string;
+    isRequired: boolean;
+  }>
+): Promise<{
+  updatedEntity: ApprovalFlowEntity;
+  becameApproved: boolean;
+  newStatus: string;
+}> {
+  const updatedEntity = { ...entity };
+  let becameApproved = false;
+  let newStatus = entity.status || 'PENDING';
+
+  // Aplicar firma según el nivel
+  switch (level) {
+    case 1:
+      updatedEntity.firstSignature = signature;
+      updatedEntity.firstSignedBy = userId;
+      updatedEntity.firstSignedAt = new Date();
+      newStatus = 'SIGNED_1';
+      break;
+    case 2:
+      updatedEntity.secondSignature = signature;
+      updatedEntity.secondSignedBy = userId;
+      updatedEntity.secondSignedAt = new Date();
+      newStatus = 'SIGNED_2';
+      break;
+    case 3:
+      updatedEntity.thirdSignature = signature;
+      updatedEntity.thirdSignedBy = userId;
+      updatedEntity.thirdSignedAt = new Date();
+      newStatus = 'SIGNED_3';
+      break;
+    case 4:
+      updatedEntity.fourthSignature = signature;
+      updatedEntity.fourthSignedBy = userId;
+      updatedEntity.fourthSignedAt = new Date();
+      newStatus = 'SIGNED_4';
+      break;
+    default:
+      throw new Error('Nivel de firma no válido');
+  }
+
+  // Verificar si todas las firmas requeridas están completadas
+  const allRequiredSignaturesCompleted = checkAllRequiredSignaturesCompleted(
+    updatedEntity,
+    configurations
+  );
+
+  if (allRequiredSignaturesCompleted) {
+    newStatus = 'APPROVED';
+    becameApproved = true;
+  }
+
+  updatedEntity.status = newStatus;
+  return { updatedEntity, becameApproved, newStatus };
+}
+
+/**
+ * Verifica si todas las firmas requeridas están completadas
+ */
+function checkAllRequiredSignaturesCompleted(
+  entity: ApprovalFlowEntity,
+  configurations: Array<{
+    signatureLevel: number;
+    roleName: string;
+    isRequired: boolean;
+  }>
+): boolean {
+  // Filtrar solo las configuraciones requeridas
+  const requiredConfigurations = configurations.filter(
+    config => config.isRequired
+  );
+
+  // Verificar que cada firma requerida esté completada
+  for (const config of requiredConfigurations) {
+    const isSignatureCompleted = checkSignatureLevelCompleted(
+      entity,
+      config.signatureLevel
+    );
+    if (!isSignatureCompleted) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Verifica si una firma específica está completada
+ */
+function checkSignatureLevelCompleted(
+  entity: ApprovalFlowEntity,
+  level: number
+): boolean {
+  switch (level) {
+    case 1:
+      return !!entity.firstSignedAt;
+    case 2:
+      return !!entity.secondSignedAt;
+    case 3:
+      return !!entity.thirdSignedAt;
+    case 4:
+      return !!entity.fourthSignedAt;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Genera un mensaje de error detallado para problemas de firma
+ */
+export function generateSignatureErrorMessage(
+  entityType: 'requirement' | 'quotation' | 'fuelControl' | 'purchase_order',
+  errorDetails: {
+    reason: string;
+    currentStatus: string;
+    requiredPermission: string;
+    userHasPermission: boolean;
+    isCreator: boolean;
+  }
+): string {
+  const entityName = {
+    requirement: 'requerimiento',
+    quotation: 'cotización',
+    fuelControl: 'control de combustible',
+    purchase_order: 'orden de compra',
+  }[entityType];
+
+  const statusText =
+    {
+      PENDING: 'Pendiente',
+      SIGNED_1: 'Firmado por Solicitante',
+      SIGNED_2: 'Firmado por Oficina Técnica',
+      SIGNED_3: 'Firmado por Administración',
+      APPROVED: 'Aprobado',
+    }[errorDetails.currentStatus] || errorDetails.currentStatus;
+
+  return `No puedes firmar este ${entityName}. ${errorDetails.reason}. Estado actual: ${statusText}. Permiso requerido: ${errorDetails.requiredPermission}`;
+}
+
+/**
+ * Valida que una entidad sea elegible para firma según las reglas de negocio
+ */
+export function validateSignatureEligibility(
+  entity: ApprovalFlowEntity,
+  userId: number,
+  entityType:
+    | 'requirement'
+    | 'quotation'
+    | 'fuelControl'
+    | 'purchase_order' = 'requirement',
+  totalAmount?: number,
+  entitySubType?: 'ARTICLE' | 'SERVICE',
+  hasInform?: boolean
+): void {
+  // 1. Validación de estados inválidos
+  if (entity.rejectedAt) {
+    throw new BadRequestException('No se puede firmar un documento rechazado');
+  }
+
+  // 2. Validación de montos válidos (solo mínimo, no máximo)
+  if (totalAmount !== undefined && totalAmount <= 0) {
+    throw new BadRequestException('El monto total debe ser mayor a cero');
+  }
+
+  // 3. Validación de informe para servicios
+  if (
+    entityType === 'requirement' &&
+    entitySubType === 'SERVICE' &&
+    hasInform === false
+  ) {
+    throw new BadRequestException(
+      'Los requerimientos de servicio requieren un informe antes de ser firmados'
+    );
+  }
+
+  // 4. Validación de que el documento no esté ya aprobado
+  if (entity.fourthSignedAt || entity.status === 'APPROVED') {
+    throw new BadRequestException('El documento ya está aprobado');
+  }
 }
 
 /**
@@ -54,181 +336,4 @@ export function calculateApprovalProgress(
   const approvalProgress =
     (completedSignatures / approvalSteps) * (maxProgress - baseProgress);
   return Math.round(baseProgress + approvalProgress);
-}
-
-/**
- * Verifica si un usuario puede firmar según el estado actual
- */
-export function canUserSign(
-  entity: ApprovalFlowEntity,
-  userPermissions: string[],
-  creatorId: number,
-  userId: number,
-  entityType: 'requirement' | 'quotation' | 'fuelControl' = 'requirement'
-): { canSign: boolean; requiredPermission: string } {
-  let canSign = false;
-  let requiredPermission = '';
-
-  // Determinar el estado actual basado en las firmas
-  let currentStatus: string;
-
-  if (!entity.firstSignedAt) {
-    currentStatus = 'PENDING';
-  } else if (!entity.secondSignedAt) {
-    currentStatus = 'SIGNED_1';
-  } else if (!entity.thirdSignedAt) {
-    currentStatus = 'SIGNED_2';
-  } else if (!entity.fourthSignedAt) {
-    currentStatus = 'SIGNED_3';
-  } else {
-    currentStatus = 'APPROVED';
-  }
-
-  // Mapear permisos según el tipo de entidad
-  const permissionPrefix =
-    entityType === 'requirement' ? 'requirement' : 
-    entityType === 'quotation' ? 'quotation' : 'fuelControl';
-
-  switch (currentStatus) {
-    case 'PENDING':
-      canSign = userId === creatorId;
-      break;
-    case 'SIGNED_1':
-      requiredPermission = `${permissionPrefix}-view-signed1`;
-      canSign =
-        userPermissions.includes(requiredPermission) && !entity.secondSignedAt;
-      break;
-    case 'SIGNED_2':
-      requiredPermission = `${permissionPrefix}-view-signed2`;
-      canSign =
-        userPermissions.includes(requiredPermission) && !entity.thirdSignedAt;
-      break;
-    case 'SIGNED_3':
-      requiredPermission = `${permissionPrefix}-view-signed3`;
-      canSign =
-        userPermissions.includes(requiredPermission) && !entity.fourthSignedAt;
-      break;
-    default:
-      return { canSign: false, requiredPermission: '' };
-  }
-
-  return { canSign, requiredPermission };
-}
-
-/**
- * Procesa la firma de un usuario
- */
-export function processSignature(
-  entity: ApprovalFlowEntity,
-  userId: number,
-  signature: string,
-  isLowAmount: boolean = false
-): {
-  updatedEntity: ApprovalFlowEntity;
-  becameApproved: boolean;
-  newStatus: string;
-} {
-  const updatedEntity = { ...entity };
-  let becameApproved = false;
-  let newStatus = entity.status || 'PENDING';
-
-  // Determinar el estado actual basado en las firmas
-  let currentStatus: string;
-
-  if (!entity.firstSignedAt) {
-    currentStatus = 'PENDING';
-  } else if (!entity.secondSignedAt) {
-    currentStatus = 'SIGNED_1';
-  } else if (!entity.thirdSignedAt) {
-    currentStatus = 'SIGNED_2';
-  } else if (!entity.fourthSignedAt) {
-    currentStatus = 'SIGNED_3';
-  } else {
-    currentStatus = 'APPROVED';
-  }
-
-  switch (currentStatus) {
-    case 'PENDING':
-      updatedEntity.firstSignature = signature;
-      updatedEntity.firstSignedBy = userId;
-      updatedEntity.firstSignedAt = new Date();
-      newStatus = 'SIGNED_1';
-      break;
-    case 'SIGNED_1':
-      updatedEntity.secondSignature = signature;
-      updatedEntity.secondSignedBy = userId;
-      updatedEntity.secondSignedAt = new Date();
-      newStatus = 'SIGNED_2';
-      break;
-    case 'SIGNED_2':
-      updatedEntity.thirdSignature = signature;
-      updatedEntity.thirdSignedBy = userId;
-      updatedEntity.thirdSignedAt = new Date();
-      if (isLowAmount) {
-        newStatus = 'APPROVED';
-        becameApproved = true;
-      } else {
-        newStatus = 'SIGNED_3';
-      }
-      break;
-    case 'SIGNED_3':
-      updatedEntity.fourthSignature = signature;
-      updatedEntity.fourthSignedBy = userId;
-      updatedEntity.fourthSignedAt = new Date();
-      newStatus = 'APPROVED';
-      becameApproved = true;
-      break;
-    default:
-      throw new Error('No se puede firmar en este estado');
-  }
-
-  updatedEntity.status = newStatus;
-
-  return { updatedEntity, becameApproved, newStatus };
-}
-
-/**
- * Verifica si una entidad es de monto bajo (para aprobación automática)
- */
-export function isLowAmount(
-  amount: number,
-  threshold: number = 10000
-): boolean {
-  return amount < threshold;
-}
-
-/**
- * Obtiene el texto del botón de firma según el estado
- */
-export function getSignButtonText(entity: ApprovalFlowEntity): string {
-  if (!entity.firstSignedAt) {
-    return 'Firmar (Solicitante)';
-  } else if (!entity.secondSignedAt) {
-    return 'Firmar (Oficina Técnica)';
-  } else if (!entity.thirdSignedAt) {
-    return 'Firmar (Administración)';
-  } else if (!entity.fourthSignedAt) {
-    return 'Firmar (Gerencia)';
-  } else {
-    return 'Aprobado';
-  }
-}
-
-/**
- * Obtiene el estado de aprobación en texto legible
- */
-export function getApprovalStatus(entity: ApprovalFlowEntity): string {
-  if (entity.rejectedAt) {
-    return 'Rechazado';
-  } else if (entity.fourthSignedAt) {
-    return 'Aprobado';
-  } else if (entity.thirdSignedAt) {
-    return 'Firmado por Administración';
-  } else if (entity.secondSignedAt) {
-    return 'Firmado por Oficina Técnica';
-  } else if (entity.firstSignedAt) {
-    return 'Firmado por Solicitante';
-  } else {
-    return 'Pendiente';
-  }
 }

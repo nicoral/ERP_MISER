@@ -22,10 +22,20 @@ export class FuelOutput extends ApprovalFlowBase {
   @JoinColumn({ name: 'fuel_daily_control_id' })
   fuelDailyControl: FuelDailyControl;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'quantity', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'quantity',
+    nullable: false,
+  })
   quantity: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'hour_meter', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'hour_meter',
+    nullable: false,
+  })
   hourMeter: number;
 
   @Column('varchar', { name: 'image_url', nullable: true, length: 255 })
@@ -69,4 +79,4 @@ export class FuelOutput extends ApprovalFlowBase {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
-} 
+}

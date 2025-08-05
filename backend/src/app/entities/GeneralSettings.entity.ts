@@ -76,6 +76,14 @@ export class GeneralSettings {
   })
   generalTax: number;
 
+  @Column('numeric', {
+    precision: 10,
+    scale: 2,
+    name: 'low_amount_threshold',
+    default: 10000,
+  })
+  lowAmountThreshold: number;
+
   @Column('text', {
     name: 'additional_settings',
     nullable: true,

@@ -1,9 +1,4 @@
-import {
-  IsOptional,
-  IsNumber,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsNumber, Min, Max } from 'class-validator';
 
 export class UpdateWarehouseFuelStockDto {
   @IsOptional()
@@ -26,4 +21,4 @@ export class UpdateWarehouseFuelStockDto {
   @Min(0)
   @Max(999999.99)
   tankCapacity?: number;
-} 
+}

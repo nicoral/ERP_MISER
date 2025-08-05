@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Warehouse } from '../entities/Warehouse.entity';
 import { WarehouseFuelStock } from '../entities/WarehouseFuelStock.entity';
@@ -21,7 +25,7 @@ export class WarehouseService {
       ...warehouse,
       manager: { id: warehouse.employeeId },
     });
-    
+
     const savedWarehouse = await this.warehouseRepository.save(warehouseEntity);
 
     // Crear automáticamente el stock de combustible por defecto
@@ -89,7 +93,7 @@ export class WarehouseService {
     }
     const updatedWarehouse = await this.warehouseRepository.update(
       id,
-      updateData,
+      updateData
     );
     if (updatedWarehouse.affected === 0) {
       throw new NotFoundException('Warehouse not found');
@@ -103,7 +107,9 @@ export class WarehouseService {
   }
 
   // Fuel Stock Methods
-  async getWarehouseFuelStock(warehouseId: number): Promise<WarehouseFuelStock> {
+  async getWarehouseFuelStock(
+    warehouseId: number
+  ): Promise<WarehouseFuelStock> {
     const fuelStock = await this.warehouseFuelStockRepository.findOne({
       where: { warehouse: { id: warehouseId } },
       relations: ['warehouse'],
@@ -121,9 +127,9 @@ export class WarehouseService {
     updateData: UpdateWarehouseFuelStockDto
   ): Promise<WarehouseFuelStock> {
     const fuelStock = await this.getWarehouseFuelStock(warehouseId);
-    
+
     Object.assign(fuelStock, updateData);
-    
+
     return this.warehouseFuelStockRepository.save(fuelStock);
   }
 
@@ -139,14 +145,15 @@ export class WarehouseService {
     type: 'add' | 'subtract'
   ): Promise<WarehouseFuelStock> {
     const fuelStock = await this.getWarehouseFuelStock(warehouseId);
-    
+
     if (type === 'subtract' && fuelStock.currentStock < quantity) {
       throw new BadRequestException('Insufficient fuel stock');
     }
 
-    fuelStock.currentStock = type === 'add' 
-      ? fuelStock.currentStock + quantity 
-      : fuelStock.currentStock - quantity;
+    fuelStock.currentStock =
+      type === 'add'
+        ? fuelStock.currentStock + quantity
+        : fuelStock.currentStock - quantity;
 
     return this.warehouseFuelStockRepository.save(fuelStock);
   }

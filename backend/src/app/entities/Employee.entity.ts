@@ -143,10 +143,14 @@ export class Employee {
   })
   operatedFuelOutputs: FuelOutput[];
 
-  @OneToMany(() => FuelStockMovement, fuelStockMovement => fuelStockMovement.employee, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
+  @OneToMany(
+    () => FuelStockMovement,
+    fuelStockMovement => fuelStockMovement.employee,
+    {
+      cascade: true,
+      onDelete: 'CASCADE',
+    }
+  )
   fuelStockMovements: FuelStockMovement[];
 
   @CreateDateColumn({

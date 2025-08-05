@@ -1,7 +1,6 @@
 import type { QuotationRequest, FinalSelection } from '../../types/quotation';
 import type { Supplier } from '../../types/supplier';
 import type { SupplierQuotationItem } from '../../types/quotation';
-import type { Employee } from '../../types/employee';
 import type { Service } from '../../types/service';
 
 // Tipos para el componente ComparisonTable
@@ -44,7 +43,7 @@ export interface SupplierWithFinalSelection {
 export interface Signature {
   label: string;
   signed: boolean;
-  signedBy?: Employee;
+  signedBy?: number;
   signedAt?: Date;
 }
 

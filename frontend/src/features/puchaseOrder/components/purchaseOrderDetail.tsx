@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { formatCurrency, formatDate } from '../../../utils/quotationUtils';
+import { formatCurrency } from '../../../utils/quotationUtils';
 import type { PurchaseOrderItem } from '../../../types/purchaseOrder';
 import { numberToSpanishWordsCurrency } from '../../../utils/helpers';
 import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
 import { Button } from '../../../components/common/Button';
 import { useToast } from '../../../contexts/ToastContext';
-import { usePurchaseOrderByIdQuery } from '../../../hooks/usePurchaseOrderService';
+import {
+  usePurchaseOrderByIdQuery,
+  usePurchaseOrderSignatureConfiguration,
+} from '../../../hooks/usePurchaseOrderService';
 import { usePurchaseOrderService } from '../../../hooks/usePurchaseOrderService';
 import { useParams } from 'react-router-dom';
-import type { Signature } from '../../quotation/types';
 import { Loader2 } from 'lucide-react';
 
 export const PurchaseOrder = () => {
@@ -19,6 +21,13 @@ export const PurchaseOrder = () => {
   const { data: purchaseOrder, isLoading: loading } = usePurchaseOrderByIdQuery(
     Number(params.id)
   );
+
+  // Hook para la configuración de firmas
+  const { data: signatureConfig, isLoading: loadingSignatureConfig } =
+    usePurchaseOrderSignatureConfiguration(
+      params.id ? Number(params.id) : undefined
+    );
+
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadPdf = async () => {
@@ -39,19 +48,14 @@ export const PurchaseOrder = () => {
       document.body.removeChild(a);
       showSuccess('PDF descargado correctamente');
     } catch (error) {
-      showError('Error al descargar el PDF', error as string);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido al descargar el PDF';
+      showError('Error al descargar el PDF', errorMessage);
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  const isVisibleGerencia = (): boolean => {
-    const total =
-      purchaseOrder?.items.reduce(
-        (sum: number, item) => sum + (+item.amount || 0),
-        0
-      ) || 0;
-    return total >= 10000;
   };
 
   // Si está cargando, mostrar loading
@@ -76,35 +80,6 @@ export const PurchaseOrder = () => {
   }
 
   if (!purchaseOrder) return null;
-
-  const { quotationRequest: quotation } = purchaseOrder;
-
-  const signatures: Signature[] = [
-    {
-      label: 'Logística',
-      signed: !!quotation.firstSignedBy,
-      signedBy: quotation.firstSignedBy,
-      signedAt: quotation.firstSignedAt,
-    },
-    {
-      label: 'Of. Técnica',
-      signed: !!quotation.secondSignedBy,
-      signedBy: quotation.secondSignedBy,
-      signedAt: quotation.secondSignedAt,
-    },
-    {
-      label: 'Administración',
-      signed: !!quotation.thirdSignedBy,
-      signedBy: quotation.thirdSignedBy,
-      signedAt: quotation.thirdSignedAt,
-    },
-    {
-      label: 'Gerencia',
-      signed: !!quotation.fourthSignedBy,
-      signedBy: quotation.fourthSignedBy,
-      signedAt: quotation.fourthSignedAt,
-    },
-  ];
   return (
     <>
       <div className="mb-6">
@@ -347,43 +322,88 @@ export const PurchaseOrder = () => {
       </div>
 
       {/* Firmas */}
-      <div className="mb-4">
-        <div className="font-semibold text-xs mb-1">FIRMAS</div>
-        <div
-          className={`grid grid-cols-2 md:grid-cols-${
-            isVisibleGerencia() ? 4 : 3
-          } gap-4`}
-        >
-          {signatures
-            .filter(s => {
-              if (!isVisibleGerencia() && s.label === 'Gerencia') {
-                return false;
-              }
-              return true;
-            })
-            .map((firma, idx) => (
-              <div
-                key={idx}
-                className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow"
-              >
-                <div className="font-medium text-sm mb-1">{firma.label}</div>
-                {firma.signed ? (
-                  <>
-                    <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
-                      Firmado
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Firmas</h3>
+        {loadingSignatureConfig ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Cargando firmas...</span>
+          </div>
+        ) : null}
+
+        {signatureConfig ? (
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-${
+              signatureConfig.configurations.filter(config => config.isRequired)
+                .length
+            } gap-4`}
+          >
+            {signatureConfig.configurations
+              .filter(config => config.isRequired)
+              .map(config => {
+                const getSignatureDate = (level: number) => {
+                  switch (level) {
+                    case 1:
+                      return purchaseOrder?.firstSignedAt;
+                    case 2:
+                      return purchaseOrder?.secondSignedAt;
+                    case 3:
+                      return purchaseOrder?.thirdSignedAt;
+                    case 4:
+                      return purchaseOrder?.fourthSignedAt;
+                    default:
+                      return null;
+                  }
+                };
+
+                const getSignatureLabel = (roleName: string) => {
+                  switch (roleName) {
+                    case 'SOLICITANTE':
+                      return 'Solicitante';
+                    case 'OFICINA_TECNICA':
+                      return 'Oficina Técnica';
+                    case 'ADMINISTRACION':
+                      return 'Administración';
+                    case 'GERENCIA':
+                      return 'Gerencia';
+                    default:
+                      return roleName;
+                  }
+                };
+
+                const signatureDate = getSignatureDate(config.signatureLevel);
+                const signatureLabel = getSignatureLabel(config.roleName);
+
+                return (
+                  <div
+                    key={config.id}
+                    className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow"
+                  >
+                    <div className="font-medium text-sm mb-1">
+                      {signatureLabel}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      {firma.signedAt
-                        ? formatDate(firma.signedAt.toString())
-                        : ''}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-xs text-gray-400 italic">Pendiente</div>
-                )}
-              </div>
-            ))}
-        </div>
+                    {signatureDate ? (
+                      <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
+                        {new Date(signatureDate).toLocaleDateString('es-PE', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-400 italic">
+                        Pendiente
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-gray-500">
+            No se pudo cargar la configuración de firmas
+          </div>
+        )}
       </div>
     </>
   );

@@ -13,9 +13,9 @@ export class GeneralSettingsService {
 
   constructor(
     @InjectRepository(GeneralSettings)
-    private generalSettingsRepository: Repository<GeneralSettings>,
-    private sunatProvider: SunatProvider,
-    private storageService: StorageService
+    private readonly generalSettingsRepository: Repository<GeneralSettings>,
+    private readonly sunatProvider: SunatProvider,
+    private readonly storageService: StorageService
   ) {}
 
   /**
@@ -195,6 +195,17 @@ export class GeneralSettingsService {
     return todayStr !== exchangeDateStr;
   }
 
+  /**
+   * Obtiene el umbral de monto bajo para aprobación automática
+   */
+  async getLowAmountThreshold(): Promise<number> {
+    const settings = await this.getSettings();
+    return settings.lowAmountThreshold || 10000; // Valor por defecto S/. 10,000
+  }
+
+  /**
+   * Obtiene el impuesto general
+   */
   async getGeneralTax(): Promise<number> {
     const settings = await this.getSettings();
     return settings.generalTax;

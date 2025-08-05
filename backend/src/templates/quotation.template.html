@@ -387,32 +387,18 @@
   <div style="margin-top: 15px;">
     <table class="signature-table">
       <tr>
+        {{#each signatures}}
         <td class="signature-cell">
-          {{#if firstSignature}}
-            <img src="{{firstSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
+          {{#if hasSignature}}
+            <img src="{{signature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
           {{/if}}
         </td>
-        <td class="signature-cell">
-          {{#if secondSignature}}
-            <img src="{{secondSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
-        <td class="signature-cell">
-          {{#if thirdSignature}}
-            <img src="{{thirdSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
-        <td class="signature-cell">
-          {{#if fourthSignature}}
-            <img src="{{fourthSignature}}" style="max-width: 100%; max-height: 40px; display: block; margin: 0 auto;">
-          {{/if}}
-        </td>
+        {{/each}}
       </tr>
       <tr class="signature-header">
-        <td>V°B° LOGÍSTICA<br>ELABORA<br><small>{{firstSignedAt}}</small></td>
-        <td>V°B° OFICINA TÉCNICA<br>REVISA<br><small>{{secondSignedAt}}</small></td>
-        <td>V°B° ADMINISTRACIÓN<br>REVISIÓN<br><small>{{thirdSignedAt}}</small></td>
-        <td>V°B° GERENCIA<br>APRUEBA<br><small>{{fourthSignedAt}}</small></td>
+        {{#each signatures}}
+        <td>{{{roleName}}}<br><small>{{signedAt}}</small></td>
+        {{/each}}
       </tr>
     </table>
   </div>

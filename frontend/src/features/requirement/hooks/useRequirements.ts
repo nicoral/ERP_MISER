@@ -10,6 +10,7 @@ import {
   signRequirement,
   rejectRequirement,
   uploadInform,
+  getSignatureConfiguration,
 } from '../../../services/api/requirementService';
 import type { CreateRequirementDto } from '../../../types/requirement';
 
@@ -157,5 +158,19 @@ export const useUploadInform = () => {
       queryClient.invalidateQueries({ queryKey: ['requirement', variables] });
       queryClient.invalidateQueries({ queryKey: ['requirements'] });
     },
+  });
+};
+
+/**
+ * Obtener configuración de firmas de un requerimiento.
+ */
+export const useRequirementSignatureConfiguration = (
+  id: number | undefined
+) => {
+  return useQuery({
+    queryKey: ['requirement-signature-configuration', id],
+    queryFn: () => getSignatureConfiguration(id!),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 };

@@ -103,7 +103,13 @@ export const ReceiveQuotations: React.FC<ReceiveQuotationsProps> = ({
   // Mostrar errores cuando cambien
   useEffect(() => {
     if (error) {
-      showError('Error', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+          ? error
+          : 'Error desconocido';
+      showError('Error', errorMessage);
     }
   }, [error, showError]);
 

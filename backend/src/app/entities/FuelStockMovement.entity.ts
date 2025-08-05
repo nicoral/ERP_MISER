@@ -26,13 +26,28 @@ export class FuelStockMovement {
   })
   movementType: FuelMovementType;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'quantity', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'quantity',
+    nullable: false,
+  })
   quantity: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'stock_before', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'stock_before',
+    nullable: false,
+  })
   stockBefore: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'stock_after', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'stock_after',
+    nullable: false,
+  })
   stockAfter: number;
 
   @ManyToOne(() => Employee, { nullable: true })
@@ -51,4 +66,4 @@ export class FuelStockMovement {
     default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Date;
-} 
+}

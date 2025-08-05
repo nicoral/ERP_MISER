@@ -1,6 +1,7 @@
 import { createApiCall } from './httpInterceptor';
 import type { PurchaseOrder } from '../../types/purchaseOrder';
 import type { PaginatedResponse } from '../../types/generic';
+import type { SignatureConfigurationResponse } from '../../types/documentApprovalConfiguration';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/purchase-order`;
 
@@ -109,6 +110,19 @@ export const purchaseOrderService = {
     const response = await createApiCall<PurchaseOrder[]>(
       `${BASE_URL}/without-exit-part/summary`,
       { method: 'GET' }
+    );
+    return response;
+  },
+
+  // Obtener configuración de firmas de una orden de compra
+  async getSignatureConfiguration(
+    id: number
+  ): Promise<SignatureConfigurationResponse> {
+    const response = await createApiCall<SignatureConfigurationResponse>(
+      `${BASE_URL}/${id}/signature-configuration`,
+      {
+        method: 'GET',
+      }
     );
     return response;
   },

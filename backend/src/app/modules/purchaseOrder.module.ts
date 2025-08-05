@@ -13,6 +13,9 @@ import { QRService } from '../services/qr.service';
 import { EmployeeModule } from './employee.module';
 import { EntryPartModule } from './entryPart.module';
 import { StorageModule } from './storage.module';
+import { RoleModule } from './role.module';
+import { GeneralSettingsModule } from './generalSettings.module';
+import { DocumentApprovalConfigurationModule } from './documentApprovalConfiguration.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { StorageModule } from './storage.module';
     EmployeeModule,
     EntryPartModule,
     StorageModule,
+    RoleModule,
+    GeneralSettingsModule,
+    DocumentApprovalConfigurationModule,
   ],
   controllers: [PurchaseOrderController],
   providers: [PurchaseOrderService, QRService],

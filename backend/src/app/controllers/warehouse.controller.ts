@@ -87,7 +87,10 @@ export class WarehouseController {
     @Param('warehouseId') warehouseId: number,
     @Body() updateData: UpdateWarehouseFuelStockDto
   ): Promise<WarehouseFuelStock> {
-    return this.warehouseService.updateWarehouseFuelStock(warehouseId, updateData);
+    return this.warehouseService.updateWarehouseFuelStock(
+      warehouseId,
+      updateData
+    );
   }
 
   @Post('fuel-stock/:warehouseId/configure')
@@ -97,6 +100,9 @@ export class WarehouseController {
     @Param('warehouseId') warehouseId: number,
     @Body() configData: UpdateWarehouseFuelStockDto
   ): Promise<WarehouseFuelStock> {
-    return this.warehouseService.updateWarehouseFuelStock(warehouseId, configData);
+    return this.warehouseService.updateWarehouseFuelStock(
+      warehouseId,
+      configData
+    );
   }
 }

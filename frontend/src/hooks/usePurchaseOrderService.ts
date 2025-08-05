@@ -141,3 +141,17 @@ export const usePurchaseOrderService = () => {
     downloadPurchaseOrderPdf,
   };
 };
+
+/**
+ * Hook para obtener la configuración de firmas de una orden de compra
+ */
+export const usePurchaseOrderSignatureConfiguration = (
+  id: number | undefined
+) => {
+  return useQuery({
+    queryKey: ['purchase-order-signature-configuration', id],
+    queryFn: () => purchaseOrderService.getSignatureConfiguration(id!),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+};

@@ -224,9 +224,10 @@ export class CostCenterService {
       // Validar código si se proporciona
       if (costCenter.code && costCenter.code.trim().length > 0) {
         // Verificar si el código ya existe
-        const existingCostCenterByCode = await this.costCenterRepository.findOne({
-          where: { code: costCenter.code },
-        });
+        const existingCostCenterByCode =
+          await this.costCenterRepository.findOne({
+            where: { code: costCenter.code },
+          });
         if (existingCostCenterByCode) {
           errors.push({
             row: rowNumber,

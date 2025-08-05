@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { QuotationController } from '../controllers/quotation.controller';
 import { QuotationService } from '../services/quotation.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { QuotationRequest } from '../entities/QuotationRequest.entity';
 import { QuotationSupplier } from '../entities/QuotationSupplier.entity';
 import { QuotationSupplierArticle } from '../entities/QuotationSupplierArticle.entity';
@@ -12,16 +12,16 @@ import { SupplierQuotationServiceItem } from '../entities/SupplierQuotationServi
 import { FinalSelection } from '../entities/FinalSelection.entity';
 import { FinalSelectionItem } from '../entities/FinalSelectionItem.entity';
 import { FinalSelectionServiceItem } from '../entities/FinalSelectionServiceItem.entity';
-import { Supplier } from '../entities/Supplier.entity';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
-import { RequirementService } from '../entities/RequirementService.entity';
+import { RequirementService as RequirementServiceEntity } from '../entities/RequirementService.entity';
 import { RequirementModule } from './requirement.module';
 import { SupplierModule } from './supplier.module';
-import { EmployeeModule } from './employee.module';
 import { PurchaseOrderModule } from './purchaseOrder.module';
 import { QRService } from '../services/qr.service';
-import { GeneralSettingsModule } from './generalSettings.module';
 import { StorageModule } from './storage.module';
+import { DocumentApprovalConfigurationModule } from './documentApprovalConfiguration.module';
+import { GeneralSettingsModule } from './generalSettings.module';
+import { EmployeeModule } from './employee.module';
 
 @Module({
   imports: [
@@ -36,15 +36,15 @@ import { StorageModule } from './storage.module';
       FinalSelection,
       FinalSelectionItem,
       FinalSelectionServiceItem,
-      Supplier,
       RequirementArticle,
-      RequirementService,
+      RequirementServiceEntity,
     ]),
-    StorageModule,
-    RequirementModule,
+    forwardRef(() => RequirementModule),
     SupplierModule,
-    EmployeeModule,
     PurchaseOrderModule,
+    StorageModule,
+    EmployeeModule,
+    DocumentApprovalConfigurationModule,
     GeneralSettingsModule,
   ],
   controllers: [QuotationController],

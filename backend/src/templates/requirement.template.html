@@ -246,36 +246,19 @@
     <table class="header-table"
       style="margin-top:6px; font-size:12px; border-top:1px solid #333; border-left:none; border-right:none; border-bottom:none; width:100%;">
       <tr>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
-          {{#if firstSignature}}
-          <img src="{{firstSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
-          <div style="font-size:10px;text-align: end;">{{firstSignedAt}}</div>
+        {{#each signatures}}
+        <td style="height:60px; border-bottom:1px solid #333; {{#unless @last}}border-right:1px solid #333;{{/unless}}">
+          {{#if hasSignature}}
+          <img src="{{signature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
+          <div style="font-size:10px;text-align: end;">{{signedAt}}</div>
         {{/if}}
         </td>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
-          {{#if secondSignature}}
-          <img src="{{secondSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
-          <div style="font-size:10px;text-align: end;">{{secondSignedAt}}</div>
-        {{/if}}
-        </td>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
-          {{#if thirdSignature}}
-          <img src="{{thirdSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
-          <div style="font-size:10px;text-align: end;">{{thirdSignedAt}}</div>
-        {{/if}}
-        </td>
-        <td style="height:60px; border-bottom:1px solid #333; border-right:1px solid #333;">
-          {{#if fourthSignature}}
-          <img src="{{fourthSignature}}" style="max-width:100%; max-height:50px; display:block; margin:0 auto;" />
-          <div style="font-size:10px;text-align: end;">{{fourthSignedAt}}</div>
-        {{/if}}
-        </td>
+        {{/each}}
       </tr>
       <tr style="background:#000080; color:#fff; font-size:11px;">
-        <td style="text-align:center; font-weight:bold;">V°B° SOLICITANTE<br>ELABORA</td>
-        <td style="text-align:center; font-weight:bold;">V°B° OFICINA TECNICA<br>REVISA</td>
-        <td style="text-align:center; font-weight:bold;">V°B° ADMINISTRACION<br>REVISION</td>
-        <td style="text-align:center; font-weight:bold;">V°B° RESIDENTE<br>APRUEBA</td>
+        {{#each signatures}}
+        <td style="text-align:center; font-weight:bold;">{{roleName}}</td>
+        {{/each}}
       </tr>
     </table>
   </div>

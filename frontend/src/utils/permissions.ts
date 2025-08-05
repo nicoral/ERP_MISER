@@ -2,6 +2,7 @@ import { getCurrentUser } from '../services/auth/authService';
 import type { Requirement } from '../types/requirement';
 import type { QuotationRequest } from '../types/quotation';
 import type { FuelDailyControl } from '../features/fuelControl/types';
+import type { SignatureConfigurationResponse } from '../types/documentApprovalConfiguration';
 
 /**
  * Verifica si el usuario actual tiene el permiso especificado
@@ -56,10 +57,11 @@ export const hasAllPermissions = (permissions: string[]): boolean => {
  */
 export const canSignRequirement = (
   requirement: Requirement,
+  signatureConfig: SignatureConfigurationResponse,
   isReject = false
 ): boolean => {
   const user = getCurrentUser();
-  if (!user || !user.role || !user.role.permissions) {
+  if (!user?.role?.permissions) {
     return false;
   }
 
@@ -67,32 +69,69 @@ export const canSignRequirement = (
     return false;
   }
 
-  // Verificar según el estado del requerimiento
-  switch (requirement.status) {
-    case 'PENDING':
-      return isReject ? false : user.id === requirement.employee.id;
+  if (requirement.status === 'PENDING') {
+    return isReject ? false : user.id === requirement.employee.id;
+  }
 
-    case 'SIGNED_1':
-      // Para firmar después de la primera firma, necesita requirement-view-signed2
+  const permissionToSing = user.role.permissions.filter(permission =>
+    permission.name.includes('requirement-signed')
+  );
+
+  if (permissionToSing.length === 0) {
+    return false;
+  }
+
+  for (const permission of permissionToSing) {
+    const firstConfiguration = signatureConfig.configurations.find(
+      config => config.roleName.toLowerCase() === 'oficina_tecnica'
+    );
+    if (
+      permission.name.includes('requirement-signed-oficina_tecnica') &&
+      firstConfiguration?.isRequired === true
+    ) {
       return (
-        hasPermission('requirement-view-signed1') && !requirement.secondSignedAt
+        getSignatureLevel(requirement, firstConfiguration?.signatureLevel) ||
+        false
       );
-
-    case 'SIGNED_2':
-      // Para firmar después de la segunda firma, necesita requirement-view-signed3
+    }
+    const secondConfiguration = signatureConfig.configurations.find(
+      config => config.roleName.toLowerCase() === 'administracion'
+    );
+    if (
+      permission.name.includes('requirement-signed-administracion') &&
+      secondConfiguration?.isRequired === true
+    ) {
       return (
-        hasPermission('requirement-view-signed2') && !requirement.thirdSignedAt
+        getSignatureLevel(requirement, secondConfiguration?.signatureLevel) ||
+        false
       );
-
-    case 'SIGNED_3':
-      // Para firmar después de la tercera firma, necesita requirement-view-signed4 o similar
-      // Como no hay un permiso específico para la cuarta firma, usamos requirement-view-all
+    }
+    const thirdConfiguration = signatureConfig.configurations.find(
+      config => config.roleName.toLowerCase() === 'gerencia'
+    );
+    if (
+      permission.name.includes('requirement-signed-gerencia') &&
+      thirdConfiguration?.isRequired === true
+    ) {
       return (
-        hasPermission('requirement-view-signed3') && !requirement.fourthSignedAt
+        getSignatureLevel(requirement, thirdConfiguration?.signatureLevel) ||
+        false
       );
+    }
+  }
 
-    default:
-      return false;
+  return false;
+};
+
+const getSignatureLevel = (requirement: Requirement, level: number) => {
+  if (level === 1) {
+    return !requirement.firstSignedAt;
+  } else if (level === 2) {
+    return !requirement.secondSignedAt;
+  } else if (level === 3) {
+    return !requirement.thirdSignedAt;
+  } else if (level === 4) {
+    return !requirement.fourthSignedAt;
   }
 };
 

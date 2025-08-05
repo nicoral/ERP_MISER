@@ -67,16 +67,24 @@ export class Warehouse {
   requirements: Requirement[];
 
   // Fuel Control Relations
-  @OneToMany(() => WarehouseFuelStock, warehouseFuelStock => warehouseFuelStock.warehouse, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
+  @OneToMany(
+    () => WarehouseFuelStock,
+    warehouseFuelStock => warehouseFuelStock.warehouse,
+    {
+      cascade: true,
+      onDelete: 'CASCADE',
+    }
+  )
   warehouseFuelStocks: WarehouseFuelStock[];
 
-  @OneToMany(() => FuelDailyControl, fuelDailyControl => fuelDailyControl.warehouse, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
+  @OneToMany(
+    () => FuelDailyControl,
+    fuelDailyControl => fuelDailyControl.warehouse,
+    {
+      cascade: true,
+      onDelete: 'CASCADE',
+    }
+  )
   fuelDailyControls: FuelDailyControl[];
 
   @CreateDateColumn({

@@ -11,7 +11,7 @@ import {
   Req,
   Res,
   Query,
-  UploadedFile, 
+  UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -31,7 +31,7 @@ import { UpdateQuotationBasicDto } from '../dto/quotation/update-quotation-basic
 import {
   UpdateQuotationOrderDto,
   ApplyGeneralTermsDto,
-  SendQuotationOrderDto
+  SendQuotationOrderDto,
 } from '../dto/quotation/update-quotation-order.dto';
 import { CreateFinalSelectionDto } from '../dto/quotation/create-final-selection.dto';
 import { UpdateFinalSelectionDto } from '../dto/quotation/update-final-selection.dto';

@@ -161,6 +161,30 @@ export class QRService {
     return url;
   }
 
+  generatePurchaseOrderURL(
+    purchaseOrderId: number,
+    options?: {
+      includeTimestamp?: boolean;
+      includeVersion?: boolean;
+      version?: string;
+    }
+  ): string {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    let url = `${baseUrl}/purchase-orders/${purchaseOrderId}/details`;
+
+    const params = new URLSearchParams();
+
+    if (options?.includeTimestamp) {
+      params.append('t', Date.now().toString());
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    return url;
+  }
+
   /**
    * Genera URL para pagos
    */

@@ -679,7 +679,7 @@ export class ExcelImportService {
 
     // Configurar el ancho de las columnas
     const columnWidths = [
-      { wch: 8 },  // ID
+      { wch: 8 }, // ID
       { wch: 30 }, // Descripción
       { wch: 15 }, // Código
       { wch: 15 }, // Serial

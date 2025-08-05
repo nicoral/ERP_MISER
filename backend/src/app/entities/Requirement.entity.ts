@@ -42,6 +42,9 @@ export class Requirement extends ApprovalFlowBase {
   })
   type: 'ARTICLE' | 'SERVICE';
 
+  @Column({ nullable: true })
+  subType: string;
+
   @ManyToOne(() => Employee, employee => employee.requirements, {
     onDelete: 'CASCADE',
   })

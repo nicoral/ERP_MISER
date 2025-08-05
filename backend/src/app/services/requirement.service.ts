@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,10 +17,12 @@ import {
 } from '../common/enum';
 import { formatNumber } from '../utils/transformer';
 import {
-  canUserSign,
-  processSignature,
-  isLowAmount,
+  canUserSignWithConfiguration,
+  processSignatureWithConfiguration,
+  validateSignatureEligibility,
 } from '../utils/approvalFlow.utils';
+import { DocumentApprovalConfigurationService } from './documentApprovalConfiguration.service';
+import { GeneralSettingsService } from './generalSettings.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';
@@ -32,6 +33,13 @@ import { QuotationService } from './quotation.service';
 import { QRService } from './qr.service';
 import { forwardRef, Inject } from '@nestjs/common';
 import { StorageService } from './storage.service';
+import { DocumentApprovalConfiguration } from '../entities/DocumentApprovalConfiguration.entity';
+import { PurchaseOrderService } from './purchaseOrder.service';
+import {
+  PurchaseOrderItem,
+  PurchaseOrderStatus,
+} from '../entities/PurchaseOrder.entity';
+import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
 
 @Injectable()
 export class RequirementService {
@@ -47,7 +55,10 @@ export class RequirementService {
     @Inject(forwardRef(() => QuotationService))
     private readonly quotationService: QuotationService,
     private readonly qrService: QRService,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
+    private readonly documentApprovalConfigurationService: DocumentApprovalConfigurationService,
+    private readonly generalSettingsService: GeneralSettingsService,
+    private readonly purchaseOrderService: PurchaseOrderService
   ) {}
 
   async create(
@@ -120,6 +131,60 @@ export class RequirementService {
       await this.requirementServiceRepository.save(services);
     }
 
+    // Calcular el monto total del requerimiento
+    const totalAmount = this.calculateTotalAmount(savedRequirement);
+
+    // Obtener umbral de monto bajo
+    const lowAmountThreshold =
+      await this.generalSettingsService.getLowAmountThreshold();
+
+    // Configuración de firmas
+    let signatureConfig;
+
+    if (
+      createRequirementDto.requiredSignatures &&
+      createRequirementDto.requiredSignatures.length > 0
+    ) {
+      // Usar configuración personalizada del frontend
+      signatureConfig = createRequirementDto.requiredSignatures.map(
+        (roleName, index) => {
+          if (roleName === 'GERENCIA') {
+            return {
+              signatureLevel: 4,
+              roleName: 'GERENCIA',
+              isRequired: totalAmount >= lowAmountThreshold,
+            };
+          } else {
+            return {
+              signatureLevel: index + 1,
+              roleName,
+              isRequired: true,
+            };
+          }
+        }
+      );
+    } else {
+      // Configuración por defecto: siempre las 4 firmas
+      signatureConfig = [
+        { signatureLevel: 1, roleName: 'SOLICITANTE', isRequired: true },
+        { signatureLevel: 2, roleName: 'OFICINA_TECNICA', isRequired: true },
+        { signatureLevel: 3, roleName: 'ADMINISTRACION', isRequired: true },
+        {
+          signatureLevel: 4,
+          roleName: 'GERENCIA',
+          isRequired: totalAmount >= lowAmountThreshold,
+        },
+      ];
+    }
+
+    // Aplicar configuración
+    await this.documentApprovalConfigurationService.createCustomConfiguration(
+      'requirement',
+      savedRequirement.id,
+      signatureConfig,
+      userId
+    );
+
     return this.findOne(savedRequirement.id);
   }
 
@@ -144,24 +209,20 @@ export class RequirementService {
 
     if (userPermissions.includes('requirement-view-all')) {
       whereConditions = { type: type };
-    } else if (userPermissions.includes('requirement-view-signed3')) {
-      whereConditions = [
-        { status: RequirementStatus.SIGNED_3, type: type },
-        { status: RequirementStatus.APPROVED, type: type },
-        { employee: { id: userId }, type: type },
-      ];
-    } else if (userPermissions.includes('requirement-view-signed2')) {
-      whereConditions = [
-        { status: RequirementStatus.SIGNED_2, type: type },
-        { status: RequirementStatus.SIGNED_3, type: type },
-        { status: RequirementStatus.APPROVED, type: type },
-        { employee: { id: userId }, type: type },
-      ];
-    } else if (userPermissions.includes('requirement-view-signed1')) {
+    } else if (
+      userPermissions.some(permission =>
+        permission.includes('requirement-signed')
+      )
+    ) {
       whereConditions = [
         { status: RequirementStatus.SIGNED_1, type: type },
         { status: RequirementStatus.SIGNED_2, type: type },
         { status: RequirementStatus.SIGNED_3, type: type },
+        { status: RequirementStatus.APPROVED, type: type },
+        { employee: { id: userId }, type: type },
+      ];
+    } else {
+      whereConditions = [
         { status: RequirementStatus.APPROVED, type: type },
         { employee: { id: userId }, type: type },
       ];
@@ -312,6 +373,19 @@ export class RequirementService {
     });
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
+    // Obtener configuración de firmas para determinar cuáles mostrar
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'requirement',
+        requirement.id
+      );
+
+    // Generar firmas dinámicas basadas en la configuración
+    const dynamicSignatures = await this.generateDynamicSignatures(
+      requirement,
+      configurations
+    );
+
     // Mapear datos según el tipo de requerimiento
     interface TableItem {
       index: number;
@@ -405,64 +479,15 @@ export class RequirementService {
       })),
       subtotalPEN: (+totalPEN).toFixed(2),
       subtotalUSD: (+totalUSD).toFixed(2),
-      firstSignature: requirement.firstSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              requirement.firstSignature
-            )
-          ).url
-        : null,
-      firstSignedAt: requirement.firstSignedAt
-        ? requirement.firstSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      secondSignature: requirement.secondSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              requirement.secondSignature
-            )
-          ).url
-        : null,
-      secondSignedAt: requirement.secondSignedAt
-        ? requirement.secondSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      thirdSignature: requirement.thirdSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              requirement.thirdSignature
-            )
-          ).url
-        : null,
-      thirdSignedAt: requirement.thirdSignedAt
-        ? requirement.thirdSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
-      fourthSignature: requirement.fourthSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              requirement.fourthSignature
-            )
-          ).url
-        : null,
-      fourthSignedAt: requirement.fourthSignedAt
-        ? requirement.fourthSignedAt.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '',
+      signatures: dynamicSignatures,
       qrCode: qrDataUrl, // Agregar QR al template
     };
+
+    // Registrar helpers de Handlebars
+    Handlebars.registerHelper('divide', function (a, b) {
+      return Math.round(a / b);
+    });
+
     const template = Handlebars.compile(templateHtml);
     const html = template({ ...data });
 
@@ -485,27 +510,75 @@ export class RequirementService {
     return Buffer.from(pdfBuffer);
   }
 
-  async publish(id: number, userId: number): Promise<Requirement> {
-    const requirement = await this.findOne(id);
-    if (requirement.employee.id !== userId) {
-      throw new ForbiddenException(
-        'No tienes permisos para aprobar este requerimiento'
-      );
+  /**
+   * Genera las firmas dinámicas basadas en la configuración
+   */
+  private async generateDynamicSignatures(
+    requirement: Requirement,
+    configurations: DocumentApprovalConfiguration[]
+  ): Promise<
+    Array<{
+      level: number;
+      role: string;
+      roleName: string;
+      signature: string | null;
+      signedAt: string;
+      hasSignature: boolean;
+    }>
+  > {
+    const signatures: Array<{
+      level: number;
+      role: string;
+      roleName: string;
+      signature: string | null;
+      signedAt: string;
+      hasSignature: boolean;
+    }> = [];
+
+    const signatureLevels = ['first', 'second', 'third', 'fourth'];
+    const roleNames: Record<string, string> = {
+      SOLICITANTE: 'SOLICITANTE',
+      OFICINA_TECNICA: 'OFICINA TÉCNICA',
+      ADMINISTRACION: 'ADMINISTRACIÓN',
+      GERENCIA: 'GERENCIA',
+    };
+
+    // Obtener los niveles configurados ordenados
+    const configuredLevels = configurations
+      .sort((a, b) => a.signatureLevel - b.signatureLevel)
+      .map(config => ({
+        level: config.signatureLevel,
+        role: config.roleName,
+        roleName: roleNames[config.roleName] || config.roleName,
+      }));
+
+    // Generar firmas solo para los niveles configurados
+    for (const config of configuredLevels) {
+      const signatureKey = `${signatureLevels[config.level - 1]}Signature`;
+      const signedAtKey = `${signatureLevels[config.level - 1]}SignedAt`;
+
+      const signature = requirement[signatureKey];
+      const signedAt = requirement[signedAtKey];
+
+      signatures.push({
+        level: config.level,
+        role: config.role,
+        roleName: config.roleName,
+        signature: signature
+          ? (await this.storageService.getPrivateFileUrl(signature)).url
+          : null,
+        signedAt: signedAt
+          ? signedAt.toLocaleDateString('es-PE', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            })
+          : '',
+        hasSignature: !!signature,
+      });
     }
-    if (requirement.status !== RequirementStatus.PENDING) {
-      throw new ForbiddenException(
-        'El requerimiento ya fue publicado o firmado'
-      );
-    }
-    const employee = requirement.employee;
-    if (!employee.signature) {
-      throw new ForbiddenException('El usuario no tiene firma registrada');
-    }
-    requirement.firstSignature = employee.signature;
-    requirement.firstSignedBy = userId;
-    requirement.firstSignedAt = new Date();
-    requirement.status = RequirementStatus.SIGNED_1;
-    return this.requirementRepository.save(requirement);
+
+    return signatures;
   }
 
   async findDistribution(): Promise<
@@ -580,7 +653,7 @@ export class RequirementService {
   async remove(id: number): Promise<void> {
     const requirement = await this.findOne(id);
     if (requirement.status !== RequirementStatus.PENDING) {
-      throw new ForbiddenException(
+      throw new BadRequestException(
         'No se puede eliminar un requerimiento publicado'
       );
     }
@@ -594,7 +667,7 @@ export class RequirementService {
   ): Promise<Requirement> {
     const requirement = await this.findOne(id);
     if (requirement.status === RequirementStatus.APPROVED) {
-      throw new ForbiddenException(
+      throw new BadRequestException(
         'No se puede rechazar un requerimiento aprobado'
       );
     }
@@ -621,36 +694,56 @@ export class RequirementService {
     const role = await this.roleService.findById(employee.role.id);
     const userPermissions = role.permissions.map(p => p.name);
 
-    // Verificar permisos según el estado del requerimiento
-    const { canSign } = canUserSign(
+    // Calcular monto total para determinar si es de monto bajo
+    const totalAmount = this.calculateTotalAmount(requirement);
+
+    // Obtener umbral de monto bajo (por defecto S/. 10,000)
+    const lowAmountThreshold =
+      await this.generalSettingsService.getLowAmountThreshold();
+
+    // Obtener configuración específica del documento
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'requirement',
+        requirement.id
+      );
+
+    // Validaciones de negocio
+    validateSignatureEligibility(
+      requirement,
+      userId,
+      'requirement',
+      totalAmount,
+      requirement.type,
+      !!requirement.inform
+    );
+
+    // Verificar permisos usando configuración dinámica
+    const { canSign, level, reason } = await canUserSignWithConfiguration(
       requirement,
       userPermissions,
       requirement.employee.id,
       userId,
+      configurations,
+      totalAmount,
+      +lowAmountThreshold,
       'requirement'
     );
 
     if (!canSign) {
-      throw new ForbiddenException(
-        `No tienes permisos para firmar este requerimiento`
-      );
+      const errorMessage = `No puedes firmar este requerimiento. ${reason}`;
+      throw new BadRequestException(errorMessage);
     }
 
-    // Calcular monto total para determinar si es de monto bajo
-    const totalAmount = (requirement.requirementArticles || []).reduce(
-      (acc, reqArticle) =>
-        acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
-      0
-    );
-    const isLowAmountRequirement = isLowAmount(totalAmount);
-
-    // Procesar firma usando utilidades unificadas
-    const { updatedEntity, becameApproved } = processSignature(
-      requirement,
-      userId,
-      employee.signature,
-      isLowAmountRequirement
-    );
+    // Procesar firma usando configuración dinámica
+    const { updatedEntity, becameApproved } =
+      await processSignatureWithConfiguration(
+        requirement,
+        userId,
+        employee.signature,
+        level,
+        configurations
+      );
 
     // Actualizar entidad
     Object.assign(requirement, updatedEntity);
@@ -658,19 +751,216 @@ export class RequirementService {
 
     // Si el requerimiento fue aprobado, crear cotización automáticamente si no existe
     if (becameApproved) {
-      const existingQuotation =
-        await this.quotationService.getQuotationRequestByRequirement(
-          savedRequirement.id
-        );
-      if (!existingQuotation) {
-        await this.quotationService.createQuotationRequest(null, {
-          requirementId: savedRequirement.id,
-          // Puedes agregar más campos por defecto si es necesario
-        });
+      // Verificar si es un requerimiento administrativo
+      if (savedRequirement.subType === 'ADMINISTRATIVE') {
+        // Para requerimientos administrativos, crear directamente una orden de compra
+        await this.createPurchaseOrderFromRequirement(savedRequirement);
+      } else {
+        // Para requerimientos normales, crear cotización
+        const existingQuotation =
+          await this.quotationService.getQuotationRequestByRequirement(
+            savedRequirement.id
+          );
+        if (!existingQuotation) {
+          await this.quotationService.createQuotationRequest(null, {
+            requirementId: savedRequirement.id,
+            // Puedes agregar más campos por defecto si es necesario
+          });
+        }
       }
     }
 
     return savedRequirement;
+  }
+
+  /**
+   * Crea una orden de compra directamente desde un requerimiento administrativo
+   */
+  private async createPurchaseOrderFromRequirement(
+    requirement: Requirement
+  ): Promise<void> {
+    try {
+      // Obtener proveedores disponibles para los artículos del requerimiento
+      const suppliers = await this.getSuppliersForRequirement();
+      if (suppliers.length === 0) {
+        return;
+      }
+
+      const selectedSupplier = suppliers[0];
+      const generalTax = await this.generalSettingsService.getGeneralTax();
+      // Calcular totales del requerimiento
+      const totalAmount = this.calculateTotalAmount(requirement);
+      const igv = totalAmount * (generalTax / 100);
+      const subtotal = totalAmount - igv;
+
+      // Crear items para la orden de compra basados en los artículos del requerimiento
+      const items = await this.createPurchaseOrderItems(requirement);
+
+      // Crear la orden de compra con datos del requerimiento
+      const createPurchaseOrderDto = {
+        orderNumber: `${requirement.type === 'ARTICLE' ? 'OC' : 'OS'}-${requirement.code}`,
+        supplierId: selectedSupplier.id,
+        issueDate: new Date(),
+        createdById: requirement.employee.id,
+        paymentMethod: 'CONTADO',
+        deliveryDate: this.calculateDeliveryDate(),
+        supplierName: selectedSupplier.businessName || '',
+        supplierRUC: selectedSupplier.ruc || '',
+        supplierAddress: selectedSupplier.address || '',
+        supplierLocation: selectedSupplier.location || '',
+        supplierPhone: selectedSupplier.mobile || '',
+        currency: 'PEN',
+        requirementId: requirement.id,
+        subtotal: subtotal,
+        igv: generalTax,
+        total: totalAmount,
+        observation: requirement.observation || '',
+        items: items,
+      };
+
+      const purchaseOrder = await this.purchaseOrderService.createPurchaseOrder(
+        createPurchaseOrderDto
+      );
+
+      // Copiar las firmas del requerimiento a la orden de compra
+      if (requirement.firstSignature) {
+        purchaseOrder.firstSignature = requirement.firstSignature;
+        purchaseOrder.firstSignedBy = requirement.firstSignedBy;
+        purchaseOrder.firstSignedAt = requirement.firstSignedAt;
+      }
+      if (requirement.secondSignature) {
+        purchaseOrder.secondSignature = requirement.secondSignature;
+        purchaseOrder.secondSignedBy = requirement.secondSignedBy;
+        purchaseOrder.secondSignedAt = requirement.secondSignedAt;
+      }
+      if (requirement.thirdSignature) {
+        purchaseOrder.thirdSignature = requirement.thirdSignature;
+        purchaseOrder.thirdSignedBy = requirement.thirdSignedBy;
+        purchaseOrder.thirdSignedAt = requirement.thirdSignedAt;
+      }
+      if (requirement.fourthSignature) {
+        purchaseOrder.fourthSignature = requirement.fourthSignature;
+        purchaseOrder.fourthSignedBy = requirement.fourthSignedBy;
+        purchaseOrder.fourthSignedAt = requirement.fourthSignedAt;
+      }
+
+      // Actualizar estado basado en las firmas copiadas
+      if (requirement.status === 'APPROVED') {
+        purchaseOrder.status = PurchaseOrderStatus.APPROVED;
+      } else if (requirement.fourthSignedAt) {
+        purchaseOrder.status = PurchaseOrderStatus.SIGNED_4;
+      } else if (requirement.thirdSignedAt) {
+        purchaseOrder.status = PurchaseOrderStatus.SIGNED_3;
+      } else if (requirement.secondSignedAt) {
+        purchaseOrder.status = PurchaseOrderStatus.SIGNED_2;
+      } else if (requirement.firstSignedAt) {
+        purchaseOrder.status = PurchaseOrderStatus.SIGNED_1;
+      }
+
+      // Guardar la orden de compra con las firmas copiadas
+      await this.purchaseOrderService.savePurchaseOrderWithSignatures(
+        purchaseOrder
+      );
+
+      // Aplicar configuración de firmas heredada del requerimiento
+      await this.applySignatureConfigurationFromRequirement(
+        purchaseOrder.id,
+        requirement
+      );
+    } catch (error) {
+      console.error(
+        `Error al crear orden de compra para requerimiento ${requirement.id}:`,
+        error
+      );
+      throw new Error(`No se pudo crear la orden de compra: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene los proveedores disponibles para un requerimiento
+   */
+  private async getSuppliersForRequirement() {
+    // TODO: Implementar lógica para obtener proveedores basados en los artículos del requerimiento
+    // Por ahora, retornamos un proveedor de ejemplo
+    return [
+      {
+        id: 1,
+        businessName: 'Proveedor Administrativo S.A.C.',
+        ruc: '20123456789',
+        address: 'Dirección del Proveedor',
+        location: 'Lima',
+        mobile: '01-1234567',
+      },
+    ];
+  }
+
+  /**
+   * Crea los items de la orden de compra basados en los artículos del requerimiento
+   */
+  private async createPurchaseOrderItems(requirement: Requirement) {
+    const items: PurchaseOrderItem[] = [];
+
+    // Procesar artículos del requerimiento
+    if (
+      requirement.requirementArticles &&
+      requirement.requirementArticles.length > 0
+    ) {
+      for (const reqArticle of requirement.requirementArticles) {
+        const unitPrice = reqArticle.unitPrice;
+        const amount = reqArticle.quantity * unitPrice;
+
+        items.push({
+          item: reqArticle.id,
+          code: reqArticle.article.code,
+          quantity: reqArticle.quantity,
+          unit: reqArticle.article.unitOfMeasure,
+          description: reqArticle.article.name,
+          brand: reqArticle.article.brand?.name || '',
+          unitPrice: unitPrice,
+          amount: amount,
+          currency: reqArticle.currency,
+          type: 'ARTICLE',
+        });
+      }
+    }
+
+    // Procesar servicios del requerimiento
+    if (
+      requirement.requirementServices &&
+      requirement.requirementServices.length > 0
+    ) {
+      for (const reqService of requirement.requirementServices) {
+        const unitPrice = reqService.unitPrice;
+        const quantity = 1;
+        const amount = unitPrice * quantity;
+
+        items.push({
+          item: reqService.id,
+          code: reqService.service.code,
+          quantity: quantity,
+          unit: 'SERVICIO',
+          description: reqService.service.name,
+          brand: '',
+          unitPrice: unitPrice,
+          amount: amount,
+          currency: reqService.currency,
+          type: 'SERVICE',
+          duration: reqService.duration,
+          durationType: reqService.durationType,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  /**
+   * Calcula la fecha de entrega por defecto (30 días desde hoy)
+   */
+  private calculateDeliveryDate(): string {
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + 30);
+    return deliveryDate.toISOString().split('T')[0];
   }
 
   async uploadInform(
@@ -691,5 +981,118 @@ export class RequirementService {
     requirement.inform = uploadResult.url;
     await this.requirementRepository.save(requirement);
     return { ...requirement, inform: uploadResult.url };
+  }
+
+  /**
+   * Calcula el monto total de un requerimiento
+   */
+  private calculateTotalAmount(requirement: Requirement): number {
+    let totalAmount = 0;
+
+    // Calcular monto de artículos
+    if (
+      requirement.requirementArticles &&
+      requirement.requirementArticles.length > 0
+    ) {
+      totalAmount += requirement.requirementArticles.reduce(
+        (acc, reqArticle) =>
+          acc + Number(reqArticle.unitPrice) * Number(reqArticle.quantity),
+        0
+      );
+    }
+
+    // Calcular monto de servicios
+    if (
+      requirement.requirementServices &&
+      requirement.requirementServices.length > 0
+    ) {
+      totalAmount += requirement.requirementServices.reduce(
+        (acc, reqService) => acc + Number(reqService.unitPrice),
+        0
+      );
+    }
+
+    return totalAmount;
+  }
+
+  /**
+   * Obtiene la configuración de firmas de un requerimiento
+   */
+  async getSignatureConfiguration(id: number) {
+    const requirement = await this.findOne(id);
+    const totalAmount = this.calculateTotalAmount(requirement);
+    const lowAmountThreshold =
+      await this.generalSettingsService.getLowAmountThreshold();
+
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'requirement',
+        id
+      );
+
+    return {
+      requirement: {
+        id: requirement.id,
+        code: requirement.code,
+        totalAmount,
+        lowAmountThreshold,
+        isLowAmount: totalAmount < lowAmountThreshold,
+      },
+      configurations,
+    };
+  }
+
+  /**
+   * Aplica la configuración de firmas del requerimiento a la orden de compra
+   */
+  private async applySignatureConfigurationFromRequirement(
+    purchaseOrderId: number,
+    requirement: Requirement
+  ): Promise<void> {
+    try {
+      // Obtener la configuración de firmas del requerimiento
+      const requirementConfigs = 
+        await this.documentApprovalConfigurationService.getConfigurationForDocument(
+          'requirement',
+          requirement.id
+        );
+
+      if (requirementConfigs.length > 0) {
+        // Crear configuración de firmas para la orden de compra basada en el requerimiento
+        const purchaseOrderConfigs = requirementConfigs.map(config => ({
+          signatureLevel: config.signatureLevel,
+          roleName: config.roleName,
+          isRequired: config.isRequired,
+        }));
+
+        // Aplicar la configuración a la orden de compra
+        await this.documentApprovalConfigurationService.createCustomConfiguration(
+          'purchase_order',
+          purchaseOrderId,
+          purchaseOrderConfigs,
+          requirement.employee.id // Usar el empleado del requerimiento como creador
+        );
+
+        console.log(
+          `Configuración de firmas heredada del requerimiento ${requirement.id} a la orden de compra ${purchaseOrderId}`
+        );
+      } else {
+        // Si no hay configuración específica del requerimiento, aplicar configuración por monto
+        const totalAmount = this.calculateTotalAmount(requirement);
+        await this.documentApprovalConfigurationService.applyConfigurationByAmount(
+          'purchase_order',
+          purchaseOrderId,
+          totalAmount,
+          requirement.employee.id
+        );
+
+        console.log(
+          `Configuración de firmas por monto aplicada a la orden de compra ${purchaseOrderId} (monto: ${totalAmount})`
+        );
+      }
+    } catch (error) {
+      console.error(`Error al aplicar configuración de firmas del requerimiento a la orden de compra:`, error);
+      // No lanzar error para no interrumpir el flujo principal
+    }
   }
 }

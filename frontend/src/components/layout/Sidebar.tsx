@@ -192,10 +192,10 @@ const menuItems: MenuItem[] = [
         icon: <EntryPartIcon className="w-4 h-4" />,
       },
       {
-        label: SIDEBAR_TEXTS.entryPart,
-        path: ROUTES.ENTRY_PARTS_SERVICES,
+        label: SIDEBAR_TEXTS.exitPart,
+        path: ROUTES.EXIT_PARTS_SERVICES,
         permission: ['view_entry_parts'],
-        icon: <EntryPartIcon className="w-4 h-4" />,
+        icon: <ExitPartIcon className="w-4 h-4" />,
       },
     ],
   },

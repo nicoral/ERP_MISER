@@ -122,7 +122,13 @@ export const QuotationList: React.FC<QuotationListProps> = ({
         // Reload statistics after successful deletion
         loadStatistics();
       } else {
-        showError('Error', error || 'No se pudo reiniciar la cotización');
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+            ? error
+            : 'No se pudo reiniciar la cotización';
+        showError('Error', errorMessage);
       }
     } finally {
       setDeleting(false);

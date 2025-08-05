@@ -52,6 +52,19 @@ export class RequirementController {
     return this.requirementService.findAll(type, req.user.id, page, limit);
   }
 
+  @Get('graph/distribution')
+  @AuditDescription('Consulta de distribución de requerimientos')
+  async findDistribution() {
+    return this.requirementService.findDistribution();
+  }
+
+  @Get(':id/signature-configuration')
+  @RequirePermissions('view_requirements')
+  @AuditDescription('Consulta de configuración de firmas')
+  async getSignatureConfiguration(@Param('id') id: number) {
+    return this.requirementService.getSignatureConfiguration(id);
+  }
+
   @Get(':id')
   @RequirePermissions('view_requirements')
   @AuditDescription('Consulta de requerimiento')
@@ -79,19 +92,6 @@ export class RequirementController {
       'Content-Length': pdfBuffer.length,
     });
     res.end(pdfBuffer);
-  }
-
-  @Post('publish/:id')
-  //@RequirePermissions('approve_requirement')
-  @AuditDescription('Publicación de requerimiento')
-  async publish(@Req() req, @Param('id') id: number): Promise<Requirement> {
-    return this.requirementService.publish(id, req.user.id);
-  }
-
-  @Get('graph/distribution')
-  @AuditDescription('Consulta de distribución de requerimientos')
-  async findDistribution() {
-    return this.requirementService.findDistribution();
   }
 
   @Delete(':id')

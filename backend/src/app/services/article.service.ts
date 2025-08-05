@@ -194,7 +194,10 @@ export class ArticleService {
     return this.articleRepository.save(article);
   }
 
-  async updateTechnicalSheet(id: number, file: Express.Multer.File): Promise<Article> {
+  async updateTechnicalSheet(
+    id: number,
+    file: Express.Multer.File
+  ): Promise<Article> {
     const article = await this.articleRepository.findOne({
       where: { id },
     });

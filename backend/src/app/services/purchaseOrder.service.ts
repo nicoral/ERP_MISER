@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
+import {
+  PurchaseOrder,
+  PurchaseOrderStatus,
+} from '../entities/PurchaseOrder.entity';
 import { QuotationRequest } from '../entities/QuotationRequest.entity';
 import { PaymentGroup } from '../entities/PaymentGroup.entity';
 import { QRService } from './qr.service';
@@ -23,6 +26,17 @@ import { EntryPartStatus, InspectionStatus } from '../common/enum';
 import { StorageService } from './storage.service';
 import { UpdatePurchaseOrderDto } from '../dto/purchaseOrder/update-purchase-order.dto';
 import { formatNumber } from '../utils/transformer';
+import { EmployeeService } from './employee.service';
+import { RoleService } from './role.service';
+import { GeneralSettingsService } from './generalSettings.service';
+import { DocumentApprovalConfigurationService } from './documentApprovalConfiguration.service';
+import {
+  validateSignatureEligibility,
+  canUserSignWithConfiguration,
+  processSignatureWithConfiguration,
+} from '../utils/approvalFlow.utils';
+import { DocumentApprovalConfiguration } from '../entities/DocumentApprovalConfiguration.entity';
+import { Requirement } from '../entities/Requirement.entity';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -35,9 +49,15 @@ export class PurchaseOrderService {
     private readonly quotationRequestRepository: Repository<QuotationRequest>,
     @InjectRepository(PaymentGroup)
     private readonly paymentGroupRepository: Repository<PaymentGroup>,
+    @InjectRepository(Requirement)
+    private readonly requirementRepository: Repository<Requirement>,
     private readonly qrService: QRService,
     private readonly entryPartService: EntryPartService,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
+    private readonly employeeService: EmployeeService,
+    private readonly roleService: RoleService,
+    private readonly generalSettingsService: GeneralSettingsService,
+    private readonly documentApprovalConfigurationService: DocumentApprovalConfigurationService,
   ) {}
 
   // ========================================
@@ -102,12 +122,11 @@ export class PurchaseOrderService {
         'requirement.costCenter',
         'costCenterEntity',
       ],
-      order: { createdAt: 'DESC' },
     });
 
     if (!purchaseOrders) {
       throw new NotFoundException(
-        'No se encontraron órdenes de compra para este requerimiento'
+        'No se encontró la orden de compra para este requerimiento y proveedor'
       );
     }
 
@@ -225,9 +244,10 @@ export class PurchaseOrderService {
    */
   async generatePurchaseOrderPdf(id: number): Promise<Buffer> {
     const purchaseOrder = await this.findOne(id);
+
     // Generar QR para la orden de compra
-    const qrUrl = this.qrService.generateQuotationURL(
-      purchaseOrder.quotationRequest.id,
+    const qrUrl = this.qrService.generatePurchaseOrderURL(
+      purchaseOrder.id,
       {
         includeTimestamp: true,
         includeVersion: true,
@@ -236,44 +256,47 @@ export class PurchaseOrderService {
     );
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
-    // Preparar datos para el template
-    const data = {
-      code: purchaseOrder.code,
-      date: purchaseOrder.issueDate
-        ? new Date(purchaseOrder.issueDate)
-            .toISOString()
-            .slice(0, 10)
-            .replace(/-/g, '/')
-        : new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
-      orderNumber: purchaseOrder.orderNumber,
-      issueDate: purchaseOrder.issueDate
-        ? new Date(purchaseOrder.issueDate).toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : new Date().toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          }),
+    // Obtener configuración de firmas para determinar cuáles mostrar
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'purchase_order',
+        purchaseOrder.id
+      );
 
-      // Datos del comprador (MYSER)
+    // Generar firmas dinámicas basadas en la configuración
+    const dynamicSignatures = await this.generateDynamicSignatures(
+      purchaseOrder,
+      configurations
+    );
+
+    const data = {
+      // Información básica
+      type: purchaseOrder.requirement?.type === 'ARTICLE' ? 'COMPRA' : 'SERVICIO',
+      code: purchaseOrder.code,
+      requirementNumber: purchaseOrder.requirement?.code || '-',
+      quotationNumber: purchaseOrder.quotationRequest?.code || '-',
+      orderNumber: purchaseOrder.orderNumber,
+      date: new Date(purchaseOrder.issueDate).toLocaleDateString('es-PE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+
+      // Información del comprador
       buyerName: purchaseOrder.buyerName,
       buyerRUC: purchaseOrder.buyerRUC,
       buyerAddress: purchaseOrder.buyerAddress,
-      buyerLocation: purchaseOrder.buyerLocation || '',
-      buyerPhone: purchaseOrder.buyerPhone || '',
+      buyerLocation: purchaseOrder.buyerLocation,
+      buyerPhone: purchaseOrder.buyerPhone,
 
-      // Datos del proveedor
+      // Información del proveedor
       supplierName: purchaseOrder.supplierName,
       supplierRUC: purchaseOrder.supplierRUC,
       supplierAddress: purchaseOrder.supplierAddress,
-      supplierLocation: purchaseOrder.supplierLocation || '',
-      supplierPhone: purchaseOrder.supplierPhone || '',
+      supplierLocation: purchaseOrder.supplierLocation,
+      supplierPhone: purchaseOrder.supplierPhone,
 
-      // Datos del requerimiento (por relación)
-      requirementNumber: purchaseOrder.requirement?.code || '-',
+      // Información del solicitante
       requestedBy: purchaseOrder.requirement?.employee
         ? `${purchaseOrder.requirement.employee.firstName} ${purchaseOrder.requirement.employee.lastName}`
         : '-',
@@ -302,75 +325,8 @@ export class PurchaseOrderService {
       // Observaciones
       observationsLine2: purchaseOrder.observation || '-',
 
-      // Firmas (de la quotation)
-      firstSignature: purchaseOrder.quotationRequest.firstSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              purchaseOrder.quotationRequest.firstSignature
-            )
-          ).url
-        : null,
-      firstSignedAt: purchaseOrder.quotationRequest.firstSignedAt
-        ? purchaseOrder.quotationRequest.firstSignedAt.toLocaleDateString(
-            'es-PE',
-            {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }
-          )
-        : '',
-      secondSignature: purchaseOrder.quotationRequest.secondSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              purchaseOrder.quotationRequest.secondSignature
-            )
-          ).url
-        : null,
-      secondSignedAt: purchaseOrder.quotationRequest.secondSignedAt
-        ? purchaseOrder.quotationRequest.secondSignedAt.toLocaleDateString(
-            'es-PE',
-            {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }
-          )
-        : '',
-      thirdSignature: purchaseOrder.quotationRequest.thirdSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              purchaseOrder.quotationRequest.thirdSignature
-            )
-          ).url
-        : null,
-      thirdSignedAt: purchaseOrder.quotationRequest.thirdSignedAt
-        ? purchaseOrder.quotationRequest.thirdSignedAt.toLocaleDateString(
-            'es-PE',
-            {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }
-          )
-        : '',
-      fourthSignature: purchaseOrder.quotationRequest.fourthSignature
-        ? (
-            await this.storageService.getPrivateFileUrl(
-              purchaseOrder.quotationRequest.fourthSignature
-            )
-          ).url
-        : null,
-      fourthSignedAt: purchaseOrder.quotationRequest.fourthSignedAt
-        ? purchaseOrder.quotationRequest.fourthSignedAt.toLocaleDateString(
-            'es-PE',
-            {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }
-          )
-        : '',
+      // Firmas dinámicas
+      signatures: dynamicSignatures,
 
       // QR Code
       qrCode: qrDataUrl,
@@ -381,6 +337,12 @@ export class PurchaseOrderService {
       path.join(__dirname, '../../templates/purchase-order.template.html'),
       'utf8'
     );
+
+    // Registrar helpers de Handlebars
+    Handlebars.registerHelper('divide', function (a, b) {
+      return Math.round(a / b);
+    });
+
     const template = Handlebars.compile(templateHtml);
     const html = template(data);
 
@@ -401,6 +363,77 @@ export class PurchaseOrderService {
     return Buffer.from(pdfBuffer);
   }
 
+  /**
+   * Genera las firmas dinámicas basadas en la configuración
+   */
+  private async generateDynamicSignatures(
+    purchaseOrder: PurchaseOrder,
+    configurations: DocumentApprovalConfiguration[]
+  ): Promise<
+    Array<{
+      level: number;
+      role: string;
+      roleName: string;
+      signature: string | null;
+      signedAt: string;
+      hasSignature: boolean;
+    }>
+  > {
+    const signatures: Array<{
+      level: number;
+      role: string;
+      roleName: string;
+      signature: string | null;
+      signedAt: string;
+      hasSignature: boolean;
+    }> = [];
+
+    const signatureLevels = ['first', 'second', 'third', 'fourth'];
+    const roleNames: Record<string, string> = {
+      SOLICITANTE: 'SOLICITANTE',
+      OFICINA_TECNICA: 'OFICINA TÉCNICA',
+      ADMINISTRACION: 'ADMINISTRACIÓN',
+      GERENCIA: 'GERENCIA',
+    };
+
+    // Obtener los niveles configurados ordenados
+    const configuredLevels = configurations
+      .sort((a, b) => a.signatureLevel - b.signatureLevel)
+      .map(config => ({
+        level: config.signatureLevel,
+        role: config.roleName,
+        roleName: roleNames[config.roleName] || config.roleName,
+      }));
+
+    // Generar firmas solo para los niveles configurados
+    for (const config of configuredLevels) {
+      const signatureKey = `${signatureLevels[config.level - 1]}Signature`;
+      const signedAtKey = `${signatureLevels[config.level - 1]}SignedAt`;
+
+      const signature = purchaseOrder[signatureKey];
+      const signedAt = purchaseOrder[signedAtKey];
+
+      signatures.push({
+        level: config.level,
+        role: config.role,
+        roleName: config.roleName,
+        signature: signature
+          ? (await this.storageService.getPrivateFileUrl(signature)).url
+          : null,
+        signedAt: signedAt
+          ? signedAt.toLocaleDateString('es-PE', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            })
+          : '',
+        hasSignature: !!signature,
+      });
+    }
+
+    return signatures;
+  }
+
   // ========================================
   // PRIVATE METHODS
   // ========================================
@@ -411,20 +444,20 @@ export class PurchaseOrderService {
   async createPurchaseOrder(
     createPurchaseOrderDto: CreatePurchaseOrderDto
   ): Promise<PurchaseOrder> {
-    const { quotationRequestId, supplierId, createdById, ...purchaseOrderDto } =
-      createPurchaseOrderDto;
-    const quotationRequest = await this.quotationRequestRepository.findOne({
-      where: { id: quotationRequestId },
-      relations: [
-        'requirement',
-        'requirement.warehouse',
-        'requirement.costCenter',
-      ],
-    });
-    if (!quotationRequest) {
-      throw new NotFoundException('Cotización no encontrada');
+    const {
+      quotationRequestId,
+      supplierId,
+      createdById,
+      requirementId,
+      ...purchaseOrderDto
+    } = createPurchaseOrderDto;
+
+    if (!requirementId) {
+      throw new BadRequestException('Requirement ID is required');
     }
-    const { requirement } = quotationRequest;
+
+    const requirement = await this.getRequirement(requirementId);
+
     // Crear la orden de compra con datos quemados del comprador
     const purchaseOrderData = {
       ...purchaseOrderDto,
@@ -435,13 +468,13 @@ export class PurchaseOrderService {
       buyerLocation: '',
       buyerPhone: '',
       // Campos nulos al inicio
-      quotationRequest: { id: quotationRequestId },
+      quotationRequest: quotationRequestId ? { id: quotationRequestId } : null,
       supplier: { id: supplierId },
       createdBy: { id: createdById },
-      requirement: { id: requirement.id },
+      requirement: { id: requirementId },
       costCenterEntity: { id: requirement.costCenter.id },
       observation: requirement.observation || null,
-      code: '1234567890',
+      code: new Date().getTime().toString(),
     };
 
     // Crear la entidad directamente
@@ -453,16 +486,10 @@ export class PurchaseOrderService {
       await this.purchaseOrderRepository.save(purchaseOrder);
 
     // Generamos el código con el formato: {warehouse_id}-{purchase_order_id}
-    const lastPurchaseOrder = await this.getLastPurchaseOrderByType(
-      quotationRequest.requirement?.type
-    );
-    const count = lastPurchaseOrder
-      ? +lastPurchaseOrder.code.split('-')[1] + 1
-      : 1;
     const code = `${formatNumber(
-      quotationRequest.requirement?.warehouse?.id,
+      requirement.warehouse?.id,
       4
-    )}-${formatNumber(count, 10)}`;
+    )}-${formatNumber(savedPurchaseOrder.id, 10)}`;
 
     // Actualizamos el código
     await this.purchaseOrderRepository.update(savedPurchaseOrder.id, { code });
@@ -497,29 +524,34 @@ export class PurchaseOrderService {
   /**
    * Método auxiliar para encontrar todas las órdenes de compra
    */
-  async findAll(page: number, limit: number, type: 'ARTICLE' | 'SERVICE'): Promise<{
+  async findAll(
+    page: number,
+    limit: number,
+    type: 'ARTICLE' | 'SERVICE'
+  ): Promise<{
     data: PurchaseOrder[];
     total: number;
   }> {
-    const [purchaseOrders, total] = await this.purchaseOrderRepository.findAndCount({
-      where: {
-        requirement: {
-          type: type,
+    const [purchaseOrders, total] =
+      await this.purchaseOrderRepository.findAndCount({
+        where: {
+          requirement: {
+            type: type,
+          },
         },
-      },
-      relations: [
-        'quotationRequest',
-        'supplier',
-        'createdBy',
-        'requirement',
-        'requirement.employee',
-        'requirement.costCenter',
-        'costCenterEntity',
-      ],
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+        relations: [
+          'quotationRequest',
+          'supplier',
+          'createdBy',
+          'requirement',
+          'requirement.employee',
+          'requirement.costCenter',
+          'costCenterEntity',
+        ],
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
     return {
       data: purchaseOrders,
@@ -672,5 +704,170 @@ export class PurchaseOrderService {
       return null;
     }
     return purchaseOrder;
+  }
+
+  // ========================================
+  // SIGNATURE METHODS
+  // ========================================
+
+  /**
+   * Firma una orden de compra
+   */
+  async signPurchaseOrder(id: number, userId: number): Promise<PurchaseOrder> {
+    const purchaseOrder = await this.findOne(id);
+    const employee = await this.employeeService.findOne(userId);
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
+    if (!employee.signature) {
+      throw new BadRequestException('El usuario no tiene firma registrada');
+    }
+
+    // Obtener el rol del empleado con sus permisos
+    const role = await this.roleService.findById(employee.role.id);
+    const userPermissions = role.permissions.map(p => p.name);
+
+    // Calcular monto total
+    const totalAmount = purchaseOrder.total;
+
+    // Obtener umbral de monto bajo desde configuración
+    const lowAmountThreshold =
+      await this.generalSettingsService.getLowAmountThreshold();
+
+    // Obtener configuración específica del documento
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'purchase_order',
+        purchaseOrder.id
+      );
+
+    // Validaciones de negocio
+    validateSignatureEligibility(
+      purchaseOrder,
+      userId,
+      'purchase_order',
+      totalAmount
+    );
+
+    // Verificar permisos usando configuración dinámica
+    const { canSign, level, reason } = await canUserSignWithConfiguration(
+      purchaseOrder,
+      userPermissions,
+      purchaseOrder.createdBy?.id || -1,
+      userId,
+      configurations,
+      totalAmount,
+      lowAmountThreshold,
+      'purchase_order'
+    );
+
+    if (!canSign) {
+      const errorMessage = `No puedes firmar esta orden de compra. ${reason}`;
+      throw new BadRequestException(errorMessage);
+    }
+
+    // Procesar firma usando configuración dinámica
+    const { updatedEntity } = await processSignatureWithConfiguration(
+      purchaseOrder,
+      userId,
+      employee.signature,
+      level,
+      configurations
+    );
+
+    // Actualizar entidad
+    Object.assign(purchaseOrder, updatedEntity);
+    const savedPurchaseOrder =
+      await this.purchaseOrderRepository.save(purchaseOrder);
+
+    // Las órdenes de compra solo heredan firmas, no envían de vuelta
+    console.log(
+      `Orden de compra ${savedPurchaseOrder.id} firmada. Las firmas se heredan del origen (requerimiento o cotización)`
+    );
+
+    return savedPurchaseOrder;
+  }
+
+  /**
+   * Rechaza una orden de compra
+   */
+  async rejectPurchaseOrder(
+    id: number,
+    userId: number,
+    reason: string
+  ): Promise<PurchaseOrder> {
+    const purchaseOrder = await this.findOne(id);
+
+    if (purchaseOrder.status === PurchaseOrderStatus.APPROVED) {
+      throw new BadRequestException(
+        'No se puede rechazar una orden de compra aprobada'
+      );
+    }
+
+    purchaseOrder.rejectedReason = reason;
+    purchaseOrder.rejectedBy = userId;
+    purchaseOrder.rejectedAt = new Date();
+    purchaseOrder.firstSignature = null;
+    purchaseOrder.firstSignedBy = null;
+    purchaseOrder.firstSignedAt = null;
+    purchaseOrder.secondSignature = null;
+    purchaseOrder.secondSignedBy = null;
+    purchaseOrder.secondSignedAt = null;
+    purchaseOrder.thirdSignature = null;
+    purchaseOrder.thirdSignedBy = null;
+    purchaseOrder.thirdSignedAt = null;
+    purchaseOrder.fourthSignature = null;
+    purchaseOrder.fourthSignedBy = null;
+    purchaseOrder.fourthSignedAt = null;
+    purchaseOrder.status = PurchaseOrderStatus.REJECTED;
+
+    return this.purchaseOrderRepository.save(purchaseOrder);
+  }
+
+  /**
+   * Guarda una orden de compra con firmas copiadas desde la cotización
+   */
+  async savePurchaseOrderWithSignatures(
+    purchaseOrder: PurchaseOrder
+  ): Promise<PurchaseOrder> {
+    return this.purchaseOrderRepository.save(purchaseOrder);
+  }
+
+  /**
+   * Obtiene la configuración de firmas para una orden de compra
+   */
+  async getSignatureConfiguration(id: number) {
+    const purchaseOrder = await this.findOne(id);
+
+    // Obtener configuración específica del documento
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'purchase_order',
+        purchaseOrder.id
+      );
+
+    return {
+      purchaseOrder,
+      configurations,
+      totalAmount: purchaseOrder.total,
+      lowAmountThreshold:
+        await this.generalSettingsService.getLowAmountThreshold(),
+    };
+  }
+
+  async getRequirement(requirementId: number): Promise<Requirement> {
+    const requirement = await this.requirementRepository.findOne({
+      where: { id: requirementId },
+      relations: [
+        'warehouse',
+        'costCenter',
+      ],
+    });
+    if (!requirement) {
+      throw new NotFoundException('Requirement not found');
+    }
+    return requirement;
   }
 }

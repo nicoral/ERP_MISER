@@ -17,6 +17,7 @@ import { CostCenter } from './CostCenter.entity';
 import { PaymentGroup } from './PaymentGroup.entity';
 import { EntryPart } from './EntryPart.entity';
 import { ExitPart } from './ExitPart.entity';
+import { ApprovalFlowBase } from './ApprovalFlowBase.entity';
 
 export interface PurchaseOrderItem {
   item: number;
@@ -33,8 +34,19 @@ export interface PurchaseOrderItem {
   durationType?: string; // Solo para servicios
 }
 
+export enum PurchaseOrderStatus {
+  PENDING = 'PENDING',
+  SIGNED_1 = 'SIGNED_1',
+  SIGNED_2 = 'SIGNED_2',
+  SIGNED_3 = 'SIGNED_3',
+  SIGNED_4 = 'SIGNED_4',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
+}
+
 @Entity()
-export class PurchaseOrder {
+export class PurchaseOrder extends ApprovalFlowBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -107,8 +119,16 @@ export class PurchaseOrder {
   @Column({ type: 'text', nullable: true })
   observation: string;
 
-  // Relaciones
-  @ManyToOne(() => QuotationRequest, { nullable: false })
+  // Estado de la orden de compra
+  @Column({
+    type: 'enum',
+    enum: PurchaseOrderStatus,
+    default: PurchaseOrderStatus.PENDING,
+  })
+  status: PurchaseOrderStatus;
+  
+
+  @ManyToOne(() => QuotationRequest, { nullable: true })
   @JoinColumn({ name: 'quotation_request_id' })
   quotationRequest: QuotationRequest;
 

@@ -552,7 +552,11 @@ export const GenerateOrders: React.FC<GenerateOrdersProps> = ({
           `El PDF se ha generado correctamente para ${selectedSuppliers.find(s => s.supplier.id === supplierId)?.supplier.businessName}`
         );
       } catch (error) {
-        showError('Error al generar PDF', (error as Error).message);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Error desconocido al generar PDF';
+        showError('Error al generar PDF', errorMessage);
       } finally {
         setLoadingStates(prev => ({ ...prev, exportingPdf: null }));
       }

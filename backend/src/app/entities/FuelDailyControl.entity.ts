@@ -32,13 +32,29 @@ export class FuelDailyControl extends ApprovalFlowBase {
   })
   status: FuelDailyControlStatus;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'opening_stock', nullable: false })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'opening_stock',
+    nullable: false,
+  })
   openingStock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'closing_stock', nullable: true })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'closing_stock',
+    nullable: true,
+  })
   closingStock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, name: 'total_outputs', nullable: false, default: 0 })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    name: 'total_outputs',
+    nullable: false,
+    default: 0,
+  })
   totalOutputs: number;
 
   @Column('text', { name: 'observations', nullable: true })
@@ -63,4 +79,4 @@ export class FuelDailyControl extends ApprovalFlowBase {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
-} 
+}

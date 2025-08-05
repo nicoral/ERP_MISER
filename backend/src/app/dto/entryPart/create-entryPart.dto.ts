@@ -97,7 +97,6 @@ export class CreateEntryPartServiceDto {
 }
 
 export class CreateEntryPartDto {
-
   @IsOptional()
   @IsString()
   observation?: string;

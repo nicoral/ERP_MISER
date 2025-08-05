@@ -6,6 +6,7 @@ import {
   IsDate,
   IsDecimal,
   ValidateNested,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -51,8 +52,13 @@ export class PurchaseOrderItemDto {
 }
 
 export class CreatePurchaseOrderDto {
+  @IsOptional()
   @IsNumber()
-  quotationRequestId: number;
+  quotationRequestId?: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  requirementId?: number;
 
   @IsNumber()
   supplierId: number;

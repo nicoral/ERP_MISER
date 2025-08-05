@@ -49,7 +49,11 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
       document.body.removeChild(a);
       showSuccess('PDF descargado correctamente');
     } catch (error) {
-      showError('Error al descargar el PDF', error as string);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido al descargar el PDF';
+      showError('Error al descargar el PDF', errorMessage);
     } finally {
       setIsDownloading(false);
     }

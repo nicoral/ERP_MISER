@@ -25,6 +25,7 @@ import {
   useUpdateRequirement,
 } from '../hooks/useRequirements';
 import { useCurrentExchangeRate } from '../../../hooks/useGeneralSettings';
+import { RequirementSignatureSelector } from '../../../components/forms/RequirementSignatureSelector';
 
 type RequirementType = 'ARTICLE' | 'SERVICE';
 
@@ -91,6 +92,13 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
     1,
     1000
   );
+
+  // Captured signatures from RequirementSignatureSelector
+  const [capturedSignatures, setCapturedSignatures] = useState<string[]>([]);
+
+  const handleSignatureSelectorChange = (signatures: string[]) => {
+    setCapturedSignatures(signatures);
+  };
   // Articles (products)
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -126,6 +134,7 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
     costCenterSecondary: '',
     warehouse: '',
     observations: '',
+    subType: propType || type?.toUpperCase() || 'ARTICLE',
     type:
       ((propType || type?.toUpperCase()) as RequirementType) ||
       ('ARTICLE' as RequirementType),
@@ -157,6 +166,7 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
         warehouse: requirement.warehouse.id.toString(),
         observations: requirement.observation || '',
         type: requirement.type,
+        subType: requirement.subType,
       });
 
       // Convertir los artículos del requerimiento al formato del formulario
@@ -379,6 +389,9 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
         durationType: service.durationType,
         duration: service.duration ? +service.duration : undefined,
       })),
+      subType: form.subType,
+      requiredSignatures:
+        capturedSignatures.length > 0 ? capturedSignatures : null,
     };
 
     try {
@@ -519,13 +532,23 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
             </FormSelect>
 
             <FormSelect
-              id="quotation"
-              name="quotation"
+              id="subType"
+              name="subType"
               label="Tipo"
               onChange={handleChange}
             >
-              <option value="ARTICLE">Articulo</option>
-              <option value="SERVICE">Combustible Cisterna</option>
+              {form.type === 'ARTICLE' && (
+                <>
+                  <option value="ARTICLE">Articulo</option>
+                  <option value="FUEL">Combustible Cisterna</option>
+                </>
+              )}
+              {form.type === 'SERVICE' && (
+                <>
+                  <option value="SERVICE">Servicio</option>
+                  <option value="ADMINISTRATIVE">Administrativo</option>
+                </>
+              )}
             </FormSelect>
           </div>
 
@@ -540,6 +563,13 @@ export const RequirementForm = ({ type: propType }: RequirementFormProps) => {
             />
           </div>
         </div>
+
+        {/* Configuración de Firmas */}
+        {form.subType !== 'SERVICE' && form.subType !== 'ARTICLE' && (
+          <RequirementSignatureSelector
+            onConfigurationChange={handleSignatureSelectorChange}
+          />
+        )}
 
         {/* Artículos */}
         {form.type === 'ARTICLE' && (

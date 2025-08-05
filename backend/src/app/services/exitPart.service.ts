@@ -30,7 +30,7 @@ export class ExitPartService {
     private readonly articleRepository: Repository<Article>,
     private readonly storageService: StorageService,
     private readonly dataSource: DataSource
-  ) { }
+  ) {}
 
   async findAll(
     page: number,

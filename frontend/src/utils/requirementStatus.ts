@@ -3,7 +3,6 @@ export const REQUIREMENT_STATUS_LABELS: Record<string, string> = {
   SIGNED_1: 'Firmado por solicitante',
   SIGNED_2: 'Firmado por oficina técnica',
   SIGNED_3: 'Firmado por administración',
-  SIGNED_4: 'Firmado por residente',
   APPROVED: 'Aprobado',
   CANCELLED: 'Cancelado',
   REJECTED: 'Rechazado',
@@ -18,8 +17,6 @@ export const getRequirementStatusColor = (status: string): string => {
     case 'SIGNED_2':
       return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
     case 'SIGNED_3':
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-    case 'SIGNED_4':
       return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
     case 'APPROVED':
       return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
@@ -42,8 +39,6 @@ export const getRequirementStatusText = (status: string): string => {
       return '✍️ Firmado (Of. Técnica)';
     case 'SIGNED_3':
       return '✍️ Firmado (Administración)';
-    case 'SIGNED_4':
-      return '✍️ Firmado (Residente)';
     case 'APPROVED':
       return '✅ Aprobado';
     case 'CANCELLED':

@@ -41,6 +41,8 @@ import { FuelDailyControl } from '../../app/entities/FuelDailyControl.entity';
 import { FuelOutput } from '../../app/entities/FuelOutput.entity';
 import { FuelStockMovement } from '../../app/entities/FuelStockMovement.entity';
 import { ExitPartService } from '../../app/entities/ExitPartService.entity';
+import { DocumentApprovalConfiguration } from '../../app/entities/DocumentApprovalConfiguration.entity';
+import { ApprovalFlowTemplate } from '../../app/entities/ApprovalFlowTemplate.entity';
 
 @Global()
 @Module({
@@ -86,6 +88,8 @@ import { ExitPartService } from '../../app/entities/ExitPartService.entity';
         FuelDailyControl,
         FuelOutput,
         FuelStockMovement,
+        DocumentApprovalConfiguration,
+        ApprovalFlowTemplate,
       ],
     }),
   ],

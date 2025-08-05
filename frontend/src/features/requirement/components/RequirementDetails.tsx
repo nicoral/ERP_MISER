@@ -4,6 +4,7 @@ import {
   useRequirement,
   useSignRequirement,
   useUploadInform,
+  useRequirementSignatureConfiguration,
 } from '../hooks/useRequirements';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
@@ -58,6 +59,13 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
   const signRequirementMutation = useSignRequirement();
   const rejectRequirementMutation = useRejectRequirement();
   const uploadInformMutation = useUploadInform();
+
+  // Hook para la configuración de firmas
+  const { data: signatureConfig, isLoading: loadingSignatureConfig } =
+    useRequirementSignatureConfiguration(
+      params.id ? Number(params.id) : undefined
+    );
+
   // Mapear datos según el tipo de requerimiento
   const tableItems: TableItem[] = React.useMemo(() => {
     if (!requirement) return [];
@@ -92,15 +100,6 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
       );
     }
   }, [requirement, type]);
-
-  const subtotals = {
-    PEN: tableItems
-      .filter(item => item.currency === 'PEN')
-      .reduce((sum, item) => sum + item.total, 0),
-    USD: tableItems
-      .filter(item => item.currency === 'USD')
-      .reduce((sum, item) => sum + item.total, 0),
-  };
 
   const handleSign = async () => {
     if (!requirement) return;
@@ -195,6 +194,15 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
 
   if (loading || loadingExchangeRate) return <LoadingSpinner />;
   if (error) return <div className="text-red-500">{error.message}</div>;
+
+  const subtotals = {
+    PEN: tableItems
+      .filter(item => item.currency === 'PEN')
+      .reduce((sum, item) => sum + Number(item.total), 0),
+    USD: tableItems
+      .filter(item => item.currency === 'USD')
+      .reduce((sum, item) => sum + Number(item.total), 0),
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -365,32 +373,86 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
       {/* Firmas */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">Firmas</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Solicitante', date: requirement?.firstSignedAt },
-            { label: 'Oficina Técnica', date: requirement?.secondSignedAt },
-            { label: 'Administración', date: requirement?.thirdSignedAt },
-            { label: 'Gerencia', date: requirement?.fourthSignedAt },
-          ].map((firma, idx) => (
-            <div
-              key={idx}
-              className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow"
-            >
-              <div className="font-medium text-sm mb-1">{firma.label}</div>
-              {firma.date ? (
-                <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
-                  {new Date(firma.date).toLocaleDateString('es-PE', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                  })}
-                </div>
-              ) : (
-                <div className="text-xs text-gray-400 italic">Pendiente</div>
-              )}
-            </div>
-          ))}
-        </div>
+        {loadingSignatureConfig ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Cargando firmas...</span>
+          </div>
+        ) : null}
+
+        {signatureConfig ? (
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-${
+              signatureConfig.configurations.filter(config => config.isRequired)
+                .length
+            } gap-4`}
+          >
+            {signatureConfig.configurations
+              .filter(config => config.isRequired)
+              .map(config => {
+                const getSignatureDate = (level: number) => {
+                  switch (level) {
+                    case 1:
+                      return requirement?.firstSignedAt;
+                    case 2:
+                      return requirement?.secondSignedAt;
+                    case 3:
+                      return requirement?.thirdSignedAt;
+                    case 4:
+                      return requirement?.fourthSignedAt;
+                    default:
+                      return null;
+                  }
+                };
+
+                const getSignatureLabel = (roleName: string) => {
+                  switch (roleName) {
+                    case 'SOLICITANTE':
+                      return 'Solicitante';
+                    case 'OFICINA_TECNICA':
+                      return 'Oficina Técnica';
+                    case 'ADMINISTRACION':
+                      return 'Administración';
+                    case 'GERENCIA':
+                      return 'Gerencia';
+                    default:
+                      return roleName;
+                  }
+                };
+
+                const signatureDate = getSignatureDate(config.signatureLevel);
+                const signatureLabel = getSignatureLabel(config.roleName);
+
+                return (
+                  <div
+                    key={config.id}
+                    className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded shadow"
+                  >
+                    <div className="font-medium text-sm mb-1">
+                      {signatureLabel}
+                    </div>
+                    {signatureDate ? (
+                      <div className="text-xs text-green-600 dark:text-green-300 font-semibold">
+                        {new Date(signatureDate).toLocaleDateString('es-PE', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-400 italic">
+                        Pendiente
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-gray-500">
+            No se pudo cargar la configuración de firmas
+          </div>
+        )}
       </div>
 
       {/* Botones de acción */}
@@ -427,18 +489,21 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
                 Subir Informe
               </button>
             )}
-          {requirement && canSignRequirement(requirement) && (
-            <button
-              onClick={handleSign}
-              disabled={signRequirementMutation.isPending}
-              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {signRequirementMutation.isPending ? 'Firmando...' : 'Firmar'}
-            </button>
-          )}
+          {requirement &&
+            signatureConfig &&
+            canSignRequirement(requirement, signatureConfig) && (
+              <button
+                onClick={handleSign}
+                disabled={signRequirementMutation.isPending}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {signRequirementMutation.isPending ? 'Firmando...' : 'Firmar'}
+              </button>
+            )}
 
           {requirement &&
-            canSignRequirement(requirement, true) &&
+            signatureConfig &&
+            canSignRequirement(requirement, signatureConfig, true) &&
             requirement.status !== RequirementStatus.REJECTED && (
               <button
                 onClick={handleRejectClick}
@@ -467,6 +532,7 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
         onClose={handleCloseUploadInformModal}
         handleInformChange={handleInformChange}
         handleSubmit={handleSubmitInform}
+        isLoading={uploadInformMutation.isPending}
       />
     </div>
   );

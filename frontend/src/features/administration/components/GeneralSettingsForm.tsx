@@ -43,7 +43,11 @@ export const GeneralSettingsForm = () => {
       await updateSettings.mutateAsync(formData);
       showSuccess('Configuraciones actualizadas exitosamente');
     } catch (error) {
-      showError('Error al actualizar las configuraciones', error as string);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido al actualizar las configuraciones';
+      showError('Error al actualizar las configuraciones', errorMessage);
     }
   };
 
@@ -52,7 +56,11 @@ export const GeneralSettingsForm = () => {
       await updateExchangeRate.mutateAsync();
       showSuccess('Tipo de cambio actualizado exitosamente');
     } catch (error) {
-      showError('Error al actualizar el tipo de cambio', error as string);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido al actualizar el tipo de cambio';
+      showError('Error al actualizar el tipo de cambio', errorMessage);
     }
   };
 
@@ -63,7 +71,11 @@ export const GeneralSettingsForm = () => {
         await updateSettings.mutateAsync({ companyLogoUrl: '' });
         showSuccess('Logo eliminado exitosamente');
       } catch (error) {
-        showError('Error al eliminar el logo', error as string);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Error desconocido al eliminar el logo';
+        showError('Error al eliminar el logo', errorMessage);
       }
       return;
     }
@@ -72,7 +84,11 @@ export const GeneralSettingsForm = () => {
       await uploadLogo.mutateAsync(file);
       showSuccess('Logo actualizado exitosamente');
     } catch (error) {
-      showError('Error al subir el logo', error as string);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido al subir el logo';
+      showError('Error al subir el logo', errorMessage);
     }
   };
 

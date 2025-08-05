@@ -8,6 +8,8 @@ import {
   UseGuards,
   Res,
   Query,
+  Post,
+  Req,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { PurchaseOrderService } from '../services/purchaseOrder.service';
@@ -93,6 +95,39 @@ export class PurchaseOrderController {
     return this.purchaseOrderService.remove(+id);
   }
 
+  // ========================================
+  // SIGNATURE ENDPOINTS
+  // ========================================
+
+  @Post(':id/sign')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Firmar orden de compra')
+  sign(@Req() req: { user: { id: number } }, @Param('id') id: string) {
+    return this.purchaseOrderService.signPurchaseOrder(+id, req.user.id);
+  }
+
+  @Post(':id/reject')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Rechazar orden de compra')
+  reject(
+    @Req() req: { user: { id: number } },
+    @Param('id') id: string,
+    @Body() body: { reason: string }
+  ) {
+    return this.purchaseOrderService.rejectPurchaseOrder(
+      +id,
+      req.user.id,
+      body.reason
+    );
+  }
+
+  @Get(':id/signature-configuration')
+  @RequirePermissions('view_quotations')
+  @AuditDescription('Obtener configuración de firmas')
+  getSignatureConfiguration(@Param('id') id: string) {
+    return this.purchaseOrderService.getSignatureConfiguration(+id);
+  }
+
   @Get(':id/pdf')
   @RequirePermissions('view_quotations')
   @AuditDescription('Descargar PDF de orden de compra')
@@ -100,28 +135,19 @@ export class PurchaseOrderController {
     @Param('id') id: string,
     @Res() res: Response
   ) {
-    try {
-      const pdfBuffer =
-        await this.purchaseOrderService.generatePurchaseOrderPdf(+id);
-
-      res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="orden-compra-${id}.pdf"`,
-        'Content-Length': pdfBuffer.length,
-      });
-
-      res.end(pdfBuffer);
-    } catch (error) {
-      res.status(500).json({
-        message: 'Error al generar el PDF',
-        error: error.message,
-      });
-    }
+    const pdfBuffer =
+      await this.purchaseOrderService.generatePurchaseOrderPdf(+id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="orden_compra.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
   }
 
   @Get('without-exit-part/summary')
   @RequirePermissions('view_quotations')
-  @AuditDescription('Obtener órdenes de compra sin salida')
+  @AuditDescription('Obtener órdenes de compra sin parte de salida')
   getPurchaseOrderWithoutExitPart() {
     return this.purchaseOrderService.getPurchaseOrderWithoutExitPart();
   }

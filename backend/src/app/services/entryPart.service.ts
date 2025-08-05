@@ -12,7 +12,11 @@ import { Article } from '../entities/Article.entity';
 import { Service } from '../entities/Service.entity';
 import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
 import { CreateEntryPartDto } from '../dto/entryPart/create-entryPart.dto';
-import { EntryPartStatus, EntryPartType, InspectionStatus } from '../common/enum';
+import {
+  EntryPartStatus,
+  EntryPartType,
+  InspectionStatus,
+} from '../common/enum';
 import { UpdateEntryPartDto } from '../dto/entryPart/update-entryPart.dto';
 import { Employee } from '../entities/Employee.entity';
 import { StorageService } from './storage.service';
@@ -72,7 +76,8 @@ export class EntryPartService {
         ? { id: createEntryPartDto.employeeId }
         : undefined,
       status,
-      type: articlesData.length > 0 ? EntryPartType.ARTICLE : EntryPartType.SERVICE,
+      type:
+        articlesData.length > 0 ? EntryPartType.ARTICLE : EntryPartType.SERVICE,
     });
 
     const savedEntryPart = await this.entryPartRepository.save(entryPart);
@@ -166,7 +171,7 @@ export class EntryPartService {
         warehouse: true,
       },
       where: {
-        type
+        type,
       },
       order: {
         createdAt: 'DESC',

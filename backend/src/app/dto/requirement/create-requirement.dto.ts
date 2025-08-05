@@ -85,6 +85,10 @@ export class CreateRequirementDto {
   type?: 'ARTICLE' | 'SERVICE';
 
   @IsOptional()
+  @IsString()
+  subType?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateRequirementArticleDto)
@@ -95,4 +99,10 @@ export class CreateRequirementDto {
   @ValidateNested({ each: true })
   @Type(() => CreateRequirementServiceDto)
   requirementServices?: CreateRequirementServiceDto[];
+
+  // Configuración simple de firmas
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  requiredSignatures?: string[]; // Array de roles: ['SOLICITANTE', 'OFICINA_TECNICA', etc.]
 }

@@ -31,6 +31,7 @@ import { EntryPartModule } from './app/modules/entryPart.module';
 import { PurchaseOrderModule } from './app/modules/purchaseOrder.module';
 import { StorageModule } from './app/modules/storage.module';
 import { ExitPartModule } from './app/modules/exitPart.module';
+import { DocumentApprovalConfigurationModule } from './app/modules/documentApprovalConfiguration.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ExitPartModule } from './app/modules/exitPart.module';
     PurchaseOrderModule,
     EntryPartModule,
     ExitPartModule,
+    DocumentApprovalConfigurationModule,
     TypeOrmModule.forFeature([AuditLog, Employee]),
   ],
   controllers: [],

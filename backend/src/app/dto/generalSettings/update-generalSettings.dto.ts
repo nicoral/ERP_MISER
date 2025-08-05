@@ -40,6 +40,10 @@ export class UpdateGeneralSettingsDto {
   generalTax?: number;
 
   @IsOptional()
+  @IsNumber()
+  lowAmountThreshold?: number;
+
+  @IsOptional()
   @IsString()
   additionalSettings?: string;
 }

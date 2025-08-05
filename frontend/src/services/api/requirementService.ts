@@ -3,6 +3,7 @@ import type {
   CreateRequirementDto,
   Requirement,
 } from '../../types/requirement';
+import type { SignatureConfigurationResponse } from '../../types/documentApprovalConfiguration';
 
 interface RequirementsResponse {
   requirements: Requirement[];
@@ -127,6 +128,18 @@ export const requirementService = {
     );
     return response;
   },
+
+  async getSignatureConfiguration(
+    id: number
+  ): Promise<SignatureConfigurationResponse> {
+    const response = await createApiCall<SignatureConfigurationResponse>(
+      `${BASE_URL}/${id}/signature-configuration`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility
@@ -140,3 +153,5 @@ export const signRequirement = requirementService.signRequirement;
 export const deleteRequirement = requirementService.deleteRequirement;
 export const rejectRequirement = requirementService.rejectRequirement;
 export const uploadInform = requirementService.uploadInform;
+export const getSignatureConfiguration =
+  requirementService.getSignatureConfiguration;

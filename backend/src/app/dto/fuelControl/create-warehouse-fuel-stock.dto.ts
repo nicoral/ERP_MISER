@@ -1,8 +1,4 @@
-import {
-  IsNotEmpty,
-  IsNumber,
-  Min,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, Min } from 'class-validator';
 
 export class CreateWarehouseFuelStockDto {
   @IsNotEmpty()
@@ -28,4 +24,4 @@ export class CreateWarehouseFuelStockDto {
   @IsNumber()
   @Min(0)
   tankCapacity: number;
-} 
+}

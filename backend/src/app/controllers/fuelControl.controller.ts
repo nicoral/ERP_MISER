@@ -39,13 +39,18 @@ export class FuelControlController {
     @Req() req,
     @Body() createDto: CreateFuelDailyControlDto
   ): Promise<FuelDailyControl> {
-    return this.fuelControlService.createFuelDailyControl(req.user.id, createDto);
+    return this.fuelControlService.createFuelDailyControl(
+      req.user.id,
+      createDto
+    );
   }
 
   @Get('daily-control/:id')
   @RequirePermissions('view_fuel_control')
   @AuditDescription('Consulta de control diario de combustible')
-  async getFuelDailyControl(@Param('id') id: number): Promise<FuelDailyControl> {
+  async getFuelDailyControl(
+    @Param('id') id: number
+  ): Promise<FuelDailyControl> {
     return this.fuelControlService.getFuelDailyControl(id);
   }
 
@@ -58,7 +63,12 @@ export class FuelControlController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
   ): Promise<{ data: FuelDailyControl[]; total: number }> {
-    return this.fuelControlService.getFuelDailyControls(page, limit, warehouseId, status);
+    return this.fuelControlService.getFuelDailyControls(
+      page,
+      limit,
+      warehouseId,
+      status
+    );
   }
 
   @Put('daily-control/:id/close')
@@ -69,7 +79,11 @@ export class FuelControlController {
     @Param('id') id: number,
     @Body() updateDto: UpdateFuelDailyControlDto
   ): Promise<FuelDailyControl> {
-    return this.fuelControlService.closeFuelDailyControl(id, req.user.id, updateDto);
+    return this.fuelControlService.closeFuelDailyControl(
+      id,
+      req.user.id,
+      updateDto
+    );
   }
 
   @Post('daily-control/:id/sign')
@@ -123,7 +137,10 @@ export class FuelControlController {
   @RequirePermissions('update_fuel_control')
   @UseInterceptors(FileInterceptor('file'))
   @AuditDescription('Actualización de imagen de salida de combustible')
-  async updateImage(@Param('id') id: number, @UploadedFile() file: Express.Multer.File): Promise<FuelOutput> {
+  async updateImage(
+    @Param('id') id: number,
+    @UploadedFile() file: Express.Multer.File
+  ): Promise<FuelOutput> {
     if (!file) {
       throw new Error('No se ha proporcionado ningún archivo');
     }
@@ -151,4 +168,4 @@ export class FuelControlController {
   ): Promise<{ data: FuelStockMovement[]; total: number }> {
     return this.fuelControlService.getStockMovements(warehouseId, page, limit);
   }
-} 
+}

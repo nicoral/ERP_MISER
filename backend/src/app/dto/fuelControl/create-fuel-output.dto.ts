@@ -1,8 +1,4 @@
-import {
-  IsNotEmpty,
-  IsNumber,
-  Min,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, Min } from 'class-validator';
 
 export class CreateFuelOutputDto {
   @IsNotEmpty()
@@ -25,4 +21,4 @@ export class CreateFuelOutputDto {
   @IsNotEmpty()
   @IsNumber()
   hourMeter: number;
-} 
+}

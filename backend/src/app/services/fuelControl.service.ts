@@ -14,10 +14,20 @@ import { CreateFuelDailyControlDto } from '../dto/fuelControl/create-fuel-daily-
 import { UpdateFuelDailyControlDto } from '../dto/fuelControl/update-fuel-daily-control.dto';
 import { CreateFuelOutputDto } from '../dto/fuelControl/create-fuel-output.dto';
 import { UpdateFuelOutputDto } from '../dto/fuelControl/update-fuel-output.dto';
-import { FuelDailyControlStatus, FuelOutputStatus, FuelMovementType } from '../common/enum';
+import {
+  FuelDailyControlStatus,
+  FuelOutputStatus,
+  FuelMovementType,
+} from '../common/enum';
 import { EmployeeService } from './employee.service';
 import { RoleService } from './role.service';
-import { canUserSign, processSignature, isLowAmount } from '../utils/approvalFlow.utils';
+import {
+  validateSignatureEligibility,
+  canUserSignWithConfiguration,
+  processSignatureWithConfiguration,
+} from '../utils/approvalFlow.utils';
+import { DocumentApprovalConfigurationService } from './documentApprovalConfiguration.service';
+import { GeneralSettingsService } from './generalSettings.service';
 import { StorageService } from './storage.service';
 
 @Injectable()
@@ -33,7 +43,9 @@ export class FuelControlService {
     private readonly warehouseFuelStockRepository: Repository<WarehouseFuelStock>,
     private readonly employeeService: EmployeeService,
     private readonly roleService: RoleService,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
+    private readonly documentApprovalConfigurationService: DocumentApprovalConfigurationService,
+    private readonly generalSettingsService: GeneralSettingsService
   ) {}
 
   // Fuel Daily Control Methods
@@ -46,16 +58,18 @@ export class FuelControlService {
       where: {
         warehouse: { id: createDto.warehouseId },
         controlDate: new Date(),
-      }
+      },
     });
 
     if (existingControl) {
-      throw new BadRequestException('Daily control already exists for this warehouse and date');
+      throw new BadRequestException(
+        'Daily control already exists for this warehouse and date'
+      );
     }
 
     // Obtener el stock actual del almacén
     const fuelStock = await this.warehouseFuelStockRepository.findOne({
-      where: { warehouse: { id: createDto.warehouseId } }
+      where: { warehouse: { id: createDto.warehouseId } },
     });
 
     if (!fuelStock) {
@@ -70,7 +84,8 @@ export class FuelControlService {
       observations: createDto.observations,
     });
 
-    const savedControl = await this.fuelDailyControlRepository.save(fuelDailyControl);
+    const savedControl =
+      await this.fuelDailyControlRepository.save(fuelDailyControl);
 
     // Crear movimiento de apertura
     await this.createStockMovement(
@@ -88,7 +103,12 @@ export class FuelControlService {
   async getFuelDailyControl(id: number): Promise<FuelDailyControl> {
     const control = await this.fuelDailyControlRepository.findOne({
       where: { id },
-      relations: ['warehouse', 'fuelOutputs', 'fuelOutputs.registeredByEmployee', 'fuelOutputs.operatorEmployee'],
+      relations: [
+        'warehouse',
+        'fuelOutputs',
+        'fuelOutputs.registeredByEmployee',
+        'fuelOutputs.operatorEmployee',
+      ],
     });
 
     if (!control) {
@@ -170,7 +190,7 @@ export class FuelControlService {
     id: number,
     userId: number
   ): Promise<FuelDailyControl> {
-    const control = await this.getFuelDailyControl(id);
+    const fuelDailyControl = await this.getFuelDailyControl(id);
     const employee = await this.employeeService.findOne(userId);
 
     if (!employee) {
@@ -184,44 +204,61 @@ export class FuelControlService {
     // Obtener el rol del empleado con sus permisos
     const role = await this.roleService.findById(employee.role.id);
     const userPermissions = role.permissions.map(p => p.name);
-    
 
-    // Verificar permisos según el estado del control
-    const { canSign } = canUserSign(
-      control,
-      userPermissions,
-      userPermissions.find(p => p.includes('create_fuel_control')) ? userId : -1, // Usar el warehouse como creador para efectos de permisos
+    // Calcular monto total (usar totalOutputs del control)
+    const totalAmount = fuelDailyControl.totalOutputs || 0;
+
+    // Obtener umbral de monto bajo (por defecto S/. 10,000)
+    const lowAmountThreshold =
+      await this.generalSettingsService.getLowAmountThreshold();
+
+    // Obtener configuración específica del documento
+    const configurations =
+      await this.documentApprovalConfigurationService.getConfigurationForDocument(
+        'fuel_control',
+        fuelDailyControl.id
+      );
+
+    // Validaciones de negocio
+    validateSignatureEligibility(
+      fuelDailyControl,
       userId,
+      'fuelControl',
+      totalAmount
+    );
+
+    // Verificar permisos usando configuración dinámica
+    const { canSign, level, reason } = await canUserSignWithConfiguration(
+      fuelDailyControl,
+      userPermissions,
+      -1, // No hay creador directo para fuel control
+      userId,
+      configurations,
+      totalAmount,
+      lowAmountThreshold,
       'fuelControl'
     );
 
     if (!canSign) {
-      throw new ForbiddenException(
-        'No tienes permisos para firmar este control de combustible'
-      );
+      const errorMessage = `No puedes firmar este control de combustible. ${reason}`;
+      throw new ForbiddenException(errorMessage);
     }
 
-    // Calcular monto total para determinar si es de monto bajo
-    // Para el control de combustible, usamos el total de salidas
-    const totalAmount = control.totalOutputs || 0;
-    const isLowAmountControl = isLowAmount(totalAmount);
-
-    // Procesar firma usando utilidades unificadas
-    const { updatedEntity, newStatus } = processSignature(
-      control,
+    // Procesar firma usando configuración dinámica
+    const { updatedEntity } = await processSignatureWithConfiguration(
+      fuelDailyControl,
       userId,
       employee.signature,
-      isLowAmountControl
+      level,
+      configurations
     );
 
     // Actualizar entidad
-    Object.assign(control, updatedEntity);
-    if (newStatus === 'APPROVED') {
-      control.status = FuelDailyControlStatus.FINALIZED;
-    }
-    const savedControl = await this.fuelDailyControlRepository.save(control);
+    Object.assign(fuelDailyControl, updatedEntity);
+    const savedFuelDailyControl =
+      await this.fuelDailyControlRepository.save(fuelDailyControl);
 
-    return savedControl;
+    return savedFuelDailyControl;
   }
 
   // Fuel Output Methods
@@ -229,7 +266,9 @@ export class FuelControlService {
     userId: number,
     createDto: CreateFuelOutputDto
   ): Promise<FuelOutput> {
-    const dailyControl = await this.getFuelDailyControl(createDto.fuelDailyControlId);
+    const dailyControl = await this.getFuelDailyControl(
+      createDto.fuelDailyControlId
+    );
 
     if (dailyControl.status !== FuelDailyControlStatus.OPEN) {
       throw new BadRequestException('Daily control is not open');
@@ -237,7 +276,7 @@ export class FuelControlService {
 
     // Verificar stock disponible
     const fuelStock = await this.warehouseFuelStockRepository.findOne({
-      where: { warehouse: { id: dailyControl.warehouse.id } }
+      where: { warehouse: { id: dailyControl.warehouse.id } },
     });
 
     if (!fuelStock || fuelStock.currentStock < createDto.quantity) {
@@ -251,12 +290,12 @@ export class FuelControlService {
       fuelDailyControl: { id: createDto.fuelDailyControlId },
       registeredByEmployee: { id: userId },
       operatorEmployee: { id: createDto.operatorEmployeeId },
-      outputTime: new Date().toLocaleTimeString('es-CO', { 
+      outputTime: new Date().toLocaleTimeString('es-CO', {
         timeZone: 'America/Bogota',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false
+        hour12: false,
       }),
       status: FuelOutputStatus.PENDING,
     });
@@ -264,12 +303,15 @@ export class FuelControlService {
     const savedOutput = await this.fuelOutputRepository.save(fuelOutput);
 
     // Actualizar stock
-    await this.warehouseFuelStockRepository.update(fuelStock.id, 
-      { currentStock: Number(fuelStock.currentStock) - Number(createDto.quantity) });
+    await this.warehouseFuelStockRepository.update(fuelStock.id, {
+      currentStock: Number(fuelStock.currentStock) - Number(createDto.quantity),
+    });
 
     // Actualizar total de salidas del control diario
-    await this.fuelDailyControlRepository.update(dailyControl.id, 
-      { totalOutputs: Number(dailyControl.totalOutputs) + Number(createDto.quantity) });
+    await this.fuelDailyControlRepository.update(dailyControl.id, {
+      totalOutputs:
+        Number(dailyControl.totalOutputs) + Number(createDto.quantity),
+    });
 
     // Crear movimiento de salida
     await this.createStockMovement(
@@ -321,7 +363,10 @@ export class FuelControlService {
     return this.fuelOutputRepository.save(output);
   }
 
-  async updateImage(id: number, file: Express.Multer.File): Promise<FuelOutput> {
+  async updateImage(
+    id: number,
+    file: Express.Multer.File
+  ): Promise<FuelOutput> {
     const output = await this.getFuelOutput(id);
     if (!output) {
       throw new NotFoundException('Fuel output not found');
@@ -340,10 +385,7 @@ export class FuelControlService {
     return this.fuelOutputRepository.save(output);
   }
 
-  async signFuelOutput(
-    id: number,
-    userId: number
-  ): Promise<FuelOutput> {
+  async signFuelOutput(id: number, userId: number): Promise<FuelOutput> {
     const output = await this.getFuelOutput(id);
 
     if (output.status !== FuelOutputStatus.PENDING) {
@@ -410,4 +452,4 @@ export class FuelControlService {
     const [data, total] = await query.getManyAndCount();
     return { data, total };
   }
-} 
+}

@@ -11,6 +11,7 @@ export interface Requirement {
   observation: string;
   status: string;
   type: 'ARTICLE' | 'SERVICE';
+  subType: 'ARTICLE' | 'SERVICE' | 'FUEL' | 'ADMINISTRATIVE';
   costCenter: CostCenter;
   costCenterSecondary: CostCenter;
   warehouse: Warehouse;
@@ -87,6 +88,10 @@ export interface CreateRequirementServiceDto {
 
 export enum RequirementStatus {
   PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
+  SIGNED_1 = 'SIGNED_1',
+  SIGNED_2 = 'SIGNED_2',
+  SIGNED_3 = 'SIGNED_3',
+  CANCELLED = 'CANCELLED',
   REJECTED = 'REJECTED',
+  APPROVED = 'APPROVED',
 }
