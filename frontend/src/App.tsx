@@ -193,19 +193,19 @@ const AppRoutes = () => {
           />
           <Route
             path={ROUTES.ENTRY_PART_CREATE_ARTICLES}
-            element={<EntryPartForm />}
+            element={<EntryPartForm type={EntryPartType.ARTICLE} />}
           />
           <Route
             path={ROUTES.ENTRY_PART_CREATE_SERVICES}
-            element={<EntryPartForm />}
+            element={<EntryPartForm type={EntryPartType.SERVICE} />}
           />
           <Route
             path={ROUTES.ENTRY_PART_EDIT_ARTICLES}
-            element={<EntryPartForm />}
+            element={<EntryPartForm type={EntryPartType.ARTICLE} />}
           />
           <Route
             path={ROUTES.ENTRY_PART_EDIT_SERVICES}
-            element={<EntryPartForm />}
+            element={<EntryPartForm type={EntryPartType.SERVICE} />}
           />
           <Route
             path={ROUTES.ENTRY_PART_DETAILS_ARTICLES}

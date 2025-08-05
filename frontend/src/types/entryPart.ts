@@ -25,11 +25,20 @@ export interface EntryPart {
   employee: Employee;
   warehouse?: Warehouse;
   entryPartArticles: EntryPartArticle[];
+  entryPartServices: EntryPartService[];
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
 }
 
+export interface EntryPartService {
+  id: number;
+  code: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  received: number;
+}
 export interface EntryPartArticle {
   id: number;
   code: string;
