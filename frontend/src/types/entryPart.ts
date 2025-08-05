@@ -20,6 +20,7 @@ export interface EntryPart {
   imageUrl?: string;
   observation?: string;
   entryDate: string;
+  type: EntryPartType;
   purchaseOrder?: PurchaseOrder;
   employee: Employee;
   warehouse?: Warehouse;

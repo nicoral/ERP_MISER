@@ -191,10 +191,28 @@ const AppRoutes = () => {
             path={ROUTES.ENTRY_PARTS_SERVICES}
             element={<EntryPartsServicesRoute />}
           />
-          <Route path={ROUTES.ENTRY_PART_CREATE} element={<EntryPartForm />} />
-          <Route path={ROUTES.ENTRY_PART_EDIT} element={<EntryPartForm />} />
           <Route
-            path={ROUTES.ENTRY_PART_DETAILS}
+            path={ROUTES.ENTRY_PART_CREATE_ARTICLES}
+            element={<EntryPartForm />}
+          />
+          <Route
+            path={ROUTES.ENTRY_PART_CREATE_SERVICES}
+            element={<EntryPartForm />}
+          />
+          <Route
+            path={ROUTES.ENTRY_PART_EDIT_ARTICLES}
+            element={<EntryPartForm />}
+          />
+          <Route
+            path={ROUTES.ENTRY_PART_EDIT_SERVICES}
+            element={<EntryPartForm />}
+          />
+          <Route
+            path={ROUTES.ENTRY_PART_DETAILS_ARTICLES}
+            element={<EntryPartDetails />}
+          />
+          <Route
+            path={ROUTES.ENTRY_PART_DETAILS_SERVICES}
             element={<EntryPartDetails />}
           />
           <Route
@@ -284,6 +302,7 @@ const EntryPartsArticlesRoute = () => (
 const EntryPartsServicesRoute = () => (
   <EntryPartList type={EntryPartType.SERVICE} />
 );
+
 const ExitPartsArticlesRoute = () => (
   <ExitPartList type={EntryPartType.ARTICLE} />
 );
