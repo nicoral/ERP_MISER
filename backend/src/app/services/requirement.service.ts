@@ -39,7 +39,6 @@ import {
   PurchaseOrderItem,
   PurchaseOrderStatus,
 } from '../entities/PurchaseOrder.entity';
-import { PurchaseOrder } from '../entities/PurchaseOrder.entity';
 
 @Injectable()
 export class RequirementService {
