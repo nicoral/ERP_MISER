@@ -753,7 +753,7 @@ export class RequirementService {
       // Verificar si es un requerimiento administrativo
       if (savedRequirement.subType === 'ADMINISTRATIVE') {
         // Para requerimientos administrativos, crear directamente una orden de compra
-        await this.createPurchaseOrderFromRequirement(savedRequirement);
+        this.createPurchaseOrderFromRequirement(savedRequirement);
       } else {
         // Para requerimientos normales, crear cotización
         const existingQuotation =
@@ -763,7 +763,6 @@ export class RequirementService {
         if (!existingQuotation) {
           await this.quotationService.createQuotationRequest(null, {
             requirementId: savedRequirement.id,
-            // Puedes agregar más campos por defecto si es necesario
           });
         }
       }
@@ -776,9 +775,10 @@ export class RequirementService {
    * Crea una orden de compra directamente desde un requerimiento administrativo
    */
   private async createPurchaseOrderFromRequirement(
-    requirement: Requirement
+    savedRequirement: Requirement
   ): Promise<void> {
     try {
+      const requirement = await this.findOne(savedRequirement.id);
       // Obtener proveedores disponibles para los artículos del requerimiento
       const suppliers = await this.getSuppliersForRequirement();
       if (suppliers.length === 0) {
@@ -868,7 +868,7 @@ export class RequirementService {
       );
     } catch (error) {
       console.error(
-        `Error al crear orden de compra para requerimiento ${requirement.id}:`,
+        `Error al crear orden de compra para requerimiento ${savedRequirement.id}:`,
         error
       );
       throw new Error(`No se pudo crear la orden de compra: ${error.message}`);
@@ -909,7 +909,7 @@ export class RequirementService {
         const amount = reqArticle.quantity * unitPrice;
 
         items.push({
-          item: reqArticle.id,
+          item: reqArticle.article.id,
           code: reqArticle.article.code,
           quantity: reqArticle.quantity,
           unit: reqArticle.article.unitOfMeasure,
@@ -934,7 +934,7 @@ export class RequirementService {
         const amount = unitPrice * quantity;
 
         items.push({
-          item: reqService.id,
+          item: reqService.service.id,
           code: reqService.service.code,
           quantity: quantity,
           unit: 'SERVICIO',

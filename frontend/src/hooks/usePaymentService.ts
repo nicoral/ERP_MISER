@@ -133,9 +133,12 @@ export const usePaymentService = () => {
   );
 
   // Statistics
-  const getPaymentStatistics = useCallback(async () => {
-    return handleRequest(() => paymentService.getPaymentStatistics());
-  }, [handleRequest]);
+  const getPaymentStatistics = useCallback(
+    async (type: 'ARTICLE' | 'SERVICE') => {
+      return handleRequest(() => paymentService.getPaymentStatistics(type));
+    },
+    [handleRequest]
+  );
 
   const clearError = useCallback(() => {
     setError(null);

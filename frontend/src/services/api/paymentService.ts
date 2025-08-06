@@ -188,9 +188,11 @@ const paymentService = {
   },
 
   // Statistics
-  async getPaymentStatistics(): Promise<PaymentStatistics> {
+  async getPaymentStatistics(
+    type: 'ARTICLE' | 'SERVICE'
+  ): Promise<PaymentStatistics> {
     const response = await createApiCall<PaymentStatistics>(
-      `${BASE_URL}/groups/statistics`,
+      `${BASE_URL}/groups/statistics?type=${type}`,
       {
         method: 'GET',
       }

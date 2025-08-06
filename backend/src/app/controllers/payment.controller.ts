@@ -62,13 +62,15 @@ export class PaymentController {
   @Get('groups/statistics')
   @RequirePermissions('view_payments')
   @AuditDescription('Estadísticas de grupos de pagos')
-  async getPaymentStatistics(): Promise<{
+  async getPaymentStatistics(
+    @Query('type') type: 'ARTICLE' | 'SERVICE'
+  ): Promise<{
     PENDING: number;
     APPROVED: number;
     PARTIAL: number;
     CANCELLED: number;
   }> {
-    return await this.paymentService.getPaymentStatistics();
+    return await this.paymentService.getPaymentStatistics(type);
   }
 
   @Get('groups/:id')

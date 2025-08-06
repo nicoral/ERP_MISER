@@ -52,7 +52,7 @@ export const PaymentList: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
 
   const loadStatistics = async () => {
     try {
-      const stats = await getPaymentStatistics();
+      const stats = await getPaymentStatistics(type);
       if (stats) {
         setStatusStats(stats);
       }

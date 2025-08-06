@@ -2080,7 +2080,7 @@ export class QuotationService {
     }
 
     // Procesar firma usando configuración dinámica
-    const { updatedEntity, becameApproved } =
+    const { updatedEntity } =
       await processSignatureWithConfiguration(
         quotationRequest,
         userId,
@@ -2096,11 +2096,6 @@ export class QuotationService {
 
     // Sincronizar firmas con órdenes de compra existentes
     await this.syncSignaturesToPurchaseOrders(savedQuotationRequest);
-
-    // Si la cotización fue aprobada, generar órdenes de compra
-    if (becameApproved) {
-      this.purchaseOrderService.approvePurchaseOrders(quotationRequest.id);
-    }
 
     // Actualizar progreso
     await this.updateQuotationProgress(id);

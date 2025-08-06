@@ -572,13 +572,12 @@ export class PurchaseOrderService {
    * @returns Array de PaymentGroups creados
    */
   async approvePurchaseOrders(
-    quotationRequestId: number
+    purchaseOrderId: number
   ): Promise<PaymentGroup[]> {
     // Obtener todas las órdenes de compra para esta cotización
     const purchaseOrders = await this.purchaseOrderRepository.find({
-      where: { quotationRequest: { id: quotationRequestId } },
+      where: { id: purchaseOrderId },
       relations: [
-        'quotationRequest',
         'supplier',
         'createdBy',
         'requirement',
@@ -611,13 +610,7 @@ export class PurchaseOrderService {
         continue;
       }
 
-      // Generar código único para el PaymentGroup
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      const timestamp = Date.now();
-      const code = `PAY-${year}${month}${day}-${purchaseOrder.id}-${timestamp}`;
+      const code = `${purchaseOrder.requirement.type === 'ARTICLE' ? 'OC' : 'OS'}-${purchaseOrder.code}-${Number(purchaseOrder.total).toFixed(0)}`;
 
       // Crear el PaymentGroup
       const paymentGroup = this.paymentGroupRepository.create({
@@ -625,7 +618,7 @@ export class PurchaseOrderService {
         totalAmount: +purchaseOrder.total,
         pendingAmount: +purchaseOrder.total, // Inicialmente todo está pendiente
         description: `Grupo de pagos para orden de compra ${purchaseOrder.code}`,
-        notes: `Generado automáticamente al aprobar la cotización ${purchaseOrder.quotationRequest.code}`,
+        notes: `Generado automáticamente al aprobar.`,
         purchaseOrder: { id: purchaseOrder.id },
         approvedBy: { id: purchaseOrder.requirement.employee.id },
       });
@@ -830,7 +823,16 @@ export class PurchaseOrderService {
   async savePurchaseOrderWithSignatures(
     purchaseOrder: PurchaseOrder
   ): Promise<PurchaseOrder> {
-    return this.purchaseOrderRepository.save(purchaseOrder);
+    const savedPurchaseOrder = await this.purchaseOrderRepository.save(
+      purchaseOrder
+    );
+
+    // Si la orden de compra fue aprobada, generar órdenes de compra
+    if (savedPurchaseOrder.status === PurchaseOrderStatus.APPROVED) {
+      this.approvePurchaseOrders(savedPurchaseOrder.id);
+    }
+
+    return savedPurchaseOrder;
   }
 
   /**

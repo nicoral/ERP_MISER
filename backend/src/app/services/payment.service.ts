@@ -329,13 +329,19 @@ export class PaymentService {
     await this.paymentGroupRepository.save(paymentGroup);
   }
 
-  async getPaymentStatistics(): Promise<{
+  async getPaymentStatistics(type: 'ARTICLE' | 'SERVICE'): Promise<{
     PENDING: number;
     APPROVED: number;
     PARTIAL: number;
     CANCELLED: number;
   }> {
-    const paymentGroups = await this.paymentGroupRepository.find();
+    const paymentGroups = await this.paymentGroupRepository.find({
+      where: {
+        purchaseOrder: {
+          requirement: { type },
+        },
+      },
+    });
     return {
       PENDING: paymentGroups.filter(
         group => group.status === PaymentStatus.PENDING
