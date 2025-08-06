@@ -60,12 +60,14 @@ const menuItems: MenuItem[] = [
         label: SIDEBAR_TEXTS.permissionManagement,
         path: ROUTES.PERMISSION_MANAGEMENT,
         permission: ['view_administration'],
+        roles: [1],
         icon: <SettingsIcon className="w-5 h-5" />,
       },
       {
         label: SIDEBAR_TEXTS.signatureConfiguration,
         path: ROUTES.SIGNATURE_CONFIGURATION,
         permission: ['view_administration'],
+        roles: [1],
         icon: <SettingsIcon className="w-5 h-5" />,
       },
     ],
@@ -237,8 +239,14 @@ export const Sidebar = ({ isOpen, onClose, onCollapse }: SidebarProps) => {
       );
     };
 
+    const hasAnyRole = (requiredRoles: number[] | undefined) => {
+      if (!requiredRoles || requiredRoles.length === 0) return true;
+      return requiredRoles.some(role => user?.role.id === role);
+    };
+
     const filteredItems = menuItems
       .filter(item => hasAnyPermission(item.permission))
+      .filter(item => hasAnyRole(item.roles))
       .map(item => {
         if (item.subItems) {
           const filteredSubItems = item.subItems.filter(subItem =>

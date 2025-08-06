@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePermissionManagement } from '../hooks/usePermissionManagement';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../../components/common/ErrorBanner';
@@ -27,6 +27,10 @@ export const PermissionManagement = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPermission, setSelectedPermission] =
     useState<Permission | null>(null);
+  const [filteredPermissions, setFilteredPermissions] = useState<Permission[]>(
+    []
+  );
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState<CreatePermissionDto>({
     name: '',
     module: '',
@@ -134,6 +138,13 @@ export const PermissionManagement = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    const filtered = permissions.filter(permission =>
+      permission.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredPermissions(filtered);
+  }, [permissions, searchQuery]);
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -157,11 +168,20 @@ export const PermissionManagement = () => {
         </h2>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="px-4 py-2 flex items-center text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <PlusIcon className="w-4 h-4 mr-2" />
           Nuevo Permiso
         </button>
+      </div>
+
+      <div className="mb-4">
+        <FormInput
+          placeholder="Buscar permiso..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value as string)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
       </div>
 
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
@@ -190,7 +210,7 @@ export const PermissionManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {permissions?.map(permission => (
+              {filteredPermissions?.map(permission => (
                 <tr key={permission.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     {permission.name}
