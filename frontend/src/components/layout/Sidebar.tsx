@@ -56,6 +56,18 @@ const menuItems: MenuItem[] = [
         permission: ['view_administration'],
         icon: <AuditIcon className="w-5 h-5" />,
       },
+      {
+        label: SIDEBAR_TEXTS.permissionManagement,
+        path: ROUTES.PERMISSION_MANAGEMENT,
+        permission: ['view_administration'],
+        icon: <SettingsIcon className="w-5 h-5" />,
+      },
+      {
+        label: SIDEBAR_TEXTS.signatureConfiguration,
+        path: ROUTES.SIGNATURE_CONFIGURATION,
+        permission: ['view_administration'],
+        icon: <SettingsIcon className="w-5 h-5" />,
+      },
     ],
   },
   {

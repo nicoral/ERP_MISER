@@ -22,8 +22,8 @@ export class ExitPartService {
     private readonly exitPartRepository: Repository<ExitPart>,
     @InjectRepository(ExitPartArticle)
     private readonly exitPartArticleRepository: Repository<ExitPartArticle>,
-    @InjectRepository(ExitPartService)
-    private readonly exitPartServiceRepository: Repository<ExitPartService>,
+    @InjectRepository(ExitPartServiceEntity)
+    private readonly exitPartServiceRepository: Repository<ExitPartServiceEntity>,
     @InjectRepository(Service)
     private readonly serviceRepository: Repository<Service>,
     @InjectRepository(Article)
@@ -64,6 +64,9 @@ export class ExitPartService {
         warehouse: true,
         exitPartArticles: {
           article: true,
+        },
+        exitPartServices: {
+          service: true,
         },
       },
     });

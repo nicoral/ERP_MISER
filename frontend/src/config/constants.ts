@@ -23,6 +23,8 @@ export const ROUTES = {
   ROLE_EDIT: '/roles/:id/edit',
   ROLE_DETAILS: '/roles/:id/details',
   AUDIT_LOGS: '/audit-logs',
+  PERMISSION_MANAGEMENT: '/permission-management',
+  SIGNATURE_CONFIGURATION: '/signature-configuration',
   EMPLOYEES: '/employees',
   EMPLOYEE_CREATE: '/employees/create',
   EMPLOYEE_EDIT: '/employees/:id/edit',

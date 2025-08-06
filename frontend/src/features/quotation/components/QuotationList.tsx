@@ -123,11 +123,11 @@ export const QuotationList: React.FC<QuotationListProps> = ({
         loadStatistics();
       } else {
         const errorMessage =
-          error instanceof Error
-            ? error.message
+          typeof error === 'object' && error !== null && 'message' in error
+            ? (error as { message: string }).message
             : typeof error === 'string'
-            ? error
-            : 'No se pudo reiniciar la cotización';
+              ? error
+              : 'No se pudo reiniciar la cotización';
         showError('Error', errorMessage);
       }
     } finally {

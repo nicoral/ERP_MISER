@@ -1050,7 +1050,7 @@ export class RequirementService {
   ): Promise<void> {
     try {
       // Obtener la configuración de firmas del requerimiento
-      const requirementConfigs = 
+      const requirementConfigs =
         await this.documentApprovalConfigurationService.getConfigurationForDocument(
           'requirement',
           requirement.id
@@ -1090,7 +1090,10 @@ export class RequirementService {
         );
       }
     } catch (error) {
-      console.error(`Error al aplicar configuración de firmas del requerimiento a la orden de compra:`, error);
+      console.error(
+        `Error al aplicar configuración de firmas del requerimiento a la orden de compra:`,
+        error
+      );
       // No lanzar error para no interrumpir el flujo principal
     }
   }

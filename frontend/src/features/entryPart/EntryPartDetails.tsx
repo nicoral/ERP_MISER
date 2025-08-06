@@ -267,111 +267,233 @@ export const EntryPartDetails = () => {
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Artículos ({entryPart.entryPartArticles.length})
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  #
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Descripción
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  UND
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Cant. Esperada
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Cant. Recibida
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Conforme
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Cert. Calidad
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Guía Remisión
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Inspección
-                </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                  Observaciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {entryPart.entryPartArticles.map((article, idx) => (
-                <tr key={article.id}>
-                  <td className="px-2 py-2 text-center">{idx + 1}</td>
-                  <td className="px-2 py-2">{article.name}</td>
-                  <td className="px-2 py-2">{article.unit}</td>
-                  <td className="px-2 py-2 text-center">{article.quantity}</td>
-                  <td className="px-2 py-2 text-center">{article.received}</td>
-                  <td className="px-2 py-2 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        article.conform
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}
-                    >
-                      {article.conform ? 'Sí' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        article.qualityCert
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}
-                    >
-                      {article.qualityCert ? 'Sí' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        article.guide
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}
-                    >
-                      {article.guide ? 'Sí' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        article.inspection === 'ACCEPTED'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : article.inspection === 'REJECTED'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                      }`}
-                    >
-                      {article.inspection === 'ACCEPTED'
-                        ? 'Aceptado'
-                        : article.inspection === 'REJECTED'
-                          ? 'Rechazado'
-                          : 'Pendiente'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2">{article.observation || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Mostrar artículos si el tipo es ARTICLE o si hay artículos */}
+      {entryPart.type === EntryPartType.ARTICLE &&
+        entryPart.entryPartArticles.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Artículos ({entryPart.entryPartArticles.length})
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      #
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Descripción
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      UND
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Cant. Esperada
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Cant. Recibida
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Conforme
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Cert. Calidad
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Guía Remisión
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Inspección
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Observaciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {entryPart.entryPartArticles.map((article, idx) => (
+                    <tr key={article.id}>
+                      <td className="px-2 py-2 text-center">{idx + 1}</td>
+                      <td className="px-2 py-2">{article.name}</td>
+                      <td className="px-2 py-2">{article.unit}</td>
+                      <td className="px-2 py-2 text-center">
+                        {article.quantity}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        {article.received}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            article.conform
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}
+                        >
+                          {article.conform ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            article.qualityCert
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}
+                        >
+                          {article.qualityCert ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            article.guide
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}
+                        >
+                          {article.guide ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            article.inspection === 'ACCEPTED'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : article.inspection === 'REJECTED'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                          }`}
+                        >
+                          {article.inspection === 'ACCEPTED'
+                            ? 'Aceptado'
+                            : article.inspection === 'REJECTED'
+                              ? 'Rechazado'
+                              : 'Pendiente'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2">
+                        {article.observation || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+      {/* Mostrar servicios si el tipo es SERVICE o si hay servicios */}
+      {entryPart.type === EntryPartType.SERVICE &&
+        entryPart.entryPartServices.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Servicios ({entryPart.entryPartServices.length})
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      #
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Descripción
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Duración
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Cant. Recibida
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Conforme
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Cert. Calidad
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Guía Remisión
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Inspección
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Observaciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {entryPart.entryPartServices.map((service, idx) => (
+                    <tr key={service.id}>
+                      <td className="px-2 py-2 text-center">{idx + 1}</td>
+                      <td className="px-2 py-2">{service.name}</td>
+                      <td className="px-2 py-2">
+                        {service.duration} {service.durationType}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        {service.received}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            service.conform
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}
+                        >
+                          {service.conform ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            service.qualityCert
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}
+                        >
+                          {service.qualityCert ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            service.guide
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}
+                        >
+                          {service.guide ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            service.inspection === 'ACCEPTED'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : service.inspection === 'REJECTED'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                          }`}
+                        >
+                          {service.inspection === 'ACCEPTED'
+                            ? 'Aceptado'
+                            : service.inspection === 'REJECTED'
+                              ? 'Rechazado'
+                              : 'Pendiente'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2">
+                        {service.observation || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
     </div>
   );
 };

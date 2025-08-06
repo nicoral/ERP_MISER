@@ -126,7 +126,6 @@ export class PurchaseOrder extends ApprovalFlowBase {
     default: PurchaseOrderStatus.PENDING,
   })
   status: PurchaseOrderStatus;
-  
 
   @ManyToOne(() => QuotationRequest, { nullable: true })
   @JoinColumn({ name: 'quotation_request_id' })

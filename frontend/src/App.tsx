@@ -61,6 +61,8 @@ import { SupplierView } from './features/supplier/components/SupplierView';
 import { WarehouseView } from './features/warehouse/components/WarehouseView';
 import { PurchaseOrderList } from './features/puchaseOrder/components/purchaseOrderList';
 import { EntryPartType } from './types/entryPart';
+import { PermissionManagement } from './features/administration/components/PermissionManagement';
+import { SignatureConfiguration } from './features/administration/components/SignatureConfiguration';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -84,6 +86,14 @@ const AppRoutes = () => {
           <Route path={ROUTES.ROLE_EDIT} element={<RoleForm />} />
           <Route path={ROUTES.ROLE_DETAILS} element={<RoleDetails />} />
           <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogForm />} />
+          <Route
+            path={ROUTES.PERMISSION_MANAGEMENT}
+            element={<PermissionManagement />}
+          />
+          <Route
+            path={ROUTES.SIGNATURE_CONFIGURATION}
+            element={<SignatureConfiguration />}
+          />
           <Route path={ROUTES.EMPLOYEES} element={<Employees />} />
           <Route path={ROUTES.EMPLOYEE_CREATE} element={<EmployeeForm />} />
           <Route path={ROUTES.EMPLOYEE_EDIT} element={<EmployeeForm />} />

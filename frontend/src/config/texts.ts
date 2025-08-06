@@ -122,6 +122,8 @@ export const SIDEBAR_TEXTS = {
   fuelControl: 'Combustible',
   purchaseOrdersArticles: 'Ordenes de compra',
   purchaseOrdersServices: 'Ordenes de servicios',
+  permissionManagement: 'Gestión de permisos',
+  signatureConfiguration: 'Configuración de firmas',
 };
 
 export const HEADER_TEXTS = {

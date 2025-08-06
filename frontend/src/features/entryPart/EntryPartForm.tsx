@@ -18,36 +18,25 @@ import {
 import type {
   CreateEntryPartDto,
   UpdateEntryPartDto,
+  CreateEntryPartArticleDto,
+  CreateEntryPartServiceDto,
 } from '../../types/entryPart';
-import { EntryPartStatus, EntryPartType } from '../../types/entryPart';
+import {
+  EntryPartStatus,
+  EntryPartType,
+  InspectionStatus,
+} from '../../types/entryPart';
 import type { Article } from '../../types/article';
 import { ROUTES } from '../../config/constants';
 import type { Service } from '../../types/service';
 import { useServiceService } from '../../hooks/useServiceService';
 
-type EntryPartArticleType = {
+type EntryPartArticleType = CreateEntryPartArticleDto & {
   id: number;
-  code: string;
-  name: string;
-  unit: string;
-  quantity: number;
-  received: number;
-  conform: boolean;
-  qualityCert: boolean;
-  guide: boolean;
-  inspection: 'PENDING' | 'ACCEPTED' | 'REJECTED';
-  observation?: string;
-  articleId: string;
 };
 
-type EntryPartServiceType = {
+type EntryPartServiceType = CreateEntryPartServiceDto & {
   id: number;
-  code: string;
-  name: string;
-  unit: string;
-  quantity: number;
-  received: number;
-  observation?: string;
 };
 
 export const EntryPartForm = (props: { type: EntryPartType }) => {
@@ -75,9 +64,9 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
 
   const [form, setForm] = useState({
     entryDate: new Date().toISOString().split('T')[0],
-    employeeId: user?.id?.toString() || '',
-    warehouseId: '',
-    purchaseOrderId: '',
+    employeeId: user?.id || 0,
+    warehouseId: 0,
+    purchaseOrderId: 0,
     imageUrl: '',
     observation: '',
   });
@@ -124,7 +113,7 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
   // Actualizar employeeId cuando el usuario esté disponible
   useEffect(() => {
     if (user?.id && !form.employeeId) {
-      setForm(prev => ({ ...prev, employeeId: user.id.toString() }));
+      setForm(prev => ({ ...prev, employeeId: user.id }));
     }
   }, [user, form.employeeId]);
 
@@ -133,7 +122,7 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
     if (warehouses && warehouses.length === 1 && !form.warehouseId) {
       setForm(prev => ({
         ...prev,
-        warehouseId: warehouses[0].id.toString(),
+        warehouseId: warehouses[0].id,
       }));
     }
   }, [warehouses, form.warehouseId]);
@@ -143,9 +132,9 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
     if (isEditing && entryPart) {
       setForm({
         entryDate: new Date(entryPart.entryDate).toISOString().split('T')[0],
-        employeeId: user?.id?.toString() || '',
-        warehouseId: entryPart.warehouse?.id?.toString() || '',
-        purchaseOrderId: entryPart.purchaseOrder?.id?.toString() || '',
+        employeeId: user?.id || 0,
+        warehouseId: entryPart.warehouse?.id || 0,
+        purchaseOrderId: entryPart.purchaseOrder?.id || 0,
         imageUrl: entryPart.imageUrl || '',
         observation: entryPart.observation || '',
       });
@@ -164,7 +153,7 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
           guide: article.guide,
           inspection: article.inspection,
           observation: article.observation || '',
-          articleId: article.id.toString(),
+          articleId: article.article.id,
         }));
 
       const entryPartServicesData: EntryPartServiceType[] =
@@ -172,9 +161,15 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
           id: service.id,
           code: service.code,
           name: service.name,
-          unit: service.unit,
-          quantity: service.quantity,
+          duration: service.duration,
+          durationType: service.durationType,
           received: service.received,
+          conform: service.conform,
+          qualityCert: service.qualityCert,
+          guide: service.guide,
+          inspection: service.inspection,
+          observation: service.observation || '',
+          serviceId: service.service.id,
         }));
 
       setEntryPartArticles(entryPartArticlesData);
@@ -218,9 +213,9 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
           conform: false,
           qualityCert: false,
           guide: false,
-          inspection: 'PENDING' as const,
+          inspection: InspectionStatus.PENDING,
           observation: '',
-          articleId: article.id.toString(),
+          articleId: article.id,
         },
       ]);
     }
@@ -238,10 +233,15 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
           id: service.id,
           code: service.code,
           name: service.name,
-          unit: 'UNIDAD',
-          quantity: 0,
+          duration: service.duration,
+          durationType: service.durationType,
           received: 0,
+          conform: false,
+          qualityCert: false,
+          guide: false,
+          inspection: InspectionStatus.PENDING,
           observation: '',
+          serviceId: service.id,
         },
       ]);
     }
@@ -298,7 +298,7 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
         const updateEntryPartDto: UpdateEntryPartDto = {
           observation: form.observation || undefined,
           entryDate: form.entryDate,
-          employeeId: parseInt(form.employeeId),
+          employeeId: form.employeeId,
           entryPartArticles: entryPartArticles.map(article => ({
             id: article.id,
             code: article.code,
@@ -311,7 +311,7 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
             guide: article.guide,
             inspection: article.inspection,
             observation: article.observation,
-            articleId: parseInt(article.articleId),
+            articleId: article.articleId,
           })),
         };
 
@@ -334,9 +334,8 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
         const createEntryPartDto: CreateEntryPartDto = {
           entryDate: form.entryDate,
           employeeId: form.employeeId,
-          warehouseId: parseInt(form.warehouseId),
+          warehouseId: form.warehouseId,
           purchaseOrderId: form.purchaseOrderId || undefined,
-          imageUrl: undefined,
           observation: form.observation || undefined,
           entryPartArticles: entryPartArticles.map(article => ({
             code: article.code,
@@ -717,10 +716,12 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
                       <tr key={service.id}>
                         <td className="px-2 py-2 text-center">{idx + 1}</td>
                         <td className="px-2 py-2">{service.name}</td>
-                        <td className="px-2 py-2">{service.unit}</td>
+                        <td className="px-2 py-2">
+                          {service.duration} {service.durationType}
+                        </td>
                         <td className="px-2 py-2 text-center">
                           <span className="text-gray-600 dark:text-gray-400">
-                            {service.quantity}
+                            {service.duration}
                           </span>
                         </td>
                         <td className="px-2 py-2 text-center">
@@ -729,8 +730,8 @@ export const EntryPartForm = (props: { type: EntryPartType }) => {
                             value={service.received}
                             min={0}
                             max={
-                              service.quantity > 0
-                                ? service.quantity
+                              service.duration > 0
+                                ? service.duration
                                 : 9999999999
                             }
                             onChange={e =>

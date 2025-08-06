@@ -27,7 +27,7 @@ import { PurchaseOrderModule } from './purchaseOrder.module';
     StorageModule,
     DocumentApprovalConfigurationModule,
     GeneralSettingsModule,
-    forwardRef(() => PurchaseOrderModule),  
+    forwardRef(() => PurchaseOrderModule),
   ],
   controllers: [RequirementController],
   providers: [RequirementService, QRService],

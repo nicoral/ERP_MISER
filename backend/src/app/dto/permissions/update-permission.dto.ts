@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class CreatePermissionDto {
+export class UpdatePermissionDto {
   @IsNotEmpty()
   @IsString()
   name: string;
@@ -9,13 +9,13 @@ export class CreatePermissionDto {
   @IsString()
   module?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  endpoint: string;
+  endpoint?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  method: string;
+  method?: string;
 
   @IsOptional()
   @IsString()

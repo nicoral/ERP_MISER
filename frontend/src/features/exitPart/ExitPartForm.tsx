@@ -18,26 +18,23 @@ import {
 import type {
   CreateExitPartDto,
   UpdateExitPartDto,
+  CreateExitPartArticleDto,
+  CreateExitPartServiceDto,
 } from '../../types/exitPart';
-import { ExitPartStatus } from '../../types/exitPart';
+import { InspectionStatus, ExitPartStatus } from '../../types/exitPart';
 import type { Article } from '../../types/article';
+import type { Service } from '../../types/service';
 import type { PurchaseOrder } from '../../types/purchaseOrder';
 import { ROUTES } from '../../config/constants';
 import { useToast } from '../../contexts/ToastContext';
+import { useServiceService } from '../../hooks/useServiceService';
 
-type ExitPartArticleType = {
+type ExitPartArticleType = CreateExitPartArticleDto & {
   id: number;
-  code: string;
-  name: string;
-  unit: string;
-  quantity: number;
-  delivered: number;
-  conform: boolean;
-  qualityCert: boolean;
-  guide: boolean;
-  inspection: 'PENDING' | 'ACCEPTED' | 'REJECTED';
-  observation?: string;
-  articleId: number;
+};
+
+type ExitPartServiceType = CreateExitPartServiceDto & {
+  id: number;
 };
 
 export const ExitPartForm = () => {
@@ -75,9 +72,16 @@ export const ExitPartForm = () => {
   const [exitPartArticles, setExitPartArticles] = useState<
     ExitPartArticleType[]
   >([]);
+  const [exitPartServices, setExitPartServices] = useState<
+    ExitPartServiceType[]
+  >([]);
   const [showArticleModal, setShowArticleModal] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
   const [showPurchaseOrderModal, setShowPurchaseOrderModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { services, loading: loadingServices } =
+    useServiceService(debouncedSearch);
+  const [searchTextService, setSearchTextService] = useState('');
 
   // Debounce para búsqueda de artículos
   useEffect(() => {
@@ -128,12 +132,30 @@ export const ExitPartForm = () => {
           conform: article.conform,
           qualityCert: article.qualityCert,
           guide: article.guide,
-          inspection: article.inspection,
+          inspection: article.inspection as InspectionStatus,
           observation: article.observation || '',
-          articleId: article.id,
+          articleId: article.article.id,
         }));
 
       setExitPartArticles(exitPartArticlesData);
+
+      // Convertir los servicios del ExitPart al formato del formulario
+      if (exitPart.exitPartServices && exitPart.exitPartServices.length > 0) {
+        const exitPartServicesData: ExitPartServiceType[] =
+          exitPart.exitPartServices.map(service => ({
+            id: service.id,
+            code: service.code,
+            name: service.name,
+            duration: service.duration,
+            durationType: service.durationType,
+            received: service.received,
+            inspection: service.inspection as InspectionStatus,
+            observation: service.observation || '',
+            serviceId: service.service.id,
+          }));
+
+        setExitPartServices(exitPartServicesData);
+      }
     }
   }, [isEditing, exitPart]);
 
@@ -173,7 +195,7 @@ export const ExitPartForm = () => {
           conform: false,
           qualityCert: false,
           guide: false,
-          inspection: 'PENDING' as const,
+          inspection: InspectionStatus.PENDING,
           observation: '',
           articleId: article.id,
         },
@@ -183,6 +205,39 @@ export const ExitPartForm = () => {
 
   const removeArticle = (id: number) => {
     setExitPartArticles(prev => prev.filter(a => a.id !== id));
+  };
+
+  const addService = (service: Service) => {
+    if (!exitPartServices.some(s => s.id === service.id)) {
+      setExitPartServices(prev => [
+        ...prev,
+        {
+          id: service.id,
+          code: service.code,
+          name: service.name,
+          duration: service.duration,
+          durationType: service.durationType,
+          received: 0,
+          inspection: InspectionStatus.PENDING,
+          observation: '',
+          serviceId: service.id,
+        },
+      ]);
+    }
+  };
+
+  const removeService = (id: number) => {
+    setExitPartServices(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleServiceInput = (
+    id: number,
+    field: string,
+    value: string | number | boolean
+  ) => {
+    setExitPartServices(prev =>
+      prev.map(s => (s.id === id ? { ...s, [field]: value } : s))
+    );
   };
 
   const handleArticleInput = (
@@ -213,7 +268,7 @@ export const ExitPartForm = () => {
         conform: false,
         qualityCert: false,
         guide: false,
-        inspection: 'PENDING' as const,
+        inspection: InspectionStatus.PENDING,
         observation: '',
         articleId: item.item, // Usar el código como articleId temporal
       }));
@@ -301,10 +356,11 @@ export const ExitPartForm = () => {
         // Modo creación
         const createExitPartDto: CreateExitPartDto = {
           exitDate: form.exitDate,
-          employeeId: form.employeeId,
+          employeeId: parseInt(form.employeeId),
           warehouseId: parseInt(form.warehouseId),
-          purchaseOrderId: form.purchaseOrderId || undefined,
-          imageUrl: undefined,
+          purchaseOrderId: form.purchaseOrderId
+            ? parseInt(form.purchaseOrderId)
+            : undefined,
           observation: form.observation || undefined,
           exitPartArticles: exitPartArticles.map(article => ({
             code: article.code,
@@ -318,6 +374,16 @@ export const ExitPartForm = () => {
             inspection: article.inspection,
             observation: article.observation,
             articleId: article.articleId,
+          })),
+          exitPartServices: exitPartServices.map(service => ({
+            code: service.code,
+            name: service.name,
+            duration: service.duration,
+            durationType: service.durationType,
+            received: service.received,
+            inspection: service.inspection,
+            observation: service.observation,
+            serviceId: service.serviceId,
           })),
         };
 
@@ -334,7 +400,7 @@ export const ExitPartForm = () => {
         showSuccess('Creado', 'Parte de salida creado correctamente');
       }
 
-      navigate(ROUTES.EXIT_PARTS);
+      navigate(ROUTES.EXIT_PARTS_ARTICLES);
     } catch (error) {
       console.error(error);
       const errorMessage = getErrorMessage(
@@ -651,10 +717,135 @@ export const ExitPartForm = () => {
           )}
         </div>
 
+        {/* Sección de Servicios */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              Servicios
+            </h3>
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => setShowServiceModal(true)}
+                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <PlusIcon className="w-4 h-4 mr-2" />
+                Agregar Servicio
+              </button>
+            )}
+          </div>
+          {exitPartServices.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Agrega servicios para la parte de salida
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      #
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Descripción
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Duración
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Recibido
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Inspección
+                    </th>
+                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Observación
+                    </th>
+                    {!isEditing && (
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Acciones
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {exitPartServices.map((service, idx) => (
+                    <tr key={service.id}>
+                      <td className="px-2 py-2 text-center">{idx + 1}</td>
+                      <td className="px-2 py-2">{service.name}</td>
+                      <td className="px-2 py-2">
+                        {service.duration} {service.durationType}
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          value={service.received}
+                          onChange={e =>
+                            handleServiceInput(
+                              service.id,
+                              'received',
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          min="0"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          value={service.inspection}
+                          onChange={e =>
+                            handleServiceInput(
+                              service.id,
+                              'inspection',
+                              e.target.value
+                            )
+                          }
+                          className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        >
+                          <option value="PENDING">Pendiente</option>
+                          <option value="ACCEPTED">Aceptado</option>
+                          <option value="REJECTED">Rechazado</option>
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="text"
+                          value={service.observation || ''}
+                          onChange={e =>
+                            handleServiceInput(
+                              service.id,
+                              'observation',
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          placeholder="Observación..."
+                        />
+                      </td>
+                      {!isEditing && (
+                        <td className="px-2 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => removeService(service.id)}
+                            className="bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end space-x-3">
           <button
             type="button"
-            onClick={() => navigate(ROUTES.EXIT_PARTS)}
+            onClick={() => navigate(ROUTES.EXIT_PARTS_ARTICLES)}
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Cancelar
@@ -737,6 +928,88 @@ export const ExitPartForm = () => {
                               removeArticle(article.id);
                             } else {
                               addArticle(article);
+                            }
+                          }}
+                          className={`${
+                            isSelected
+                              ? 'bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400'
+                              : 'bg-transparent text-blue-600 hover:text-blue-900 dark:hover:text-blue-400'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <TrashIcon className="w-5 h-5" />
+                          ) : (
+                            <PlusIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal para agregar servicios - solo en modo creación */}
+      {!isEditing && (
+        <Modal
+          isOpen={showServiceModal}
+          onClose={() => setShowServiceModal(false)}
+          title="Seleccionar Servicio"
+        >
+          <div className="space-y-4">
+            <FormInput
+              id="searchService"
+              name="searchService"
+              label="Buscar servicio"
+              value={searchTextService}
+              onChange={e => setSearchTextService(e.target.value)}
+              placeholder="Buscar por código o nombre..."
+            />
+            <div className="max-h-96 overflow-y-auto">
+              {loadingServices ? (
+                <div className="text-center py-4">Cargando servicios...</div>
+              ) : (
+                services
+                  .filter(
+                    service =>
+                      service.name
+                        .toLowerCase()
+                        .includes(searchTextService.toLowerCase()) ||
+                      service.code
+                        .toLowerCase()
+                        .includes(searchTextService.toLowerCase())
+                  )
+                  .map(service => {
+                    const isSelected = exitPartServices.some(
+                      s => s.id === service.id
+                    );
+                    return (
+                      <div
+                        key={service.id}
+                        className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          isSelected
+                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                            : 'border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {service.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {service.code} - {service.duration}{' '}
+                            {service.durationType}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              removeService(service.id);
+                            } else {
+                              addService(service);
                             }
                           }}
                           className={`${

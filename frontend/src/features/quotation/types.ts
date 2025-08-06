@@ -43,7 +43,6 @@ export interface SupplierWithFinalSelection {
 export interface Signature {
   label: string;
   signed: boolean;
-  signedBy?: number;
   signedAt?: Date;
 }
 

@@ -57,7 +57,7 @@ export class PurchaseOrderService {
     private readonly employeeService: EmployeeService,
     private readonly roleService: RoleService,
     private readonly generalSettingsService: GeneralSettingsService,
-    private readonly documentApprovalConfigurationService: DocumentApprovalConfigurationService,
+    private readonly documentApprovalConfigurationService: DocumentApprovalConfigurationService
   ) {}
 
   // ========================================
@@ -246,14 +246,11 @@ export class PurchaseOrderService {
     const purchaseOrder = await this.findOne(id);
 
     // Generar QR para la orden de compra
-    const qrUrl = this.qrService.generatePurchaseOrderURL(
-      purchaseOrder.id,
-      {
-        includeTimestamp: true,
-        includeVersion: true,
-        version: '1.0',
-      }
-    );
+    const qrUrl = this.qrService.generatePurchaseOrderURL(purchaseOrder.id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0',
+    });
     const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
 
     // Obtener configuración de firmas para determinar cuáles mostrar
@@ -271,7 +268,8 @@ export class PurchaseOrderService {
 
     const data = {
       // Información básica
-      type: purchaseOrder.requirement?.type === 'ARTICLE' ? 'COMPRA' : 'SERVICIO',
+      type:
+        purchaseOrder.requirement?.type === 'ARTICLE' ? 'COMPRA' : 'SERVICIO',
       code: purchaseOrder.code,
       requirementNumber: purchaseOrder.requirement?.code || '-',
       quotationNumber: purchaseOrder.quotationRequest?.code || '-',
@@ -860,10 +858,7 @@ export class PurchaseOrderService {
   async getRequirement(requirementId: number): Promise<Requirement> {
     const requirement = await this.requirementRepository.findOne({
       where: { id: requirementId },
-      relations: [
-        'warehouse',
-        'costCenter',
-      ],
+      relations: ['warehouse', 'costCenter'],
     });
     if (!requirement) {
       throw new NotFoundException('Requirement not found');

@@ -316,25 +316,21 @@ export const QuotationDetails = () => {
     {
       label: 'Logística',
       signed: !!quotation.firstSignedBy,
-      signedBy: quotation.firstSignedBy,
       signedAt: quotation.firstSignedAt,
     },
     {
       label: 'Of. Técnica',
       signed: !!quotation.secondSignedBy,
-      signedBy: quotation.secondSignedBy,
       signedAt: quotation.secondSignedAt,
     },
     {
       label: 'Administración',
       signed: !!quotation.thirdSignedBy,
-      signedBy: quotation.thirdSignedBy,
       signedAt: quotation.thirdSignedAt,
     },
     {
       label: 'Gerencia',
       signed: !!quotation.fourthSignedBy,
-      signedBy: quotation.fourthSignedBy,
       signedAt: quotation.fourthSignedAt,
     },
   ];

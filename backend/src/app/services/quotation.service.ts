@@ -2866,7 +2866,7 @@ export class QuotationService {
   ): Promise<void> {
     try {
       // Obtener la configuración de firmas de la cotización
-      const quotationConfigs = 
+      const quotationConfigs =
         await this.documentApprovalConfigurationService.getConfigurationForDocument(
           'quotation_request',
           quotationRequest.id
@@ -2934,8 +2934,8 @@ export class QuotationService {
         return; // No hay órdenes de compra para sincronizar
       }
 
-      const purchaseOrdersArray = Array.isArray(purchaseOrders) 
-        ? purchaseOrders 
+      const purchaseOrdersArray = Array.isArray(purchaseOrders)
+        ? purchaseOrders
         : [purchaseOrders];
 
       if (purchaseOrdersArray.length === 0) {
@@ -2944,7 +2944,8 @@ export class QuotationService {
 
       // Filtrar solo órdenes de compra que tengan esta cotización relacionada
       const relatedPurchaseOrders = purchaseOrdersArray.filter(
-        po => po.quotationRequest && po.quotationRequest.id === quotationRequest.id
+        po =>
+          po.quotationRequest && po.quotationRequest.id === quotationRequest.id
       );
 
       if (relatedPurchaseOrders.length === 0) {
@@ -3020,6 +3021,8 @@ export class QuotationService {
     }
 
     // Guardar la orden de compra actualizada
-    await this.purchaseOrderService.savePurchaseOrderWithSignatures(purchaseOrder);
+    await this.purchaseOrderService.savePurchaseOrderWithSignatures(
+      purchaseOrder
+    );
   }
 }
