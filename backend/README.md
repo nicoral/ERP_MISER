@@ -1,121 +1,174 @@
+# ERP MISER - Backend
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📋 Descripción
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Backend del sistema ERP MISER desarrollado con NestJS, TypeScript y TypeORM. Sistema de gestión empresarial que incluye módulos de requerimientos, cotizaciones, órdenes de compra, inventario, empleados y más.
 
-## Description
+## 🚀 Configuración del Proyecto
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
+### Instalación de Dependencias
 ```bash
 $ npm install
 ```
 
-## Compile and run the project
+### Ejecutar el Proyecto
 
 ```bash
-# development
+# Desarrollo
 $ npm run start
 
-# watch mode
+# Modo watch
 $ npm run start:dev
 
-# production mode
+# Producción
 $ npm run start:prod
 ```
 
-## Run tests
-
+### Base de Datos
 ```bash
-# unit tests
+# Generar migración
+$ npm run migration:generate -- --name nombre-migracion
+
+# Ejecutar migraciones
+$ npm run migration:run
+
+# Revertir migración
+$ npm run migration:revert
+```
+
+### Tests
+```bash
+# Tests unitarios
 $ npm run test
 
-# e2e tests
+# Tests e2e
 $ npm run test:e2e
 
-# test coverage
+# Cobertura de tests
 $ npm run test:cov
 ```
 
-## Deployment
+## 📚 Documentación
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### 📖 Documentación Principal
+- [Configuración General](./docs/GENERAL_SETTINGS_README.md) - Configuración del sistema y parámetros generales
+- [Importación de Excel](./docs/EXCEL_IMPORT_README.md) - Guía completa para importación de datos desde Excel
+- [Optimización de Importación](./docs/IMPORT_PERFORMANCE_OPTIMIZATION.md) - Mejores prácticas para optimizar importaciones
+- [Test de Importación](./docs/test-import.md) - Guía para testing de funcionalidades de importación
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 🔐 Sistema de Firmas
+- [Configuración Dinámica de Firmas](./docs/DYNAMIC_SIGNATURE_CONFIGURATION_README.md) - Sistema de firmas dinámicas y configuración
+- [Firmas en Órdenes de Compra](./docs/PURCHASE_ORDER_SIGNATURES_README.md) - Implementación de firmas en órdenes de compra
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+### 🛒 Gestión de Compras
+- [Proveedores por Defecto en Órdenes de Compra](./docs/PURCHASE_ORDER_DEFAULT_SUPPLIER_README.md) - Generación automática con proveedores por defecto
+- [Integración de Proveedores en Servicios](./docs/SERVICE_SUPPLIER_INTEGRATION.md) - Asignación de proveedores por defecto a servicios
+
+## 🏗️ Arquitectura
+
+### Estructura del Proyecto
+```
+src/
+├── app/
+│   ├── controllers/     # Controladores de la API
+│   ├── services/        # Lógica de negocio
+│   ├── entities/        # Entidades de TypeORM
+│   ├── dto/            # Data Transfer Objects
+│   ├── guards/         # Guards de autenticación y autorización
+│   ├── decorators/     # Decoradores personalizados
+│   └── modules/        # Módulos de NestJS
+├── config/             # Configuración de la aplicación
+└── database/           # Migraciones y seeders
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Tecnologías Principales
+- **NestJS** - Framework de Node.js
+- **TypeScript** - Lenguaje de programación
+- **TypeORM** - ORM para base de datos
+- **PostgreSQL** - Base de datos principal
+- **JWT** - Autenticación y autorización
+- **Cloudinary** - Almacenamiento de archivos
 
-## Resources
+## 🔒 Seguridad
 
-Check out a few resources that may come in handy when working with NestJS:
+### Nivel de Seguridad Actual
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+El sistema ERP_MISER implementa buenas prácticas de seguridad:
 
-## Support
+#### Backend (NestJS + TypeORM)
+- **Autenticación JWT**: Tokens JWT para proteger endpoints
+- **Guards de permisos y roles**: Acceso restringido mediante guards y decoradores
+- **Validación de datos**: DTOs y class-validator para prevenir inyecciones
+- **TypeORM**: Consultas parametrizadas para prevenir SQL injection
+- **Gestión de archivos**: Subida a Cloudinary, evitando archivos en servidor
+- **Auditoría y logs**: Registro de acciones administrativas
+- **Variables de entorno**: Configuración sensible fuera del código
+- **Prevención de ataques**: Protección contra CSRF, XSS y estructura modular segura
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📦 Módulos Principales
 
-## Stay in touch
+### Gestión de Requerimientos
+- Creación y gestión de requerimientos
+- Sistema de aprobación con firmas
+- Generación automática de cotizaciones
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Sistema de Cotizaciones
+- Gestión de cotizaciones por proveedor
+- Comparación de ofertas
+- Selección final de proveedores
 
-## License
+### Órdenes de Compra
+- Generación automática desde cotizaciones
+- Sistema de firmas integrado
+- Gestión de pagos y entregas
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Inventario
+- Gestión de artículos y servicios
+- Control de stock
+- Entradas y salidas de almacén
 
-# Seguridad y Prevención de Hackeos
+### Empleados y Usuarios
+- Gestión de empleados
+- Sistema de roles y permisos
+- Autenticación y autorización
 
-## Nivel de Seguridad Actual
+## 🚀 Deployment
 
-El sistema ERP_MISER implementa buenas prácticas de seguridad tanto en backend como en frontend. A continuación se detallan los principales mecanismos y recomendaciones:
+### Preparación para Producción
+1. Configurar variables de entorno
+2. Ejecutar migraciones de base de datos
+3. Configurar logs y monitoreo
+4. Configurar SSL/TLS
 
-### 🔒 Backend (NestJS + TypeORM)
-- **Autenticación JWT**: Uso de tokens JWT para proteger endpoints.
-- **Guards de permisos y roles**: Acceso restringido a endpoints críticos mediante guards y decoradores.
-- **Validación de datos**: Uso de DTOs y class-validator para evitar inyecciones y datos maliciosos.
-- **TypeORM**: Previene inyecciones SQL mediante consultas parametrizadas.
-- **Gestión de archivos**: Subida de imágenes a Cloudinary, evitando archivos en el servidor.
-- **Auditoría y logs**: Registro de acciones administrativas y operaciones críticas.
-- **Variables de entorno**: Configuración sensible fuera del código fuente.
-- **Prevención de ataques comunes**: Protección contra CSRF (por diseño REST), XSS (no renderiza HTML), y estructura modular segura.
+### Plataformas Recomendadas
+- **AWS** con NestJS Mau
+- **Vercel** para deployment rápido
+- **Docker** para containerización
 
-### 🛡️ Frontend (React + Vite + Tailwind)
-- **Gestión de sesión**: JWT en sessionStorage, headers Authorization en cada request.
-- **Validación y UX**: Validación de archivos e inputs en formularios.
-- **Prevención de XSS**: Renderizado seguro en React.
-- **Gestión de archivos**: Solo imágenes permitidas para el logo.
+## 🤝 Contribución
+
+1. Fork el proyecto
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir un Pull Request
+
+## 📞 Soporte
+
+Para soporte técnico o preguntas sobre el proyecto:
+- Revisar la documentación en la carpeta `docs/`
+- Crear un issue en el repositorio
+- Contactar al equipo de desarrollo
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+---
+
+**ERP MISER** - Sistema de Gestión Empresarial
 

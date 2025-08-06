@@ -39,6 +39,7 @@ import {
   PurchaseOrderItem,
   PurchaseOrderStatus,
 } from '../entities/PurchaseOrder.entity';
+import { Supplier } from '../entities/Supplier.entity';
 
 @Injectable()
 export class RequirementService {
@@ -49,6 +50,8 @@ export class RequirementService {
     private readonly requirementArticleRepository: Repository<RequirementArticle>,
     @InjectRepository(RequirementServiceEntity)
     private readonly requirementServiceRepository: Repository<RequirementServiceEntity>,
+    @InjectRepository(Supplier)
+    private readonly supplierRepository: Repository<Supplier>,
     private readonly employeeService: EmployeeService,
     private readonly roleService: RoleService,
     @Inject(forwardRef(() => QuotationService))
@@ -780,7 +783,7 @@ export class RequirementService {
     try {
       const requirement = await this.findOne(savedRequirement.id);
       // Obtener proveedores disponibles para los artículos del requerimiento
-      const suppliers = await this.getSuppliersForRequirement();
+      const suppliers = await this.getSuppliersForRequirement(requirement);
       if (suppliers.length === 0) {
         return;
       }
@@ -806,7 +809,7 @@ export class RequirementService {
         supplierName: selectedSupplier.businessName || '',
         supplierRUC: selectedSupplier.ruc || '',
         supplierAddress: selectedSupplier.address || '',
-        supplierLocation: selectedSupplier.location || '',
+        supplierLocation: selectedSupplier.province || '',
         supplierPhone: selectedSupplier.mobile || '',
         currency: 'PEN',
         requirementId: requirement.id,
@@ -876,21 +879,46 @@ export class RequirementService {
   }
 
   /**
-   * Obtiene los proveedores disponibles para un requerimiento
+   * Obtiene los proveedores disponibles para un requerimiento basándose en los proveedores por defecto de los servicios
    */
-  private async getSuppliersForRequirement() {
-    // TODO: Implementar lógica para obtener proveedores basados en los artículos del requerimiento
-    // Por ahora, retornamos un proveedor de ejemplo
-    return [
-      {
-        id: 1,
-        businessName: 'Proveedor Administrativo S.A.C.',
-        ruc: '20123456789',
-        address: 'Dirección del Proveedor',
-        location: 'Lima',
-        mobile: '01-1234567',
-      },
-    ];
+  private async getSuppliersForRequirement(requirement: Requirement) {
+    const suppliers = new Set<number>();
+    
+    // Obtener proveedores por defecto de los servicios del requerimiento
+    if (requirement.requirementServices && requirement.requirementServices.length > 0) {
+      for (const reqService of requirement.requirementServices) {
+        // Cargar el servicio con su proveedor por defecto
+        const serviceWithSupplier = await this.requirementServiceRepository
+          .createQueryBuilder('reqService')
+          .leftJoinAndSelect('reqService.service', 'service')
+          .leftJoinAndSelect('service.defaultSupplier', 'defaultSupplier')
+          .where('reqService.id = :id', { id: reqService.id })
+          .getOne();
+
+        if (serviceWithSupplier?.service?.defaultSupplier?.id) {
+          suppliers.add(serviceWithSupplier.service.defaultSupplier.id);
+        }
+      }
+    }
+
+    // Si no hay proveedores por defecto, obtener todos los proveedores activos
+    if (suppliers.size === 0) {
+      const allSuppliers = await this.supplierRepository
+        .createQueryBuilder('supplier')
+        .where('supplier.status = :status', { status: 'ACTIVE' })
+        .getMany();
+      
+      return allSuppliers.slice(0, 3); // Retornar los primeros 3 proveedores activos
+    }
+
+    // Obtener los proveedores por defecto encontrados
+    const supplierIds = Array.from(suppliers);
+    const defaultSuppliers = await this.supplierRepository
+      .createQueryBuilder('supplier')
+      .where('supplier.id IN (:...ids)', { ids: supplierIds })
+      .getMany();
+
+    return defaultSuppliers;
   }
 
   /**

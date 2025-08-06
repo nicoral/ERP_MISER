@@ -6,8 +6,11 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { RequirementService } from './RequirementService.entity';
+import { Supplier } from './Supplier.entity';
 
 @Entity()
 export class Service {
@@ -22,6 +25,10 @@ export class Service {
 
   @Column('boolean', { name: 'active', nullable: false, default: true })
   active: boolean;
+
+  @ManyToOne(() => Supplier, { nullable: true })
+  @JoinColumn({ name: 'default_supplier_id' })
+  defaultSupplier: Supplier;
 
   @OneToMany(
     () => RequirementService,

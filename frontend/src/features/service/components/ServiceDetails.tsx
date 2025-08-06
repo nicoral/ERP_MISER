@@ -141,6 +141,32 @@ export const ServiceDetails = () => {
                 </dd>
               </div>
             )}
+            <div>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Proveedor por Defecto
+              </dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-white">
+                {service.defaultSupplier ? (
+                  <div>
+                    <div className="font-medium">
+                      {service.defaultSupplier.businessName}
+                    </div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      RUC: {service.defaultSupplier.ruc}
+                    </div>
+                    {service.defaultSupplier.contactPerson && (
+                      <div className="text-gray-500 dark:text-gray-400">
+                        Contacto: {service.defaultSupplier.contactPerson}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 dark:text-gray-500 italic">
+                    No asignado
+                  </span>
+                )}
+              </dd>
+            </div>
           </dl>
         </div>
       </div>

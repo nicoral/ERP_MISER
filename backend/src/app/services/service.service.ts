@@ -17,10 +17,13 @@ export class ServiceService {
     limit: number,
     search?: string
   ): Promise<{ data: Service[]; total: number }> {
-    const query = this.serviceRepository.createQueryBuilder('service');
+    const query = this.serviceRepository.createQueryBuilder('service')
+      .leftJoinAndSelect('service.defaultSupplier', 'defaultSupplier');
+    
     if (search) {
       query.where('service.code ILIKE :search', { search: `%${search}%` });
     }
+    
     const [data, total] = await query
       .orderBy('service.id', 'DESC')
       .skip((page - 1) * limit)
@@ -30,7 +33,10 @@ export class ServiceService {
   }
 
   async findOne(id: number): Promise<Service> {
-    const service = await this.serviceRepository.findOne({ where: { id } });
+    const service = await this.serviceRepository.findOne({ 
+      where: { id },
+      relations: ['defaultSupplier']
+    });
     if (!service) {
       throw new NotFoundException('Service not found');
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FormInput } from '../../../components/common/FormInput';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../../components/common/ErrorBanner';
 import {
@@ -8,6 +9,7 @@ import {
   useCreateService,
   useUpdateService,
 } from '../hooks/useServices';
+import { useSupplierService } from '../../../hooks/useSupplierService';
 import { ROUTES } from '../../../config/constants';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -24,10 +26,14 @@ export const ServiceForm = () => {
   const createServiceMutation = useCreateService();
   const updateServiceMutation = useUpdateService();
 
+  // Hook para obtener proveedores
+  const { suppliers, loading: loadingSuppliers } = useSupplierService();
+
   const [form, setForm] = useState({
     code: '',
     name: '',
     active: true,
+    defaultSupplierId: 0,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -38,9 +44,16 @@ export const ServiceForm = () => {
         code: service.code,
         name: service.name,
         active: service.active,
+        defaultSupplierId: service.defaultSupplierId || 0,
       });
     }
   }, [isEditing, service]);
+
+  // Convertir proveedores a opciones para el SearchableSelect
+  const supplierOptions = suppliers.map(supplier => ({
+    value: supplier.id,
+    label: `${supplier.businessName} - ${supplier.ruc}`,
+  }));
 
   // Manejo de inputs
   const handleChange = (
@@ -66,15 +79,24 @@ export const ServiceForm = () => {
       return;
     }
 
+    // Preparar datos para enviar (convertir defaultSupplierId a number o undefined)
+    const submitData = {
+      ...form,
+      defaultSupplierId:
+        form.defaultSupplierId === 0
+          ? undefined
+          : Number(form.defaultSupplierId),
+    };
+
     try {
       if (isEditing && id) {
         await updateServiceMutation.mutateAsync({
           id: Number(id),
-          data: form,
+          data: submitData,
         });
         showSuccess('Actualizado', 'Servicio actualizado correctamente');
       } else {
-        await createServiceMutation.mutateAsync(form);
+        await createServiceMutation.mutateAsync(submitData);
         showSuccess('Creado', 'Servicio creado correctamente');
       }
       navigate(ROUTES.SERVICES);
@@ -89,6 +111,7 @@ export const ServiceForm = () => {
 
   const isLoading =
     loadingService ||
+    loadingSuppliers ||
     createServiceMutation.isPending ||
     updateServiceMutation.isPending;
 
@@ -131,6 +154,16 @@ export const ServiceForm = () => {
               onChange={handleChange}
               required
               placeholder="Ej: Servicio de Mantenimiento"
+            />
+
+            <SearchableSelect
+              id="defaultSupplierId"
+              name="defaultSupplierId"
+              label="Proveedor (Solo Administración)"
+              value={form.defaultSupplierId}
+              onChange={handleChange}
+              options={supplierOptions}
+              placeholder="Seleccionar proveedor por defecto"
             />
 
             <div className="flex items-center">

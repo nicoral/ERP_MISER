@@ -1,3 +1,5 @@
+import type { Supplier } from './supplier';
+
 export interface Service {
   id: number;
   code: string;
@@ -5,6 +7,8 @@ export interface Service {
   duration: number;
   durationType: string;
   active: boolean;
+  defaultSupplierId?: number;
+  defaultSupplier?: Supplier;
   createdAt: string;
   updatedAt?: string;
 }

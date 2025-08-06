@@ -5,6 +5,7 @@ import { RequirementService } from '../services/requirement.service';
 import { Requirement } from '../entities/Requirement.entity';
 import { RequirementArticle } from '../entities/RequirementArticle.entity';
 import { RequirementService as RequirementServiceEntity } from '../entities/RequirementService.entity';
+import { Supplier } from '../entities/Supplier.entity';
 import { EmployeeModule } from './employee.module';
 import { RoleModule } from './role.module';
 import { QuotationModule } from './quotation.module';
@@ -20,6 +21,7 @@ import { PurchaseOrderModule } from './purchaseOrder.module';
       Requirement,
       RequirementArticle,
       RequirementServiceEntity,
+      Supplier,
     ]),
     EmployeeModule,
     RoleModule,
