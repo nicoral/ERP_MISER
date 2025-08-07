@@ -126,7 +126,6 @@ export class PaymentController {
   async updatePaymentDetailReceipt(
     @Param('id') id: string,
     @Body() updateReceiptDto: UpdatePaymentDetailReceiptDto,
-    @Request() req: any,
     @UploadedFile() receiptImage?: Express.Multer.File,
     @UploadedFile() retentionDocument?: Express.Multer.File
   ) {
