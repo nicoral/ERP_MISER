@@ -118,25 +118,21 @@ export const usePaymentService = () => {
     [handleRequest]
   );
 
-  const cancelPaymentDetail = useMutation({
-    mutationFn: (id: number) => paymentService.cancelPaymentDetail(id),
-    onSuccess: () => {
-      // Invalidate and refetch payment data
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-    },
-  });
-
   // Payment Invoice methods
   const createPaymentInvoice = useCallback(
     async (data: CreatePaymentInvoiceDto, file?: File) => {
-      return handleRequest(() => paymentService.createPaymentInvoice(data, file));
+      return handleRequest(() =>
+        paymentService.createPaymentInvoice(data, file)
+      );
     },
     [handleRequest]
   );
 
   const updatePaymentInvoice = useCallback(
     async (id: number, data: UpdatePaymentInvoiceDto, file?: File) => {
-      return handleRequest(() => paymentService.updatePaymentInvoice(id, data, file));
+      return handleRequest(() =>
+        paymentService.updatePaymentInvoice(id, data, file)
+      );
     },
     [handleRequest]
   );
@@ -150,14 +146,18 @@ export const usePaymentService = () => {
 
   const getInvoicesByPaymentDetail = useCallback(
     async (paymentDetailId: number) => {
-      return handleRequest(() => paymentService.getInvoicesByPaymentDetail(paymentDetailId));
+      return handleRequest(() =>
+        paymentService.getInvoicesByPaymentDetail(paymentDetailId)
+      );
     },
     [handleRequest]
   );
 
   const getInvoicesStatistics = useCallback(
     async (paymentDetailId: number) => {
-      return handleRequest(() => paymentService.getInvoicesStatistics(paymentDetailId));
+      return handleRequest(() =>
+        paymentService.getInvoicesStatistics(paymentDetailId)
+      );
     },
     [handleRequest]
   );
