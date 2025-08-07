@@ -4,11 +4,15 @@ import type {
   PaymentGroup,
   PaymentGroupFilters,
   CreatePaymentDetailDto,
+  CreatePaymentInvoiceDto,
+  UpdatePaymentInvoiceDto,
 } from '../types/payment';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const usePaymentService = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const handleRequest = useCallback(
     async <T>(requestFn: () => Promise<T>): Promise<T | null> => {
@@ -107,27 +111,60 @@ export const usePaymentService = () => {
     [handleRequest]
   );
 
-  const updatePaymentDetailInvoice = useCallback(
-    async (
-      id: number,
-      data: {
-        purchaseDate?: string;
-        invoiceEmissionDate?: string;
-        documentNumber?: string;
-        description?: string;
-      },
-      file?: File
-    ) => {
-      return handleRequest(() =>
-        paymentService.updatePaymentDetailInvoice(id, data, file)
-      );
+  const getPaymentDetail = useCallback(
+    async (id: number) => {
+      return handleRequest(() => paymentService.getPaymentDetail(id));
     },
     [handleRequest]
   );
 
-  const getPaymentDetail = useCallback(
+  const cancelPaymentDetail = useMutation({
+    mutationFn: (id: number) => paymentService.cancelPaymentDetail(id),
+    onSuccess: () => {
+      // Invalidate and refetch payment data
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+  });
+
+  // Payment Invoice methods
+  const createPaymentInvoice = useCallback(
+    async (data: CreatePaymentInvoiceDto, file?: File) => {
+      return handleRequest(() => paymentService.createPaymentInvoice(data, file));
+    },
+    [handleRequest]
+  );
+
+  const updatePaymentInvoice = useCallback(
+    async (id: number, data: UpdatePaymentInvoiceDto, file?: File) => {
+      return handleRequest(() => paymentService.updatePaymentInvoice(id, data, file));
+    },
+    [handleRequest]
+  );
+
+  const getPaymentInvoice = useCallback(
     async (id: number) => {
-      return handleRequest(() => paymentService.getPaymentDetail(id));
+      return handleRequest(() => paymentService.getPaymentInvoice(id));
+    },
+    [handleRequest]
+  );
+
+  const getInvoicesByPaymentDetail = useCallback(
+    async (paymentDetailId: number) => {
+      return handleRequest(() => paymentService.getInvoicesByPaymentDetail(paymentDetailId));
+    },
+    [handleRequest]
+  );
+
+  const getInvoicesStatistics = useCallback(
+    async (paymentDetailId: number) => {
+      return handleRequest(() => paymentService.getInvoicesStatistics(paymentDetailId));
+    },
+    [handleRequest]
+  );
+
+  const deletePaymentInvoice = useCallback(
+    async (id: number) => {
+      return handleRequest(() => paymentService.deletePaymentInvoice(id));
     },
     [handleRequest]
   );
@@ -140,6 +177,14 @@ export const usePaymentService = () => {
     [handleRequest]
   );
 
+  const cancelPaymentGroup = useMutation({
+    mutationFn: (id: number) => paymentService.cancelPaymentGroup(id),
+    onSuccess: () => {
+      // Invalidate and refetch payment data
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+  });
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -148,18 +193,29 @@ export const usePaymentService = () => {
     loading,
     error,
     clearError,
-    // Payment Group
+    // Payment Groups
     getPaymentGroups,
     getPaymentGroup,
     getPaymentGroupByQuotation,
     updatePaymentGroup,
     approvePaymentGroup,
     rejectPaymentGroup,
-    // Payment Detail
+    cancelPaymentGroup: cancelPaymentGroup.mutateAsync,
+    isCancelling: cancelPaymentGroup.isPending,
+
+    // Payment Details
     createPaymentDetail,
     updatePaymentDetailReceipt,
-    updatePaymentDetailInvoice,
     getPaymentDetail,
+
+    // Payment Invoice
+    createPaymentInvoice,
+    updatePaymentInvoice,
+    getPaymentInvoice,
+    getInvoicesByPaymentDetail,
+    getInvoicesStatistics,
+    deletePaymentInvoice,
+
     // Statistics
     getPaymentStatistics,
   };

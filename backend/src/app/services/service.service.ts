@@ -44,7 +44,11 @@ export class ServiceService {
   }
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
-    const service = this.serviceRepository.create(createServiceDto);
+    const { defaultSupplierId, ...rest } = createServiceDto;
+    const service = this.serviceRepository.create({
+      ...rest,
+      defaultSupplier: defaultSupplierId ? { id: defaultSupplierId } : undefined,
+    });
     return this.serviceRepository.save(service);
   }
 
@@ -53,8 +57,15 @@ export class ServiceService {
     updateServiceDto: UpdateServiceDto
   ): Promise<Service> {
     const service = await this.findOne(id);
-    this.serviceRepository.merge(service, updateServiceDto);
-    return this.serviceRepository.save(service);
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+    const { defaultSupplierId, ...rest } = updateServiceDto;
+    await this.serviceRepository.update(id, {
+      ...rest,
+      defaultSupplier: defaultSupplierId ? { id: defaultSupplierId } : undefined,
+    });
+    return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {

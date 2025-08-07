@@ -43,6 +43,7 @@ import { FuelStockMovement } from '../../app/entities/FuelStockMovement.entity';
 import { ExitPartService } from '../../app/entities/ExitPartService.entity';
 import { DocumentApprovalConfiguration } from '../../app/entities/DocumentApprovalConfiguration.entity';
 import { ApprovalFlowTemplate } from '../../app/entities/ApprovalFlowTemplate.entity';
+import { PaymentInvoice } from '../../app/entities/PaymentInvoice.entity';
 
 @Global()
 @Module({
@@ -77,6 +78,7 @@ import { ApprovalFlowTemplate } from '../../app/entities/ApprovalFlowTemplate.en
         RequirementService,
         PaymentGroup,
         PaymentDetail,
+        PaymentInvoice,
         PurchaseOrder,
         EntryPart,
         EntryPartArticle,

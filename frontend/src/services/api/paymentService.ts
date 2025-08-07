@@ -1,37 +1,44 @@
 import { createApiCall } from './httpInterceptor';
 import type {
   PaymentGroup,
+  PaymentDetail,
+  PaymentInvoice,
+  CreatePaymentDetailDto,
   PaymentGroupFilters,
   PaymentStatistics,
-  PaymentDetail,
-  CreatePaymentDetailDto,
+  CreatePaymentInvoiceDto,
+  UpdatePaymentInvoiceDto,
+  InvoiceStatistics,
 } from '../../types/payment';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/payments`;
 
 const paymentService = {
-  // Payment Group endpoints
+  // Payment Groups
   async getPaymentGroups(
     type: 'ARTICLE' | 'SERVICE',
     page: number,
     limit: number,
     filters?: PaymentGroupFilters
   ): Promise<{ data: PaymentGroup[]; total: number }> {
-    const queryParams = new URLSearchParams({
+    const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      type: type,
-      ...(filters?.status && { status: filters.status }),
-      ...(filters?.search && { search: filters.search }),
-      ...(filters?.approvedBy && { approvedBy: filters.approvedBy.toString() }),
-      ...(filters?.dateFrom && { dateFrom: filters.dateFrom }),
-      ...(filters?.dateTo && { dateTo: filters.dateTo }),
+      type,
     });
+
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
 
     const response = await createApiCall<{
       data: PaymentGroup[];
       total: number;
-    }>(`${BASE_URL}/groups?${queryParams}`, {
+    }>(`${BASE_URL}/groups?${params.toString()}`, {
       method: 'GET',
     });
     return response;
@@ -50,13 +57,18 @@ const paymentService = {
   async getPaymentGroupByQuotation(
     quotationId: number
   ): Promise<PaymentGroup | null> {
-    const response = await createApiCall<PaymentGroup | null>(
-      `${BASE_URL}/groups/quotation/${quotationId}`,
-      {
-        method: 'GET',
-      }
-    );
-    return response;
+    try {
+      const response = await createApiCall<PaymentGroup>(
+        `${BASE_URL}/groups/quotation/${quotationId}`,
+        {
+          method: 'GET',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   },
 
   async updatePaymentGroup(
@@ -77,7 +89,7 @@ const paymentService = {
     const response = await createApiCall<PaymentGroup>(
       `${BASE_URL}/groups/${id}/approve`,
       {
-        method: 'POST',
+        method: 'PUT',
       }
     );
     return response;
@@ -87,14 +99,24 @@ const paymentService = {
     const response = await createApiCall<PaymentGroup>(
       `${BASE_URL}/groups/${id}/reject`,
       {
-        method: 'POST',
+        method: 'PUT',
         body: JSON.stringify({ reason }),
       }
     );
     return response;
   },
 
-  // Payment Detail endpoints
+  async cancelPaymentGroup(id: number): Promise<PaymentGroup> {
+    const response = await createApiCall<PaymentGroup>(
+      `${BASE_URL}/${id}/cancel`,
+      {
+        method: 'PUT',
+      }
+    );
+    return response;
+  },
+
+  // Payment Details
   async createPaymentDetail(
     data: CreatePaymentDetailDto
   ): Promise<PaymentDetail> {
@@ -141,22 +163,38 @@ const paymentService = {
     return response;
   },
 
-  async updatePaymentDetailInvoice(
-    id: number,
-    data: {
-      purchaseDate?: string;
-      invoiceEmissionDate?: string;
-      documentNumber?: string;
-      description?: string;
-    },
+  async getPaymentDetail(id: number): Promise<PaymentDetail> {
+    const response = await createApiCall<PaymentDetail>(
+      `${BASE_URL}/details/${id}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  async cancelPaymentDetail(id: number): Promise<PaymentDetail> {
+    const response = await createApiCall<PaymentDetail>(
+      `${BASE_URL}/details/${id}/cancel`,
+      {
+        method: 'PUT',
+      }
+    );
+    return response;
+  },
+
+  // Payment Invoices
+  async createPaymentInvoice(
+    data: CreatePaymentInvoiceDto,
     file?: File
-  ): Promise<PaymentDetail> {
+  ): Promise<PaymentInvoice> {
     const formData = new FormData();
 
     // Add form data
     Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        formData.append(key, value);
+      if (value !== undefined && value !== null && value !== '') {
+        // Ensure numbers are sent as numbers, not strings
+        formData.append(key, value.toString());
       }
     });
 
@@ -165,8 +203,40 @@ const paymentService = {
       formData.append('invoiceImage', file);
     }
 
-    const response = await createApiCall<PaymentDetail>(
-      `${BASE_URL}/details/${id}/invoice`,
+    const response = await createApiCall<PaymentInvoice>(
+      `${import.meta.env.VITE_API_URL}/payment-invoices`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+      false,
+      true
+    );
+    return response;
+  },
+
+  async updatePaymentInvoice(
+    id: number,
+    data: UpdatePaymentInvoiceDto,
+    file?: File
+  ): Promise<PaymentInvoice> {
+    const formData = new FormData();
+
+    // Add form data
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        // Ensure numbers are sent as numbers, not strings
+        formData.append(key, value.toString());
+      }
+    });
+
+    // Add file if provided - backend expects 'invoiceImage'
+    if (file) {
+      formData.append('invoiceImage', file);
+    }
+
+    const response = await createApiCall<PaymentInvoice>(
+      `${import.meta.env.VITE_API_URL}/payment-invoices/${id}`,
       {
         method: 'PUT',
         body: formData,
@@ -177,14 +247,47 @@ const paymentService = {
     return response;
   },
 
-  async getPaymentDetail(id: number): Promise<PaymentDetail> {
-    const response = await createApiCall<PaymentDetail>(
-      `${BASE_URL}/details/${id}`,
+  async getPaymentInvoice(id: number): Promise<PaymentInvoice> {
+    const response = await createApiCall<PaymentInvoice>(
+      `${import.meta.env.VITE_API_URL}/payment-invoices/${id}`,
       {
         method: 'GET',
       }
     );
     return response;
+  },
+
+  async getInvoicesByPaymentDetail(
+    paymentDetailId: number
+  ): Promise<PaymentInvoice[]> {
+    const response = await createApiCall<PaymentInvoice[]>(
+      `${import.meta.env.VITE_API_URL}/payment-invoices/payment-detail/${paymentDetailId}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  async getInvoicesStatistics(
+    paymentDetailId: number
+  ): Promise<InvoiceStatistics> {
+    const response = await createApiCall<InvoiceStatistics>(
+      `${import.meta.env.VITE_API_URL}/payment-invoices/payment-detail/${paymentDetailId}/statistics`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  async deletePaymentInvoice(id: number): Promise<void> {
+    await createApiCall<void>(
+      `${import.meta.env.VITE_API_URL}/payment-invoices/${id}`,
+      {
+        method: 'DELETE',
+      }
+    );
   },
 
   // Statistics

@@ -12,11 +12,30 @@ export enum PaymentStatus {
   PARTIAL = 'PARTIAL',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  WITH_RECEIPT_NO_INVOICES = 'WITH_RECEIPT_NO_INVOICES', // Nuevo estado
 }
 
 export enum PhysicalReceipt {
   YES = 'YES',
   NO = 'NO',
+}
+
+export interface PaymentInvoice {
+  id: number;
+  code: string;
+  invoiceImage?: string;
+  purchaseDate?: Date;
+  invoiceEmissionDate?: Date;
+  documentNumber?: string;
+  description?: string;
+  amount: number;
+  retentionAmount: number;
+  retentionPercentage: number;
+  hasRetention: boolean;
+  paymentDetail: PaymentDetail;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
 }
 
 export interface PaymentDetail {
@@ -25,25 +44,19 @@ export interface PaymentDetail {
   status: PaymentDetailStatus;
   amount: number;
   paymentReceipt?: string;
-  depositDate?: Date;
+  depositDate?: string;
   movementNumber?: string;
   receiptImage?: string;
-  invoiceImage?: string;
+  retentionDocument?: string; // Documento de retención
   physicalReceipt?: PhysicalReceipt;
-  purchaseDate?: Date;
-  invoiceEmissionDate?: Date;
-  documentNumber?: string;
   description?: string;
-  retentionAmount: number;
-  retentionPercentage: number;
-  hasRetention: boolean;
+  rejectionReason?: string;
   paymentGroup: PaymentGroup;
   createdBy: Employee;
   approvedBy?: Employee;
-  rejectionReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
+  invoices?: PaymentInvoice[];
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface PaymentGroup {
@@ -79,13 +92,7 @@ export interface CreatePaymentDetailDto {
   movementNumber?: string;
   receiptImage?: string;
   physicalReceipt?: PhysicalReceipt;
-  purchaseDate?: Date;
-  invoiceEmissionDate?: Date;
-  documentNumber?: string;
   description?: string;
-  retentionAmount?: number;
-  retentionPercentage?: number;
-  hasRetention?: boolean;
   paymentGroupId: number;
 }
 
@@ -95,11 +102,42 @@ export interface UpdatePaymentDetailDto {
   depositDate?: Date;
   movementNumber?: string;
   receiptImage?: string;
+  retentionDocument?: string; // Documento de retención
   physicalReceipt?: PhysicalReceipt;
-  purchaseDate?: Date;
-  invoiceEmissionDate?: Date;
-  documentNumber?: string;
   description?: string;
+}
+
+export interface UpdatePaymentDetailReceiptDto {
+  paymentReceipt?: string;
+  depositDate?: string;
+  movementNumber?: string;
+  receiptImage?: string;
+  retentionDocument?: string; // Documento de retención
+  physicalReceipt?: PhysicalReceipt;
+  description?: string;
+}
+
+export interface CreatePaymentInvoiceDto {
+  code: string;
+  description?: string;
+  amount: number;
+  documentNumber?: string;
+  purchaseDate?: string;
+  invoiceEmissionDate?: string;
+  invoiceImage?: string;
+  retentionAmount?: number;
+  retentionPercentage?: number;
+  hasRetention?: boolean;
+  paymentDetailId: number;
+}
+
+export interface UpdatePaymentInvoiceDto {
+  description?: string;
+  amount?: number;
+  documentNumber?: string;
+  purchaseDate?: string;
+  invoiceEmissionDate?: string;
+  invoiceImage?: string;
   retentionAmount?: number;
   retentionPercentage?: number;
   hasRetention?: boolean;
@@ -121,6 +159,7 @@ export interface PaymentGroupFilters {
   approvedBy?: number;
   dateFrom?: string;
   dateTo?: string;
+  hasReceiptNoInvoices?: boolean; // Nuevo filtro
 }
 
 export interface PaymentStatistics {
@@ -128,4 +167,11 @@ export interface PaymentStatistics {
   APPROVED: number;
   PARTIAL: number;
   CANCELLED: number;
+  WITH_RECEIPT_NO_INVOICES: number; // Pagos con comprobante pero sin facturas
+}
+
+export interface InvoiceStatistics {
+  totalAmount: number;
+  totalRetentionAmount: number;
+  invoiceCount: number;
 }

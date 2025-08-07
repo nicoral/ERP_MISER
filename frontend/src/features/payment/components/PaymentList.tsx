@@ -46,6 +46,7 @@ export const PaymentList: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
     APPROVED: 0,
     PARTIAL: 0,
     CANCELLED: 0,
+    WITH_RECEIPT_NO_INVOICES: 0, // Nueva estadística
   });
 
   const isInitialMount = useRef(true);
@@ -409,6 +410,41 @@ export const PaymentList: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                 <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full">
                   <span className="text-gray-600 dark:text-gray-400 text-xl">
                     🚫
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* With Receipt No Invoices */}
+            <div
+              onClick={() => {
+                // Filtrar por PaymentDetails con comprobante pero sin facturas
+                setFilters(prev => ({
+                  ...prev,
+                  hasReceiptNoInvoices: prev.hasReceiptNoInvoices
+                    ? undefined
+                    : true,
+                }));
+                setCurrentPage(1);
+              }}
+              className={`rounded-lg p-4 w-full text-left transition-all hover:shadow-md hover:scale-105 cursor-pointer ${
+                filters.hasReceiptNoInvoices
+                  ? 'bg-purple-100 dark:bg-purple-800 border-2 border-purple-400 dark:border-purple-600 shadow-lg'
+                  : 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                    Con Recibo Sin Facturas
+                  </p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {statusStats.WITH_RECEIPT_NO_INVOICES}
+                  </p>
+                </div>
+                <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-full">
+                  <span className="text-purple-600 dark:text-purple-400 text-xl">
+                    📄
                   </span>
                 </div>
               </div>

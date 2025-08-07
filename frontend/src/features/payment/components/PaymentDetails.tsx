@@ -18,10 +18,13 @@ import { PaymentStatus } from '../../../types/payment';
 import type {
   PaymentGroup,
   CreatePaymentDetailDto,
+  CreatePaymentInvoiceDto,
+  UpdatePaymentDetailReceiptDto,
 } from '../../../types/payment';
 import { hasPermission } from '../../../utils/permissions';
 import { Modal } from '../../../components/common/Modal';
 import { SupplierDetails } from '../../supplier/components/SupplierDetails';
+import type { PaymentDetail } from '../../../types/payment';
 
 export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
   type,
@@ -33,19 +36,26 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
     loading,
     createPaymentDetail,
     updatePaymentDetailReceipt,
-    updatePaymentDetailInvoice,
+    createPaymentInvoice,
+    updatePaymentInvoice,
+    cancelPaymentGroup,
+    isCancelling,
   } = usePaymentService();
   const { showError, showSuccess } = useToast();
 
   const [payment, setPayment] = useState<PaymentGroup | null>(null);
+  const [selectedPaymentDetail, setSelectedPaymentDetail] = useState<
+    number | null
+  >(null);
 
   // Modal states
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState<
-    'receipt' | 'invoiceImage' | 'invoiceData'
+    'receipt' | 'invoiceImage' | 'invoiceData' | 'retentionDocument'
   >('receipt');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   // Form data
   const [formData, setFormData] = useState({
     receipt: {
@@ -60,13 +70,20 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
       invoiceEmissionDate: '',
       documentNumber: '',
       description: '',
-      retentionAmount: 0,
+      invoiceAmount: 0, // Monto principal de la factura
+      retentionAmount: 0, // Monto de retención
       retentionPercentage: 3.0,
       hasRetention: false,
       invoiceImage: null as File | null,
       invoiceImagePreview: '',
+      retentionDocument: null as File | null, // Documento de retención
+      retentionDocumentPreview: '',
     },
   });
+
+  // Verificar si el proveedor tiene retención activa
+  const supplierHasRetention =
+    payment?.purchaseOrder?.supplier?.appliesWithholding || false;
 
   useEffect(() => {
     const loadPayment = async () => {
@@ -119,6 +136,15 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
 
   const handleSaveReceipt = async () => {
     if (!payment) return;
+
+    // Validar que el grupo no esté cancelado
+    if (payment.status === PaymentStatus.CANCELLED) {
+      showError(
+        'Error',
+        'No se pueden agregar pagos a un grupo de pagos cancelado'
+      );
+      return;
+    }
 
     // Validate required fields
     if (!formData.receipt.receiptImage) {
@@ -203,6 +229,15 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
   const handleSaveInvoiceImage = async (paymentDetailId: number) => {
     if (!payment) return;
 
+    // Validar que el grupo no esté cancelado
+    if (payment.status === PaymentStatus.CANCELLED) {
+      showError(
+        'Error',
+        'No se pueden agregar facturas a un grupo de pagos cancelado'
+      );
+      return;
+    }
+
     // Validate required fields
     if (!formData.invoice.invoiceImage) {
       showError('Error', 'La imagen de la factura es obligatoria');
@@ -211,16 +246,19 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
 
     setIsSubmitting(true);
     try {
-      // Update invoice image only
-      await updatePaymentDetailInvoice(
-        paymentDetailId,
-        {
-          invoiceEmissionDate: '',
-          documentNumber: '',
-          description: '',
-        },
-        formData.invoice.invoiceImage
-      );
+      // Create a new invoice with only image (minimal data)
+      const invoiceData: CreatePaymentInvoiceDto = {
+        code: `INV-${payment.code}-${paymentDetailId}-${Date.now()}`,
+        description: 'Factura de pago', // Default description
+        amount: 0, // Will be updated later
+        paymentDetailId: paymentDetailId,
+        // Don't send empty strings for optional fields
+        retentionAmount: 0,
+        retentionPercentage: 3.0,
+        hasRetention: false,
+      };
+
+      await createPaymentInvoice(invoiceData, formData.invoice.invoiceImage);
 
       showSuccess('Imagen de factura subida exitosamente');
 
@@ -246,6 +284,15 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
   const handleSaveInvoiceData = async (paymentDetailId: number) => {
     if (!payment) return;
 
+    // Validar que el grupo no esté cancelado
+    if (payment.status === PaymentStatus.CANCELLED) {
+      showError(
+        'Error',
+        'No se pueden agregar datos de facturas a un grupo de pagos cancelado'
+      );
+      return;
+    }
+
     // Validate required fields
     if (!formData.invoice.invoiceEmissionDate) {
       showError('Error', 'La fecha de emisión de la factura es obligatoria');
@@ -262,20 +309,37 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
       return;
     }
 
+    if (formData.invoice.invoiceAmount <= 0) {
+      showError('Error', 'El monto de la factura debe ser mayor a 0');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Update invoice information only (no image)
-      const invoiceData = {
-        invoiceEmissionDate: formData.invoice.invoiceEmissionDate,
-        documentNumber: formData.invoice.documentNumber,
-        description: formData.invoice.description,
-      };
-
-      await updatePaymentDetailInvoice(
-        paymentDetailId,
-        invoiceData,
-        undefined // No image update
+      // Find the invoice that was just created (the one without data)
+      const paymentDetail = payment.paymentDetails.find(
+        d => d.id === paymentDetailId
       );
+      if (
+        !paymentDetail ||
+        !paymentDetail.invoices ||
+        paymentDetail.invoices.length === 0
+      ) {
+        throw new Error('No se encontró la factura para actualizar');
+      }
+
+      // Get the most recent invoice (the one we just created)
+      const latestInvoice =
+        paymentDetail.invoices[paymentDetail.invoices.length - 1];
+
+      // Update the invoice with the data
+      await updatePaymentInvoice(latestInvoice.id, {
+        description: formData.invoice.description,
+        amount: formData.invoice.invoiceAmount, // Usar invoiceAmount como monto principal
+        documentNumber: formData.invoice.documentNumber,
+        purchaseDate: formData.invoice.invoiceEmissionDate,
+        invoiceEmissionDate: formData.invoice.invoiceEmissionDate,
+      });
 
       showSuccess('Información de la factura actualizada exitosamente');
 
@@ -298,6 +362,77 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
     }
   };
 
+  const handleSaveRetentionDocument = async (paymentDetailId: number) => {
+    if (!payment) return;
+
+    // Validar que el grupo no esté cancelado
+    if (payment.status === PaymentStatus.CANCELLED) {
+      showError(
+        'Error',
+        'No se pueden agregar documentos de retención a un grupo de pagos cancelado'
+      );
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.invoice.retentionDocument) {
+      showError('Error', 'El documento de retención es obligatorio');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Update the payment detail with the retention document
+      const updateData: UpdatePaymentDetailReceiptDto = {
+        retentionDocument: '', // Se actualizará con la URL del archivo
+      };
+      await updatePaymentDetailReceipt(
+        paymentDetailId,
+        updateData,
+        formData.invoice.retentionDocument // Documento de retención
+      );
+
+      showSuccess('Documento de retención subido exitosamente');
+
+      // Clear form and close modal
+      resetForm();
+      setShowAddPaymentModal(false);
+
+      // Reload payment data
+      const updatedPayment = await getPaymentGroup(payment.id);
+      if (updatedPayment) {
+        setPayment(updatedPayment);
+      }
+    } catch (error) {
+      console.error('Error saving retention document:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      showError('Error al subir documento de retención', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelPayment = async () => {
+    if (!payment) return;
+
+    try {
+      await cancelPaymentGroup(payment.id);
+      showSuccess('Grupo de pagos cancelado exitosamente');
+
+      // Reload payment data
+      const updatedPayment = await getPaymentGroup(payment.id);
+      if (updatedPayment) {
+        setPayment(updatedPayment);
+      }
+    } catch (error) {
+      console.error('Error canceling payment group:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      showError('Error al cancelar grupo de pagos', errorMessage);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       receipt: {
@@ -312,11 +447,14 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
         invoiceEmissionDate: '',
         documentNumber: '',
         description: '',
-        retentionAmount: 0,
+        invoiceAmount: 0, // Monto principal de la factura
+        retentionAmount: 0, // Monto de retención
         retentionPercentage: 3.0,
         hasRetention: false,
         invoiceImage: null,
         invoiceImagePreview: '',
+        retentionDocument: null,
+        retentionDocumentPreview: '',
       },
     });
     setCurrentStep('receipt');
@@ -330,6 +468,35 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
   const closeAddPaymentModal = () => {
     setShowAddPaymentModal(false);
     resetForm();
+  };
+
+  // Function to render invoice data button
+  const renderInvoiceDataButton = (detail: PaymentDetail) => {
+    if (!detail.invoices || detail.invoices.length === 0 || !canEdit) {
+      return null;
+    }
+
+    // Find invoices that have image but no document number (incomplete)
+    const incompleteInvoices = detail.invoices.filter(
+      invoice => invoice.invoiceImage && !invoice.documentNumber
+    );
+
+    if (incompleteInvoices.length === 0) {
+      return null;
+    }
+
+    return (
+      <Button
+        onClick={() => {
+          setSelectedPaymentDetail(detail.id);
+          setCurrentStep('invoiceData');
+          setShowAddPaymentModal(true);
+        }}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
+      >
+        + Completar Datos de Factura ({incompleteInvoices.length})
+      </Button>
+    );
   };
 
   // Function to download file from URL
@@ -402,9 +569,7 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
   if (!payment)
     return <div className="text-red-500">Grupo de pagos no encontrado</div>;
 
-  const canEdit =
-    payment.status === PaymentStatus.PENDING ||
-    payment.status === PaymentStatus.PARTIAL;
+  const canEdit = payment.status !== PaymentStatus.CANCELLED;
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -431,14 +596,28 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
             >
               Volver
             </Button>
-            {payment.pendingAmount > 0 && hasPermission('create_payment') && (
-              <Button
-                onClick={openAddPaymentModal}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                + Añadir Pago
-              </Button>
-            )}
+            {payment.pendingAmount > 0 &&
+              hasPermission('create_payment') &&
+              payment.status !== PaymentStatus.CANCELLED && (
+                <Button
+                  onClick={openAddPaymentModal}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  + Añadir Pago
+                </Button>
+              )}
+            {/* Cancel Payment Group Button - Show if no payments have been made */}
+            {canEdit &&
+              payment.paymentDetails.length === 0 &&
+              payment.status === PaymentStatus.PENDING && (
+                <Button
+                  onClick={handleCancelPayment}
+                  disabled={isCancelling}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isCancelling ? 'Cancelando...' : '❌ Cancelar Grupo'}
+                </Button>
+              )}
           </div>
         </div>
       </div>
@@ -452,6 +631,14 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
         >
           {getPaymentStatusLabel(payment.status)}
         </span>
+        {payment.status === PaymentStatus.CANCELLED && (
+          <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              ⚠️ Este grupo de pagos ha sido cancelado. No se pueden agregar
+              nuevos pagos ni facturas.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* General Information */}
@@ -557,6 +744,13 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                 RUC: {payment.purchaseOrder.supplierRUC}
               </p>
             )}
+            {supplierHasRetention && (
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  ⚠️ Este proveedor tiene retención activa.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -641,6 +835,26 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                             </span>
                           </div>
                         )}
+
+                        {/* Documento de Retención */}
+                        {detail.retentionDocument && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Retención:
+                            </span>
+                            <Button
+                              onClick={() =>
+                                downloadFile(
+                                  detail.retentionDocument!,
+                                  `retencion-${detail.code}`
+                                )
+                              }
+                              className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2 py-1"
+                            >
+                              📥 Descargar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -653,58 +867,70 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Factura
+                        Facturas ({detail.invoices?.length || 0})
                       </h5>
-                      {detail.invoiceImage && (
-                        <Button
-                          onClick={() =>
-                            downloadFile(
-                              detail.invoiceImage!,
-                              `factura-${detail.code}`
-                            )
-                          }
-                          className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1"
-                        >
-                          📥 Descargar
-                        </Button>
+                      {detail.invoices && detail.invoices.length > 0 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Total: S/{' '}
+                          {detail.invoices
+                            .reduce((sum, inv) => sum + +inv.amount, 0)
+                            .toFixed(2)}
+                        </span>
                       )}
                     </div>
-                    {detail.documentNumber ? (
+                    {detail.invoices && detail.invoices.length > 0 ? (
                       <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            Documento:
-                          </span>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {detail.documentNumber}
-                          </span>
-                        </div>
-                        {detail.invoiceEmissionDate && (
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Emisión:
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {new Date(
-                                detail.invoiceEmissionDate
-                              ).toLocaleDateString()}
-                            </span>
+                        {detail.invoices.map((invoice, index) => (
+                          <div
+                            key={invoice.id}
+                            className="border-l-2 border-blue-500 pl-3"
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                Factura {index + 1}
+                              </span>
+                              {invoice.invoiceImage && (
+                                <Button
+                                  onClick={() =>
+                                    downloadFile(
+                                      invoice.invoiceImage!,
+                                      `factura-${invoice.code}`
+                                    )
+                                  }
+                                  className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1"
+                                >
+                                  📥 Descargar
+                                </Button>
+                              )}
+                            </div>
+                            {invoice.documentNumber && (
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                Doc: {invoice.documentNumber}
+                              </div>
+                            )}
+                            {invoice.invoiceEmissionDate && (
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                Emisión:{' '}
+                                {new Date(
+                                  invoice.invoiceEmissionDate
+                                ).toLocaleDateString()}
+                              </div>
+                            )}
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              S/ {(+invoice.amount).toFixed(2)}
+                            </div>
+                            {invoice.retentionAmount > 0 && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Retención: S/{' '}
+                                {(+invoice.retentionAmount).toFixed(2)}
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {detail.description && (
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Descripción:
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {detail.description}
-                            </span>
-                          </div>
-                        )}
+                        ))}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Sin factura registrada
+                        Sin facturas registradas
                       </p>
                     )}
                   </div>
@@ -715,35 +941,36 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                       Acciones
                     </h5>
                     <div className="space-y-2">
-                      {/* Add Invoice Image Button */}
-                      {detail.movementNumber &&
-                        !detail.invoiceImage &&
-                        canEdit && (
-                          <Button
-                            onClick={() => {
-                              setCurrentStep('invoiceImage');
-                              setShowAddPaymentModal(true);
-                            }}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-xs"
-                          >
-                            + Subir Factura
-                          </Button>
-                        )}
+                      {/* Add Retention Document Button - Show if supplier has retention and can edit */}
+                      {supplierHasRetention && canEdit && (
+                        <Button
+                          onClick={() => {
+                            setSelectedPaymentDetail(detail.id);
+                            setCurrentStep('retentionDocument');
+                            setShowAddPaymentModal(true);
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                        >
+                          + Subir Documento de Retención
+                        </Button>
+                      )}
 
-                      {/* Add Invoice Data Button */}
-                      {detail.invoiceImage &&
-                        !detail.documentNumber &&
-                        canEdit && (
-                          <Button
-                            onClick={() => {
-                              setCurrentStep('invoiceData');
-                              setShowAddPaymentModal(true);
-                            }}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                          >
-                            + Datos Factura
-                          </Button>
-                        )}
+                      {/* Add Invoice Image Button - Show if there's a receipt and can edit */}
+                      {detail.movementNumber && canEdit && (
+                        <Button
+                          onClick={() => {
+                            setSelectedPaymentDetail(detail.id);
+                            setCurrentStep('invoiceImage');
+                            setShowAddPaymentModal(true);
+                          }}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white text-xs"
+                        >
+                          + Subir Nueva Factura
+                        </Button>
+                      )}
+
+                      {/* Add Invoice Data Button - Show if there are invoices without data */}
+                      {renderInvoiceDataButton(detail)}
 
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -806,7 +1033,9 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                   ? 'Añadir Pago'
                   : currentStep === 'invoiceImage'
                     ? 'Subir Factura'
-                    : 'Datos de Factura'}
+                    : currentStep === 'invoiceData'
+                      ? 'Datos de Factura'
+                      : 'Documento de Retención'}
               </h2>
               <button
                 onClick={closeAddPaymentModal}
@@ -961,12 +1190,8 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                   <Button onClick={closeAddPaymentModal}>Cancelar</Button>
                   <Button
                     onClick={() => {
-                      // Find the payment detail that needs invoice image
-                      const paymentDetail = payment.paymentDetails.find(
-                        d => d.movementNumber && !d.invoiceImage
-                      );
-                      if (paymentDetail) {
-                        handleSaveInvoiceImage(paymentDetail.id);
+                      if (selectedPaymentDetail) {
+                        handleSaveInvoiceImage(selectedPaymentDetail);
                       }
                     }}
                     disabled={isSubmitting}
@@ -1013,6 +1238,22 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                     disabled={!canEdit}
                   />
 
+                  <FormInput
+                    label="Monto de la Factura"
+                    type="number"
+                    step="0.01"
+                    value={formData.invoice.invoiceAmount}
+                    onChange={e =>
+                      handleDataChange(
+                        'invoice',
+                        'invoiceAmount',
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    placeholder="0.00"
+                    disabled={!canEdit}
+                  />
+
                   <FormText
                     label="Descripción"
                     value={formData.invoice.description}
@@ -1023,54 +1264,75 @@ export const PaymentDetails: React.FC<{ type: 'ARTICLE' | 'SERVICE' }> = ({
                     disabled={!canEdit}
                     rows={3}
                   />
-
-                  <FormInput
-                    label="Monto de Retención"
-                    type="number"
-                    step="0.01"
-                    value={formData.invoice.retentionAmount}
-                    onChange={e =>
-                      handleDataChange(
-                        'invoice',
-                        'retentionAmount',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    disabled={!canEdit}
-                  />
-
-                  <FormInput
-                    label="Porcentaje de Retención (%)"
-                    type="number"
-                    step="0.01"
-                    value={formData.invoice.retentionPercentage}
-                    onChange={e =>
-                      handleDataChange(
-                        'invoice',
-                        'retentionPercentage',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    disabled={!canEdit}
-                  />
                 </div>
 
                 <div className="flex justify-end space-x-3">
                   <Button onClick={closeAddPaymentModal}>Cancelar</Button>
                   <Button
                     onClick={() => {
-                      // Find the payment detail that needs invoice data
-                      const paymentDetail = payment.paymentDetails.find(
-                        d => d.invoiceImage && !d.documentNumber
-                      );
-                      if (paymentDetail) {
-                        handleSaveInvoiceData(paymentDetail.id);
+                      if (selectedPaymentDetail) {
+                        handleSaveInvoiceData(selectedPaymentDetail);
                       }
                     }}
                     disabled={isSubmitting}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isSubmitting ? 'Guardando...' : 'Guardar Datos'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Retention Document Form */}
+            {currentStep === 'retentionDocument' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Subir Documento de Retención
+                </h3>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Documento de Retención
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={e => {
+                        const file = e.target.files?.[0] || null;
+                        handleDataChange('invoice', 'retentionDocument', file);
+                      }}
+                      disabled={!canEdit}
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100
+                        dark:file:bg-blue-900/20 dark:file:text-blue-400
+                        dark:hover:file:bg-blue-900/30"
+                    />
+                    {formData.invoice.retentionDocument && (
+                      <p className="mt-2 text-sm text-green-600 dark:text-green-400">
+                        ✓ Documento seleccionado:{' '}
+                        {formData.invoice.retentionDocument?.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <Button onClick={closeAddPaymentModal}>Cancelar</Button>
+                  <Button
+                    onClick={() => {
+                      if (selectedPaymentDetail) {
+                        handleSaveRetentionDocument(selectedPaymentDetail);
+                      }
+                    }}
+                    disabled={isSubmitting}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    {isSubmitting ? 'Subiendo...' : 'Subir Documento'}
                   </Button>
                 </div>
               </div>

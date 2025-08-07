@@ -15,7 +15,6 @@ import { CreatePaymentGroupDto } from '../dto/payment/create-payment-group.dto';
 import { UpdatePaymentGroupDto } from '../dto/payment/update-payment-group.dto';
 import { CreatePaymentDetailDto } from '../dto/payment/create-payment-detail.dto';
 import { UpdatePaymentDetailReceiptDto } from '../dto/payment/create-payment-detail.dto';
-import { UpdatePaymentDetailInvoiceDto } from '../dto/payment/create-payment-detail.dto';
 import { UpdatePaymentDetailStatusDto } from '../dto/payment/create-payment-detail.dto';
 import { StorageService } from './storage.service';
 
@@ -63,31 +62,44 @@ export class PaymentService {
     page: number = 1,
     limit: number = 10,
     type: 'ARTICLE' | 'SERVICE' = 'ARTICLE',
-    search?: string
+    search?: string,
+    filters?: {
+      status?: string;
+      hasReceiptNoInvoices?: boolean;
+    }
   ) {
-    const whereConditions: Record<string, unknown> = {
-      purchaseOrder: {
-        requirement: {
-          type: type,
-        },
-      },
-    };
+    const queryBuilder = this.paymentGroupRepository
+      .createQueryBuilder('paymentGroup')
+      .leftJoinAndSelect('paymentGroup.purchaseOrder', 'purchaseOrder')
+      .leftJoinAndSelect('purchaseOrder.requirement', 'requirement')
+      .leftJoinAndSelect('paymentGroup.paymentDetails', 'paymentDetails')
+      .leftJoinAndSelect('paymentDetails.invoices', 'invoices')
+      .where('requirement.type = :type', { type });
 
     if (search) {
-      whereConditions.code = { $like: `%${search}%` };
+      queryBuilder.andWhere('paymentGroup.code LIKE :search', {
+        search: `%${search}%`,
+      });
     }
 
-    const [data, total] = await this.paymentGroupRepository.findAndCount({
-      where: whereConditions,
-      relations: {
-        purchaseOrder: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    if (filters?.status) {
+      queryBuilder.andWhere('paymentGroup.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    // Filtro para PaymentGroups que tienen PaymentDetails con comprobante pero sin facturas
+    if (filters?.hasReceiptNoInvoices) {
+      queryBuilder.andWhere(
+        'EXISTS (SELECT 1 FROM payment_detail pd WHERE pd.payment_group_id = paymentGroup.id AND pd."receiptImage" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM payment_invoice pi WHERE pi.payment_detail_id = pd.id))'
+      );
+    }
+
+    const [data, total] = await queryBuilder
+      .orderBy('paymentGroup.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       data,
@@ -104,10 +116,12 @@ export class PaymentService {
       relations: [
         'purchaseOrder',
         'purchaseOrder.supplier',
-        'approvedBy',
+        'purchaseOrder.requirement',
         'paymentDetails',
+        'paymentDetails.invoices',
         'paymentDetails.createdBy',
         'paymentDetails.approvedBy',
+        'approvedBy',
       ],
     });
 
@@ -151,7 +165,7 @@ export class PaymentService {
   ): Promise<PaymentDetail> {
     const { paymentGroupId, ...paymentDetailData } = createPaymentDetailDto;
 
-    // Verificar que el PaymentGroup existe
+    // Verificar que el PaymentGroup existe y no esté cancelado
     const paymentGroup = await this.paymentGroupRepository.findOne({
       where: { id: paymentGroupId },
     });
@@ -159,6 +173,12 @@ export class PaymentService {
     if (!paymentGroup) {
       throw new NotFoundException(
         `Grupo de pagos con ID ${paymentGroupId} no encontrado`
+      );
+    }
+
+    if (paymentGroup.status === PaymentStatus.CANCELLED) {
+      throw new BadRequestException(
+        'No se pueden agregar pagos a un grupo de pagos cancelado'
       );
     }
 
@@ -180,72 +200,52 @@ export class PaymentService {
 
   async updatePaymentDetailReceipt(
     id: number,
-    updatePaymentDetailReceiptDto: UpdatePaymentDetailReceiptDto,
-    file?: Express.Multer.File
+    updateReceiptDto: UpdatePaymentDetailReceiptDto,
+    receiptImage?: Express.Multer.File,
+    retentionDocument?: Express.Multer.File
   ): Promise<PaymentDetail> {
     const paymentDetail = await this.paymentDetailRepository.findOne({
       where: { id },
-      relations: ['paymentGroup'],
+      relations: ['paymentGroup', 'createdBy', 'approvedBy'],
     });
 
     if (!paymentDetail) {
       throw new NotFoundException(`Pago con ID ${id} no encontrado`);
     }
 
-    // Si se sube una imagen, guardarla en Cloudinary
-    if (file) {
-      if (paymentDetail.receiptImage) {
-        await this.storageService.removeFileByUrl(paymentDetail.receiptImage);
-      }
-      const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+    // Subir imagen del comprobante si se proporciona
+    if (receiptImage) {
+      const fileName = `${id}-${Date.now()}.${receiptImage.originalname.split('.').pop()}`;
       const path = `payments/receipts/${fileName}`;
       const uploadResult = await this.storageService.uploadFile(
         path,
-        file.buffer,
-        file.mimetype
+        receiptImage.buffer,
+        receiptImage.mimetype
       );
-      updatePaymentDetailReceiptDto.receiptImage = uploadResult.url;
+      updateReceiptDto.receiptImage = uploadResult.url;
     }
 
-    // Actualizar el pago
-    Object.assign(paymentDetail, updatePaymentDetailReceiptDto);
-
-    return await this.paymentDetailRepository.save(paymentDetail);
-  }
-
-  async updatePaymentDetailInvoice(
-    id: number,
-    updatePaymentDetailInvoiceDto: UpdatePaymentDetailInvoiceDto,
-    file?: Express.Multer.File
-  ): Promise<PaymentDetail> {
-    const paymentDetail = await this.paymentDetailRepository.findOne({
-      where: { id },
-      relations: ['paymentGroup'],
-    });
-
-    if (!paymentDetail) {
-      throw new NotFoundException(`Pago con ID ${id} no encontrado`);
-    }
-
-    // Si se sube una imagen, guardarla en Cloudinary
-    if (file) {
-      if (paymentDetail.invoiceImage) {
-        await this.storageService.removeFileByUrl(paymentDetail.invoiceImage);
-      }
-      const fileName = `${id}-${Date.now()}.${file.originalname.split('.').pop()}`;
-      const path = `payments/invoices/${fileName}`;
+    // Subir documento de retención si se proporciona
+    if (retentionDocument) {
+      const fileName = `${id}-${Date.now()}.${retentionDocument.originalname.split('.').pop()}`;
+      const path = `payments/retention-documents/${fileName}`;
       const uploadResult = await this.storageService.uploadFile(
         path,
-        file.buffer,
-        file.mimetype
+        retentionDocument.buffer,
+        retentionDocument.mimetype
       );
-      updatePaymentDetailInvoiceDto.invoiceImage = uploadResult.url;
+      updateReceiptDto.retentionDocument = uploadResult.url;
     }
 
-    // Actualizar el pago
-    Object.assign(paymentDetail, updatePaymentDetailInvoiceDto);
+    // Actualizar el PaymentDetail
+    Object.assign(paymentDetail, updateReceiptDto);
+    const updatedPaymentDetail =
+      await this.paymentDetailRepository.save(paymentDetail);
 
-    return await this.paymentDetailRepository.save(paymentDetail);
+    // Actualizar los montos del PaymentGroup
+    await this.updatePaymentGroupAmounts(paymentDetail.paymentGroup.id);
+
+    return updatedPaymentDetail;
   }
 
   async updatePaymentDetailStatus(
@@ -285,6 +285,7 @@ export class PaymentService {
       relations: [
         'paymentGroup',
         'paymentGroup.purchaseOrder',
+        'invoices',
         'createdBy',
         'approvedBy',
       ],
@@ -295,6 +296,38 @@ export class PaymentService {
     }
 
     return paymentDetail;
+  }
+
+  async cancelPaymentGroup(id: number): Promise<PaymentGroup> {
+    const paymentGroup = await this.paymentGroupRepository.findOne({
+      where: { id },
+      relations: ['paymentDetails', 'paymentDetails.invoices'],
+    });
+
+    if (!paymentGroup) {
+      throw new NotFoundException(`Grupo de pagos con ID ${id} no encontrado`);
+    }
+
+    // Verificar que no haya ningún PaymentDetail con comprobante o facturas
+    const hasPaymentsWithReceipts = paymentGroup.paymentDetails.some(
+      detail => detail.receiptImage || (detail.invoices && detail.invoices.length > 0)
+    );
+
+    if (hasPaymentsWithReceipts) {
+      throw new BadRequestException(
+        'No se puede cancelar un grupo de pagos que ya tiene pagos con comprobantes o facturas registradas'
+      );
+    }
+
+    // Verificar que el grupo esté en estado PENDING
+    if (paymentGroup.status !== PaymentStatus.PENDING) {
+      throw new BadRequestException('Solo se pueden cancelar grupos de pagos en estado pendiente');
+    }
+
+    // Actualizar el estado a CANCELLED
+    paymentGroup.status = PaymentStatus.CANCELLED;
+
+    return await this.paymentGroupRepository.save(paymentGroup);
   }
 
   // ===== PRIVATE METHODS =====
@@ -334,27 +367,61 @@ export class PaymentService {
     APPROVED: number;
     PARTIAL: number;
     CANCELLED: number;
+    WITH_RECEIPT_NO_INVOICES: number; // Nueva estadística
   }> {
-    const paymentGroups = await this.paymentGroupRepository.find({
-      where: {
-        purchaseOrder: {
-          requirement: { type },
+    const [pending, approved, partial, cancelled, withReceiptNoInvoices] = await Promise.all([
+      this.paymentGroupRepository.count({
+        where: {
+          status: PaymentStatus.PENDING,
+          purchaseOrder: {
+            requirement: { type },
+          },
         },
-      },
-    });
+      }),
+      this.paymentGroupRepository.count({
+        where: {
+          status: PaymentStatus.COMPLETED,
+          purchaseOrder: {
+            requirement: { type },
+          },
+        },
+      }),
+      this.paymentGroupRepository.count({
+        where: {
+          status: PaymentStatus.PARTIAL,
+          purchaseOrder: {
+            requirement: { type },
+          },
+        },
+      }),
+      this.paymentGroupRepository.count({
+        where: {
+          status: PaymentStatus.CANCELLED,
+          purchaseOrder: {
+            requirement: { type },
+          },
+        },
+      }),
+      // Nueva consulta: PaymentDetails con comprobante pero sin facturas
+      this.paymentDetailRepository
+        .createQueryBuilder('paymentDetail')
+        .leftJoin('paymentDetail.paymentGroup', 'paymentGroup')
+        .leftJoin('paymentGroup.purchaseOrder', 'purchaseOrder')
+        .leftJoin('purchaseOrder.requirement', 'requirement')
+        .leftJoin('paymentDetail.invoices', 'invoices')
+        .where('requirement.type = :type', { type })
+        .andWhere('paymentDetail.receiptImage IS NOT NULL')
+        .andWhere('invoices.id IS NULL')
+        .getCount(),
+    ]);
+
     return {
-      PENDING: paymentGroups.filter(
-        group => group.status === PaymentStatus.PENDING
-      ).length,
-      APPROVED: paymentGroups.filter(
-        group => group.status === PaymentStatus.COMPLETED
-      ).length,
-      PARTIAL: paymentGroups.filter(
-        group => group.status === PaymentStatus.PARTIAL
-      ).length,
-      CANCELLED: paymentGroups.filter(
-        group => group.status === PaymentStatus.CANCELLED
-      ).length,
+      PENDING: pending,
+      APPROVED: approved,
+      PARTIAL: partial,
+      CANCELLED: cancelled,
+      WITH_RECEIPT_NO_INVOICES: withReceiptNoInvoices,
     };
   }
 }
+

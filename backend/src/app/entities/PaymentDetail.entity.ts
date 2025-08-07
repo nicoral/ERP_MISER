@@ -6,10 +6,12 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { Employee } from './Employee.entity';
 import { PaymentGroup } from './PaymentGroup.entity';
+import { PaymentInvoice } from './PaymentInvoice.entity';
 
 export enum PaymentDetailStatus {
   PENDING = 'PENDING',
@@ -54,7 +56,7 @@ export class PaymentDetail {
   receiptImage: string; // Foto del comprobante
 
   @Column('text', { nullable: true })
-  invoiceImage: string; // Foto de la factura
+  retentionDocument: string; // Documento de retención (imagen/PDF)
 
   @Column({
     type: 'enum',
@@ -63,26 +65,8 @@ export class PaymentDetail {
   })
   physicalReceipt: PhysicalReceipt; // Comprobante físico (SI o NO)
 
-  @Column({ type: 'date', nullable: true })
-  purchaseDate: Date; // Fecha de compra
-
-  @Column({ type: 'date', nullable: true })
-  invoiceEmissionDate: Date; // Fecha de emisión de factura
-
-  @Column('varchar', { length: 100, nullable: true })
-  documentNumber: string; // Número de documento (número de la factura)
-
   @Column('text', { nullable: true })
   description: string; // Descripción del pago
-
-  @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  retentionAmount: number; // Monto de retención (si supera los S/700)
-
-  @Column('decimal', { precision: 5, scale: 2, default: 3.0 })
-  retentionPercentage: number; // Porcentaje de retención (3% para bienes)
-
-  @Column('boolean', { default: false })
-  hasRetention: boolean; // Indica si aplica retención
 
   // Relación con la orden de compra
   @ManyToOne(() => PaymentGroup, paymentGroup => paymentGroup.paymentDetails, {
@@ -105,6 +89,13 @@ export class PaymentDetail {
 
   @Column('text', { nullable: true })
   rejectionReason: string; // Motivo de rechazo
+
+  // Relación con las facturas (1:N)
+  @OneToMany(() => PaymentInvoice, invoice => invoice.paymentDetail, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  invoices: PaymentInvoice[];
 
   @CreateDateColumn({
     name: 'created_at',

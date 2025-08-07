@@ -48,30 +48,12 @@ export class UpdatePaymentDetailReceiptDto {
   receiptImage?: string; // URL de Cloudinary
 
   @IsOptional()
+  @IsString()
+  retentionDocument?: string; // URL de Cloudinary del documento de retención
+
+  @IsOptional()
   @IsEnum(PhysicalReceipt)
   physicalReceipt?: PhysicalReceipt;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-}
-
-export class UpdatePaymentDetailInvoiceDto {
-  @IsOptional()
-  @IsString()
-  purchaseDate?: string;
-
-  @IsOptional()
-  @IsString()
-  invoiceEmissionDate?: string;
-
-  @IsOptional()
-  @IsString()
-  documentNumber?: string;
-
-  @IsOptional()
-  @IsString()
-  invoiceImage?: string; // URL de Cloudinary
 
   @IsOptional()
   @IsString()

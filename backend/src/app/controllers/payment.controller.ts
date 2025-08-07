@@ -21,7 +21,6 @@ import { CreatePaymentGroupDto } from '../dto/payment/create-payment-group.dto';
 import { UpdatePaymentGroupDto } from '../dto/payment/update-payment-group.dto';
 import { CreatePaymentDetailDto } from '../dto/payment/create-payment-detail.dto';
 import { UpdatePaymentDetailReceiptDto } from '../dto/payment/create-payment-detail.dto';
-import { UpdatePaymentDetailInvoiceDto } from '../dto/payment/create-payment-detail.dto';
 import { UpdatePaymentDetailStatusDto } from '../dto/payment/create-payment-detail.dto';
 import { PaymentGroup } from '../entities/PaymentGroup.entity';
 import { PaymentDetail } from '../entities/PaymentDetail.entity';
@@ -49,13 +48,21 @@ export class PaymentController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('type') type?: 'ARTICLE' | 'SERVICE',
-    @Query('search') search?: string
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('hasReceiptNoInvoices') hasReceiptNoInvoices?: boolean
   ) {
+    const filters = {
+      status,
+      hasReceiptNoInvoices: hasReceiptNoInvoices === true,
+    };
+
     return await this.paymentService.findAllPaymentGroups(
       page,
       limit,
       type,
-      search
+      search,
+      filters
     );
   }
 
@@ -69,6 +76,7 @@ export class PaymentController {
     APPROVED: number;
     PARTIAL: number;
     CANCELLED: number;
+    WITH_RECEIPT_NO_INVOICES: number;
   }> {
     return await this.paymentService.getPaymentStatistics(type);
   }
@@ -109,34 +117,24 @@ export class PaymentController {
   }
 
   @Put('details/:id/receipt')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('update_payment')
-  @AuditDescription('Actualización de comprobante de pago')
-  @UseInterceptors(FileInterceptor('receiptImage'))
+  @UseInterceptors(
+    FileInterceptor('receiptImage'),
+    FileInterceptor('retentionDocument')
+  )
   async updatePaymentDetailReceipt(
-    @Param('id') id: number,
-    @Body() updatePaymentDetailReceiptDto: UpdatePaymentDetailReceiptDto,
-    @UploadedFile() file?: Express.Multer.File
-  ): Promise<PaymentDetail> {
+    @Param('id') id: string,
+    @Body() updateReceiptDto: UpdatePaymentDetailReceiptDto,
+    @Request() req: any,
+    @UploadedFile() receiptImage?: Express.Multer.File,
+    @UploadedFile() retentionDocument?: Express.Multer.File
+  ) {
     return await this.paymentService.updatePaymentDetailReceipt(
-      id,
-      updatePaymentDetailReceiptDto,
-      file
-    );
-  }
-
-  @Put('details/:id/invoice')
-  @RequirePermissions('update_payment')
-  @AuditDescription('Actualización de factura de pago')
-  @UseInterceptors(FileInterceptor('invoiceImage'))
-  async updatePaymentDetailInvoice(
-    @Param('id') id: number,
-    @Body() updatePaymentDetailInvoiceDto: UpdatePaymentDetailInvoiceDto,
-    @UploadedFile() file?: Express.Multer.File
-  ): Promise<PaymentDetail> {
-    return await this.paymentService.updatePaymentDetailInvoice(
-      id,
-      updatePaymentDetailInvoiceDto,
-      file
+      Number(id),
+      updateReceiptDto,
+      receiptImage,
+      retentionDocument
     );
   }
 
@@ -155,8 +153,15 @@ export class PaymentController {
     );
   }
 
+  @Put(':id/cancel')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('update_payment')
+  async cancelPaymentGroup(@Param('id') id: string) {
+    return await this.paymentService.cancelPaymentGroup(Number(id));
+  }
+
   @Get('details/:id')
-  @RequirePermissions('view_payments')
+  @RequirePermissions('view_payment')
   @AuditDescription('Consulta de pago individual')
   async findPaymentDetailById(@Param('id') id: number): Promise<PaymentDetail> {
     return await this.paymentService.findPaymentDetailById(id);
