@@ -13,6 +13,9 @@ import {
 import { EyeIcon, EditIcon } from '../../components/common/Icons';
 import type { ExitPart } from '../../types/exitPart';
 import { EntryPartType } from '../../types/entryPart';
+import { useExitPartPdf } from './hooks/useExitPartPdf';
+import { FileIcon, Loader2 } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
 
 export const ExitPartList = (props: { type?: EntryPartType }) => {
   const navigate = useNavigate();
@@ -23,7 +26,9 @@ export const ExitPartList = (props: { type?: EntryPartType }) => {
     props.type || EntryPartType.ARTICLE
   );
   const [localError, setLocalError] = useState<string | null>(null);
-
+  const { downloadPdf } = useExitPartPdf();
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const { showError } = useToast();
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -82,6 +87,18 @@ export const ExitPartList = (props: { type?: EntryPartType }) => {
       navigate(
         ROUTES.EXIT_PART_EDIT_SERVICES.replace(':id', exitPart.id.toString())
       );
+    }
+  };
+
+  const handleDownloadPdf = async (exitPart: ExitPart) => {
+    setDownloadingId(exitPart.id);
+    try {
+      await downloadPdf(exitPart.id);
+    } catch (error) {
+      console.error('Error al descargar PDF:', error);
+      showError('Error', 'No se pudo descargar el PDF');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -165,6 +182,19 @@ export const ExitPartList = (props: { type?: EntryPartType }) => {
       onClick: handleEdit,
       isHidden: (exitPart: ExitPart) =>
         exitPart.status !== ExitPartStatus.PENDING,
+    },
+    {
+      icon: (exitPart: ExitPart) =>
+        downloadingId === exitPart.id ? (
+          <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-white" />
+        ) : (
+          <FileIcon className="w-5 h-5 text-blue-600" />
+        ),
+      label: 'Generar PDF de Conformidad',
+      onClick: (exitPart: ExitPart) => handleDownloadPdf(exitPart),
+      disabled: (exitPart: ExitPart) => downloadingId === exitPart.id,
+      isHidden: (exitPart: ExitPart) =>
+        exitPart.status !== ExitPartStatus.COMPLETED,
     },
   ];
 

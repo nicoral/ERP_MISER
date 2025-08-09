@@ -5,12 +5,14 @@ import {
   Body,
   Param,
   Req,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
@@ -62,5 +64,18 @@ export class ExitPartController {
   @AuditDescription('Consulta de detalle de parte de ingreso')
   async findOne(@Param('id') id: number): Promise<ExitPart> {
     return this.exitPartService.findOne(id);
+  }
+
+  @Get(':id/exit-part')
+  @RequirePermissions('view_entry_parts')
+  @AuditDescription('Consulta de parte de salida')
+  async getExitPart(@Res() res: Response, @Param('id') id: number) {
+    const pdfBuffer = await this.exitPartService.generateExitPartPdf(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="parte-de-salida.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
   }
 }

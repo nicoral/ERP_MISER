@@ -84,6 +84,17 @@ export const exitPartService = {
     );
     return response;
   },
+
+  async downloadExitPartPdf(id: number): Promise<Blob> {
+    const response = await createApiCall<Blob>(
+      `${BASE_URL}/${id}/exit-part`,
+      {
+        method: 'GET',
+      },
+      true
+    );
+    return response;
+  },
 };
 
 // Legacy exports for backward compatibility

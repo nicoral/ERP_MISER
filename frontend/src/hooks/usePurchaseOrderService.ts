@@ -16,10 +16,12 @@ export const usePurchaseOrders = (
   });
 };
 
-export const usePurchaseOrdersWithoutExitPart = () => {
+export const usePurchaseOrdersWithoutExitPart = (
+  type: 'article' | 'service'
+) => {
   return useQuery({
-    queryKey: ['purchase-orders-without-exit-part'],
-    queryFn: purchaseOrderService.getPurchaseOrderWithoutExitPart,
+    queryKey: ['purchase-orders-without-exit-part', type],
+    queryFn: () => purchaseOrderService.getPurchaseOrderWithoutExitPart(type),
   });
 };
 

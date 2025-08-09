@@ -148,7 +148,9 @@ export class PurchaseOrderController {
   @Get('without-exit-part/summary')
   @RequirePermissions('view_quotations')
   @AuditDescription('Obtener órdenes de compra sin parte de salida')
-  getPurchaseOrderWithoutExitPart() {
-    return this.purchaseOrderService.getPurchaseOrderWithoutExitPart();
+  getPurchaseOrderWithoutExitPart(
+    @Query('type') type: 'article' | 'service'
+  ) {
+    return this.purchaseOrderService.getPurchaseOrderWithoutExitPart(type);
   }
 }

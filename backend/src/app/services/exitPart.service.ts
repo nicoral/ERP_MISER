@@ -14,6 +14,12 @@ import { StorageService } from './storage.service';
 import { formatNumber } from '../utils/transformer';
 import { Service } from '../entities/Service.entity';
 import { ExitPartService as ExitPartServiceEntity } from '../entities/ExitPartService.entity';
+import { WarehouseArticle } from '../entities/WarehouseArticle.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as Handlebars from 'handlebars';
+import * as puppeteer from 'puppeteer';
+import { QRService } from './qr.service';
 
 @Injectable()
 export class ExitPartService {
@@ -29,7 +35,8 @@ export class ExitPartService {
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
     private readonly storageService: StorageService,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly qrService: QRService
   ) {}
 
   async findAll(
@@ -60,7 +67,12 @@ export class ExitPartService {
       where: { id },
       relations: {
         employee: true,
-        purchaseOrder: true,
+        purchaseOrder: {
+          requirement: {
+            costCenter: true,
+            costCenterSecondary: true,
+          },
+        },
         warehouse: true,
         exitPartArticles: {
           article: true,
@@ -92,6 +104,7 @@ export class ExitPartService {
         observation: exitPartData.observation,
         exitDate: new Date(exitPartData.exitDate),
         status: ExitPartStatus.COMPLETED,
+        type: exitPartArticles.length > 0 ? ExitPartType.ARTICLE : ExitPartType.SERVICE,
         imageUrl: exitPartData.imageUrl,
         purchaseOrder: exitPartData.purchaseOrderId
           ? { id: exitPartData.purchaseOrderId }
@@ -132,6 +145,10 @@ export class ExitPartService {
               `Cantidad entregada es mayor a la cantidad en el almacén`
             );
           }
+
+          await manager.update(WarehouseArticle, { id: warehouseArticle.id }, {
+            stock: warehouseArticle.stock - article.delivered,
+          });
 
           return manager.create(ExitPartArticle, {
             code: article.code,
@@ -212,5 +229,100 @@ export class ExitPartService {
     );
     exitPart.imageUrl = uploadResult.url;
     return this.exitPartRepository.save(exitPart);
+  }
+
+  async generateExitPartPdf(id: number): Promise<Buffer> {
+    const templateHtml = fs.readFileSync(
+      path.join(__dirname, '../../templates/exit-part.template.html'),
+      'utf8'
+    );
+    const exitPart = await this.findOne(id);
+
+    // Generar QR para el documento de salida
+    const qrUrl = this.qrService.generateExitPartURL(id, {
+      includeTimestamp: true,
+      includeVersion: true,
+      version: '1.0',
+    });
+    const qrDataUrl = await this.qrService.generateQRCode(qrUrl);
+
+    // Mapear los artículos para la tabla
+    const items = exitPart.exitPartArticles.map(exitPartArticle => ({
+      code: exitPartArticle.article?.id,
+      manufacturerCode: exitPartArticle.article?.code || '',
+      quantity: exitPartArticle.quantity,
+      unit: exitPartArticle.unit,
+      pieces: exitPartArticle.delivered,
+      location: '',
+      description: exitPartArticle.name,
+      brand: exitPartArticle.article?.brand?.name || '',
+    }));
+
+    const currentTime = new Date();
+    const data = {
+      // Header data
+      code: exitPart.code,
+
+      // Information section
+      date: new Date(exitPart.exitDate).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+      warehouse: exitPart.warehouse?.name || 'No especificado',
+      primaryCostCenter: exitPart.purchaseOrder?.requirement?.costCenter?.description || 'No especificado',
+      secondaryCostCenter: exitPart.purchaseOrder?.requirement?.costCenterSecondary?.description || 'No especificado',
+
+      // Table items
+      items: items,
+
+      // Signature
+      signature: exitPart.employee?.signature
+        ? (
+            await this.storageService.getPrivateFileUrl(
+              exitPart.employee.signature
+            )
+          ).url
+        : null,
+
+      // Responsible
+      responsible: exitPart.employee
+        ? `${exitPart.employee.firstName} ${exitPart.employee.lastName}`
+        : 'No asignado',
+
+      // Observations
+      observations: exitPart.observation || 'Sin observaciones',
+
+      // Footer
+      time: currentTime.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+
+      // QR Code
+      qrCode: qrDataUrl,
+    };
+
+    const template = Handlebars.compile(templateHtml);
+    const html = template({ ...data });
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10px', bottom: '10px', left: '10px', right: '10px' },
+    });
+
+    await browser.close();
+
+    return Buffer.from(pdfBuffer);
   }
 }

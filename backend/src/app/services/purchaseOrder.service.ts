@@ -674,14 +674,19 @@ export class PurchaseOrderService {
     return createdPaymentGroups;
   }
 
-  async getPurchaseOrderWithoutExitPart(): Promise<PurchaseOrder[]> {
+  async getPurchaseOrderWithoutExitPart(
+    type: 'article' | 'service'
+  ): Promise<PurchaseOrder[]> {
     const purchaseOrders = await this.purchaseOrderRepository
-      .createQueryBuilder('purchaseOrder')
-      .leftJoinAndSelect('purchaseOrder.exitParts', 'exitParts')
-      .where('exitParts.id IS NULL')
-      .getMany();
+      .find({
+        relations: ['exitParts', 'requirement'],
+        where: {
+          requirement: { type: type.toUpperCase() as 'ARTICLE' | 'SERVICE' },
+        },
+        order: { createdAt: 'DESC' },
+      });
 
-    return purchaseOrders;
+    return purchaseOrders.filter(purchaseOrder => purchaseOrder.exitParts.length === 0);
   }
 
   async getLastPurchaseOrderByType(

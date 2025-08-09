@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Parte de Salida</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 0; }
+    .header { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    .header td { border: none; }
+    .logo { width: 120px; }
+    .title { font-size: 20px; font-weight: bold; text-align: center; }
+    .subtitle { font-size: 16px; text-align: center; }
+    .company-name { font-size: 12px; text-align: center; }
+    .info-block { 
+      padding: 8px; 
+      margin-bottom: 8px; 
+      width: 100%;
+    }
+    .info-row { 
+      display: flex; 
+      margin-bottom: 6px; 
+      align-items: center;
+    }
+    .info-label { 
+      font-weight: bold; 
+      font-size: 11px;
+      width: 200px; 
+      min-width: 200px;
+    }
+    .info-box { 
+      padding: 2px 6px; 
+      margin-left: 8px; 
+      min-width: 120px; 
+      display: inline-block;
+      background: white;
+    }
+    .main-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .main-table th, .main-table td { border: 1px solid #222; padding: 4px 6px; font-size: 11px; }
+    .main-table th { background: #f5f5f5; font-weight: bold; }
+    .footer { font-size: 11px; text-align: center; margin-top: 10px; }
+    .approval-line { border-top: 1px solid #222; margin: 10px 0 5px 0; }
+    .observations-label { font-weight: bold; margin-bottom: 5px; }
+    .observations-box { 
+      border: 1px solid #222; 
+      padding: 8px; 
+      min-height: 40px; 
+      margin-top: 5px;
+    }
+
+  </style>
+</head>
+<body style="padding: 32px;">
+  <table class="header">
+    <tr>
+      <td class="logo" rowspan="3">
+        <img src="https://res.cloudinary.com/dgvnt5xct/image/upload/v1750026998/mixer/brands/ui6vpk7xtpcefobeq8xk.jpg" alt="Logo" style="width: 100px;">
+      </td>
+      <td class="title" colspan="2">PARTE DE SALIDA N° {{code}}</td>
+    </tr>
+    <tr>
+      <td class="subtitle" colspan="2">Salida de Almacén</td>
+    </tr>
+    <tr>
+      <td class="company-name" colspan="2">MAQUINARIA Y SERVICIOS ALTO HUARCA S.A.</td>
+    </tr>
+  </table>
+
+  <div class="info-block">
+    <div class="info-row">
+      <span class="info-label">FECHA:</span>
+      <div class="info-box">{{date}}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">ALMACÉN SALIDA:</span>
+      <div class="info-box">{{warehouse}}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">CENTRO DE COSTO PRIMARIO:</span>
+      <div class="info-box" style="min-width: 300px;">{{primaryCostCenter}}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">CENTRO DE COSTO SECUNDARIO:</span>
+      <div class="info-box" style="min-width: 200px;">{{secondaryCostCenter}}</div>
+    </div>
+  </div>
+
+    
+
+  <table class="main-table">
+    <tr>
+      <th style="font-size: 7px;">CÓDIGO ARTÍCULO</th>
+      <th style="font-size: 7px;">CÓDIGO FÁBRICA</th>
+      <th style="font-size: 7px;">CANTIDAD</th>
+      <th style="font-size: 7px;">UNIDAD</th>
+      <th style="font-size: 7px;">PIEZAS</th>
+      <th style="font-size: 7px;">DESCRIPCIÓN ARTÍCULO</th>
+      <th style="font-size: 7px;">MARCA</th>
+      <th style="font-size: 7px;">UBICACIÓN</th>
+    </tr>
+    {{#each items}}
+    <tr>
+      <td>{{code}}</td>
+      <td>{{manufacturerCode}}</td>
+      <td>{{quantity}}</td>
+      <td>{{unit}}</td>
+      <td>{{pieces}}</td>
+      <td>{{description}}</td>
+      <td>{{brand}}</td>
+      <td>{{location}}</td>
+    </tr>
+    {{/each}}
+  </table>
+
+  <div style="margin-top: 20px; width: 140px;">
+      <img src="{{signature}}" alt="Firma" style="width: 100px; display: block; margin: 0 auto;">
+      <div class="approval-line" style="width: 132px; margin-top: 10px;"></div>
+      <div style="font-weight: bold; font-size: 11px; margin-bottom: 10px; text-align: center;">{{responsible}}</div>
+      <div style="font-weight: bold; font-size: 11px; margin-bottom: 10px; text-align: center;">Responsable</div>
+  </div>
+
+  <div style="margin-top: 15px;">
+    <div class="observations-label">Observaciones:</div>
+    <div class="observations-box">
+      {{observations}}
+    </div>
+  </div>
+
+  <div class="footer">
+    Fecha {{date}} &nbsp; Hora {{time}} &nbsp; Página 1/1
+  </div>
+
+  <!-- QR Code -->
+  {{#if qrCode}}
+  <div style="margin-top: 15px; text-align: center;">
+    <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">Código QR para acceso digital:</div>
+    <img src="{{qrCode}}" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+  </div>
+  {{/if}}
+</body>
+</html>

@@ -37,7 +37,7 @@ type ExitPartServiceType = CreateExitPartServiceDto & {
   id: number;
 };
 
-export const ExitPartForm = () => {
+export const ExitPartForm = ({ type }: { type: 'article' | 'service' }) => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -51,7 +51,7 @@ export const ExitPartForm = () => {
   const { articles, loading: loadingArticles } =
     useArticleService(debouncedSearch);
   const { warehouses } = useAuthWarehouse();
-  const { data: purchaseOrders } = usePurchaseOrdersWithoutExitPart();
+  const { data: purchaseOrders } = usePurchaseOrdersWithoutExitPart(type);
 
   // React Query hooks
   const { data: exitPart, isLoading: loadingExitPart } = useExitPart(
@@ -257,23 +257,40 @@ export const ExitPartForm = () => {
     }));
 
     // Convertir los artículos de la orden de compra al formato del formulario
-    const purchaseOrderArticles: ExitPartArticleType[] =
-      purchaseOrder.items.map((item, index) => ({
-        id: index + 1, // Usar índice temporal como ID
-        code: item.code,
-        name: item.description,
-        unit: item.unit,
-        quantity: item.quantity,
-        delivered: 0, // Inicialmente 0, el usuario puede modificar
-        conform: false,
-        qualityCert: false,
-        guide: false,
-        inspection: InspectionStatus.PENDING,
-        observation: '',
-        articleId: item.item, // Usar el código como articleId temporal
-      }));
+    if (type === 'article') {
+      const purchaseOrderArticles: ExitPartArticleType[] =
+        purchaseOrder.items.map((item, index) => ({
+          id: index + 1, // Usar índice temporal como ID
+          code: item.code,
+          name: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          delivered: 0, // Inicialmente 0, el usuario puede modificar
+          conform: false,
+          qualityCert: false,
+          guide: false,
+          inspection: InspectionStatus.PENDING,
+          observation: '',
+          articleId: item.item, // Usar el código como articleId temporal
+        }));
+      setExitPartArticles(purchaseOrderArticles);
+    }
+    if (type === 'service') {
+      const purchaseOrderServices: ExitPartServiceType[] =
+        purchaseOrder.items.map((item, index) => ({
+          id: index + 1, // Usar índice temporal como ID
+          code: item.code,
+          name: item.description,
+          duration: item.duration || 0,
+          durationType: item.durationType || '',
+          received: 0,
+          inspection: InspectionStatus.PENDING,
+          observation: '',
+          serviceId: item.item, // Usar el código como serviceId temporal
+        }));
+      setExitPartServices(purchaseOrderServices);
+    }
 
-    setExitPartArticles(purchaseOrderArticles);
     setShowPurchaseOrderModal(false);
   };
 
@@ -425,10 +442,14 @@ export const ExitPartForm = () => {
     );
   }
 
+  const title = type === 'article' ? 'de Compra' : 'de Servicio';
+
   return (
     <div className="mx-auto p-2">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-        {isEditing ? 'Editar Parte de Salida' : 'Nuevo Parte de Salida'}
+        {isEditing
+          ? `Editar Parte de Salida ${title}`
+          : `Nuevo Parte de Salida ${title}`}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -515,332 +536,355 @@ export const ExitPartForm = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Artículos
-            </h3>
-            {!isEditing && !form.purchaseOrderId && (
-              <button
-                type="button"
-                onClick={() => setShowArticleModal(true)}
-                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Agregar Artículo
-              </button>
-            )}
-            {!isEditing && form.purchaseOrderId && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Artículos de la orden de compra seleccionada
-                </span>
+        {type === 'article' && (
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Artículos
+              </h3>
+              {!isEditing && !form.purchaseOrderId && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setForm(prev => ({ ...prev, purchaseOrderId: '' }));
-                    setExitPartArticles([]);
-                  }}
-                  className="px-3 py-1 text-sm font-medium text-red-600 bg-white border border-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  onClick={() => setShowArticleModal(true)}
+                  className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Cambiar Orden
+                  <PlusIcon className="w-4 h-4 mr-2" />
+                  Agregar Artículo
                 </button>
+              )}
+              {!isEditing && form.purchaseOrderId && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Artículos de la orden de compra seleccionada
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(prev => ({ ...prev, purchaseOrderId: '' }));
+                      setExitPartArticles([]);
+                    }}
+                    className="px-3 py-1 text-sm font-medium text-red-600 bg-white border border-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Cambiar Orden
+                  </button>
+                </div>
+              )}
+            </div>
+            {exitPartArticles.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                {form.purchaseOrderId
+                  ? 'Selecciona una orden de compra para cargar los artículos automáticamente'
+                  : 'Agrega artículos para la parte de salida'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        #
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Descripción
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        UND
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Cantidad
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Saliendo
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Conforme
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Cert. Calidad
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Guía
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Inspección
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Observación
+                      </th>
+                      {!isEditing && (
+                        <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          Acciones
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {exitPartArticles.map((article, idx) => (
+                      <tr key={article.id}>
+                        <td className="px-2 py-2 text-center">{idx + 1}</td>
+                        <td className="px-2 py-2">{article.name}</td>
+                        <td className="px-2 py-2">{article.unit}</td>
+                        <td className="px-2 py-2 text-center">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {article.quantity}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <input
+                            type="number"
+                            value={article.delivered}
+                            min={0}
+                            max={
+                              article.quantity > 0
+                                ? article.quantity
+                                : 9999999999
+                            }
+                            onChange={e =>
+                              handleArticleInput(
+                                article.id,
+                                'delivered',
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                            className="w-16 px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          />
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={article.conform}
+                            onChange={e =>
+                              handleArticleInput(
+                                article.id,
+                                'conform',
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={article.qualityCert}
+                            onChange={e =>
+                              handleArticleInput(
+                                article.id,
+                                'qualityCert',
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={article.guide}
+                            onChange={e =>
+                              handleArticleInput(
+                                article.id,
+                                'guide',
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            value={article.inspection}
+                            onChange={e =>
+                              handleArticleInput(
+                                article.id,
+                                'inspection',
+                                e.target.value as
+                                  | 'PENDING'
+                                  | 'ACCEPTED'
+                                  | 'REJECTED'
+                              )
+                            }
+                            className="px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          >
+                            <option value="PENDING">Pendiente</option>
+                            <option value="ACCEPTED">Aceptado</option>
+                            <option value="REJECTED">Rechazado</option>
+                          </select>
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            type="text"
+                            value={article.observation || ''}
+                            onChange={e =>
+                              handleArticleInput(
+                                article.id,
+                                'observation',
+                                e.target.value.toUpperCase()
+                              )
+                            }
+                            className="w-full px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          />
+                        </td>
+                        {!isEditing && (
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeArticle(article.id)}
+                              className="bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-          {exitPartArticles.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              {form.purchaseOrderId
-                ? 'Selecciona una orden de compra para cargar los artículos automáticamente'
-                : 'Agrega artículos para la parte de salida'}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      #
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Descripción
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      UND
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Cantidad
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Saliendo
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Conforme
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Cert. Calidad
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Guía
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Inspección
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Observación
-                    </th>
-                    {!isEditing && (
-                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                        Acciones
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {exitPartArticles.map((article, idx) => (
-                    <tr key={article.id}>
-                      <td className="px-2 py-2 text-center">{idx + 1}</td>
-                      <td className="px-2 py-2">{article.name}</td>
-                      <td className="px-2 py-2">{article.unit}</td>
-                      <td className="px-2 py-2 text-center">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          {article.quantity}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <input
-                          type="number"
-                          value={article.delivered}
-                          min={0}
-                          max={
-                            article.quantity > 0 ? article.quantity : 9999999999
-                          }
-                          onChange={e =>
-                            handleArticleInput(
-                              article.id,
-                              'delivered',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="w-16 px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={article.conform}
-                          onChange={e =>
-                            handleArticleInput(
-                              article.id,
-                              'conform',
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={article.qualityCert}
-                          onChange={e =>
-                            handleArticleInput(
-                              article.id,
-                              'qualityCert',
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={article.guide}
-                          onChange={e =>
-                            handleArticleInput(
-                              article.id,
-                              'guide',
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          value={article.inspection}
-                          onChange={e =>
-                            handleArticleInput(
-                              article.id,
-                              'inspection',
-                              e.target.value as
-                                | 'PENDING'
-                                | 'ACCEPTED'
-                                | 'REJECTED'
-                            )
-                          }
-                          className="px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="PENDING">Pendiente</option>
-                          <option value="ACCEPTED">Aceptado</option>
-                          <option value="REJECTED">Rechazado</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          type="text"
-                          value={article.observation || ''}
-                          onChange={e =>
-                            handleArticleInput(
-                              article.id,
-                              'observation',
-                              e.target.value.toUpperCase()
-                            )
-                          }
-                          className="w-full px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-                        />
-                      </td>
-                      {!isEditing && (
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeArticle(article.id)}
-                            className="bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Sección de Servicios */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Servicios
-            </h3>
-            {!isEditing && (
-              <button
-                type="button"
-                onClick={() => setShowServiceModal(true)}
-                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Agregar Servicio
-              </button>
-            )}
-          </div>
-          {exitPartServices.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Agrega servicios para la parte de salida
+        {type === 'service' && (
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Servicios
+              </h3>
+              {!isEditing && !form.purchaseOrderId && (
+                <button
+                  type="button"
+                  onClick={() => setShowServiceModal(true)}
+                  className="flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <PlusIcon className="w-4 h-4 mr-2" />
+                  Agregar Servicio
+                </button>
+              )}
+              {!isEditing && form.purchaseOrderId && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Servicios de la orden de servicio seleccionado
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(prev => ({ ...prev, purchaseOrderId: '' }));
+                      setExitPartServices([]);
+                    }}
+                    className="px-3 py-1 text-sm font-medium text-red-600 bg-white border border-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Cambiar Orden
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      #
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Descripción
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Duración
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Recibido
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Inspección
-                    </th>
-                    <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Observación
-                    </th>
-                    {!isEditing && (
+            {exitPartServices.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                Agrega servicios para la parte de salida
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
                       <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                        Acciones
+                        #
                       </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {exitPartServices.map((service, idx) => (
-                    <tr key={service.id}>
-                      <td className="px-2 py-2 text-center">{idx + 1}</td>
-                      <td className="px-2 py-2">{service.name}</td>
-                      <td className="px-2 py-2">
-                        {service.duration} {service.durationType}
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          type="number"
-                          value={service.received}
-                          onChange={e =>
-                            handleServiceInput(
-                              service.id,
-                              'received',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          min="0"
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          value={service.inspection}
-                          onChange={e =>
-                            handleServiceInput(
-                              service.id,
-                              'inspection',
-                              e.target.value
-                            )
-                          }
-                          className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        >
-                          <option value="PENDING">Pendiente</option>
-                          <option value="ACCEPTED">Aceptado</option>
-                          <option value="REJECTED">Rechazado</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          type="text"
-                          value={service.observation || ''}
-                          onChange={e =>
-                            handleServiceInput(
-                              service.id,
-                              'observation',
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          placeholder="Observación..."
-                        />
-                      </td>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Descripción
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Duración
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Recibido
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Inspección
+                      </th>
+                      <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Observación
+                      </th>
                       {!isEditing && (
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeService(service.id)}
-                            className="bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </td>
+                        <th className="px-2 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          Acciones
+                        </th>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {exitPartServices.map((service, idx) => (
+                      <tr key={service.id}>
+                        <td className="px-2 py-2 text-center">{idx + 1}</td>
+                        <td className="px-2 py-2">{service.name}</td>
+                        <td className="px-2 py-2">
+                          {service.duration} {service.durationType}
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            type="number"
+                            value={service.received}
+                            onChange={e =>
+                              handleServiceInput(
+                                service.id,
+                                'received',
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            min="0"
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            value={service.inspection}
+                            onChange={e =>
+                              handleServiceInput(
+                                service.id,
+                                'inspection',
+                                e.target.value
+                              )
+                            }
+                            className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          >
+                            <option value="PENDING">Pendiente</option>
+                            <option value="ACCEPTED">Aceptado</option>
+                            <option value="REJECTED">Rechazado</option>
+                          </select>
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            type="text"
+                            value={service.observation || ''}
+                            onChange={e =>
+                              handleServiceInput(
+                                service.id,
+                                'observation',
+                                e.target.value
+                              )
+                            }
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            placeholder="Observación..."
+                          />
+                        </td>
+                        {!isEditing && (
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeService(service.id)}
+                              className="bg-transparent text-red-600 hover:text-red-900 dark:hover:text-red-400"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3">
           <button

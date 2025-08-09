@@ -106,9 +106,11 @@ export const purchaseOrderService = {
     return response;
   },
 
-  async getPurchaseOrderWithoutExitPart(): Promise<PurchaseOrder[]> {
+  async getPurchaseOrderWithoutExitPart(
+    type: 'article' | 'service'
+  ): Promise<PurchaseOrder[]> {
     const response = await createApiCall<PurchaseOrder[]>(
-      `${BASE_URL}/without-exit-part/summary`,
+      `${BASE_URL}/without-exit-part/summary?type=${type}`,
       { method: 'GET' }
     );
     return response;

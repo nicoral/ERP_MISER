@@ -5,12 +5,14 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { ExitPartStatus, InspectionStatus } from '../../types/exitPart';
 import { ROUTES } from '../../config/constants';
+import { useExitPartPdf } from './hooks/useExitPartPdf';
 
 export const ExitPartDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: exitPart, isLoading, error } = useExitPart(parseInt(id!));
   const [localError, setLocalError] = useState<string | null>(null);
+  const { downloadPdf, isDownloading } = useExitPartPdf();
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -73,6 +75,15 @@ export const ExitPartDetails = () => {
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Editar
+            </button>
+          )}
+          {exitPart.status === ExitPartStatus.COMPLETED && (
+            <button
+              onClick={() => downloadPdf(exitPart.id)}
+              disabled={isDownloading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {isDownloading ? 'Descargando...' : 'Descargar PDF'}
             </button>
           )}
           <button

@@ -239,11 +239,11 @@ const AppRoutes = () => {
           />
           <Route
             path={ROUTES.EXIT_PART_CREATE_ARTICLES}
-            element={<ExitPartForm />}
+            element={<ExitPartForm type="article" />}
           />
           <Route
             path={ROUTES.EXIT_PART_EDIT_ARTICLES}
-            element={<ExitPartForm />}
+            element={<ExitPartForm type="article" />}
           />
           <Route
             path={ROUTES.EXIT_PART_DETAILS_ARTICLES}
@@ -251,11 +251,11 @@ const AppRoutes = () => {
           />
           <Route
             path={ROUTES.EXIT_PART_CREATE_SERVICES}
-            element={<ExitPartForm />}
+            element={<ExitPartForm type="service" />}
           />
           <Route
             path={ROUTES.EXIT_PART_EDIT_SERVICES}
-            element={<ExitPartForm />}
+            element={<ExitPartForm type="service" />}
           />
           <Route
             path={ROUTES.EXIT_PART_DETAILS_SERVICES}

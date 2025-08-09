@@ -248,6 +248,37 @@ export class QRService {
   }
 
   /**
+   * Genera URL para partes de salida
+   */
+  generateExitPartURL(
+    exitPartId: number,
+    options?: {
+      includeTimestamp?: boolean;
+      includeVersion?: boolean;
+      version?: string;
+    }
+  ): string {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    let url = `${baseUrl}/exit-parts/${exitPartId}/details`;
+
+    const params = new URLSearchParams();
+
+    if (options?.includeTimestamp) {
+      params.append('t', Date.now().toString());
+    }
+
+    if (options?.includeVersion && options?.version) {
+      params.append('v', options.version);
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    return url;
+  }
+
+  /**
    * Genera una URL para el frontend con datos estructurados
    */
   generateFrontendURL(data: QRData): string {
