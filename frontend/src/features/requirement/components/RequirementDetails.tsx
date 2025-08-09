@@ -5,6 +5,7 @@ import {
   useSignRequirement,
   useUploadInform,
   useRequirementSignatureConfiguration,
+  useGenerateRequirementPdf,
 } from '../hooks/useRequirements';
 import { formatDate } from '../../../lib/utils';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner';
@@ -59,7 +60,8 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
   const signRequirementMutation = useSignRequirement();
   const rejectRequirementMutation = useRejectRequirement();
   const uploadInformMutation = useUploadInform();
-
+  const { mutateAsync: generatePdf, isPending: isGeneratingPdf } =
+    useGenerateRequirementPdf();
   // Hook para la configuración de firmas
   const { data: signatureConfig, isLoading: loadingSignatureConfig } =
     useRequirementSignatureConfiguration(
@@ -184,6 +186,20 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
       }
     } catch {
       showError('Error', 'No se pudo cambiar la prioridad');
+    }
+  };
+
+  const handleDownloadPdf = async (requirement: Requirement) => {
+    try {
+      const blob = await generatePdf(requirement.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${requirement.code}.pdf`;
+      a.click();
+      showSuccess('Descargado', 'Requerimiento descargado correctamente');
+    } catch {
+      showError('Error', 'No se pudo descargar el PDF');
     }
   };
 
@@ -456,7 +472,7 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
       </div>
 
       {/* Botones de acción */}
-      <div className="flex justify-between">
+      <div className="flex justify-end space-x-2">
         <button
           onClick={() =>
             navigate(
@@ -469,6 +485,14 @@ export const RequirementDetails = ({ type }: RequirementDetailsProps) => {
         >
           Volver
         </button>
+        {requirement && (
+          <button
+            onClick={() => handleDownloadPdf(requirement)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingPdf ? 'Generando...' : 'Generar PDF'}
+          </button>
+        )}
         <div className="flex space-x-2">
           {requirement && requirement.inform && (
             <button
